@@ -1,6 +1,8 @@
 import sys
 import os
 import time
+import mysql.connector
+from nanoid import generate
 from spllibs import Yazaki, SplApi, SplSharePoint, LogActivity as log
 from dotenv import load_dotenv
 load_dotenv()
@@ -18,6 +20,12 @@ SHAREPOINT_SITE_URL=os.environ.get('SHAREPOINT_URL')
 SHAREPOINT_SITE_NAME=os.environ.get('SHAREPOINT_URL_SITE')
 SHAREPOINT_USERNAME=os.environ.get('SHAREPOINT_USERNAME')
 SHAREPOINT_PASSWORD=os.environ.get('SHAREPOINT_PASSWORD')
+
+DB_HOSTNAME=os.environ.get('DATABASE_URL')
+DB_PORT=os.environ.get('DATABASE_PORT')
+DB_NAME=os.environ.get('DATABASE_NAME')
+DB_USERNAME=os.environ.get('DATABASE_USERNAME')
+DB_PASSWORD=os.environ.get('DATABASE_PASSWORD')
 
 ### Initail Data
 yk = Yazaki(SERVICE_TYPE,YAZAKI_HOST, YAZAKI_USER, YAZAKI_PASSWORD)
@@ -95,6 +103,52 @@ def main():
     # os.removedirs(root_pathname)
     log(name='SPL', subject="DELETE", status='Active',message=f"Delete EXPORT Folder")
     
+def download():
+    token = spl.login()
+    obj = spl.get_link(token)
+    i = 0
+    while i < len(obj):
+        r = obj[i]
+        filename = spl.get_file(r['file_name'], r['file_path'], r['file_type'])
+        if filename:
+            if r['file_type'] == 'O':
+                head = spl.header_orderplan(filename)
+                data = []
+                f = open(filename, 'r')
+                for i in f:
+                    b = spl.read_orderplan(head, i)
+                    data.append(b)
+                f.close()
+                # ### remove temp files after load data.
+                # os.remove(filename)
+                
+                ### Insert MySQL
+                mydb = mysql.connector.connect(
+                    host=DB_HOSTNAME,
+                    port=DB_PORT,
+                    user=DB_USERNAME,
+                    password=DB_PASSWORD,
+                    database=DB_NAME,
+                )
+
+                mycursor = mydb.cursor()
+                sql = "INSERT INTO tbt_order_plans(id, file_gedi_id, vendor, cd, unit, whs, tagrp, factory, sortg1, sortg2, sortg3, plantype, pono, biac, shiptype, etdtap, partno, partname, pc, commercial, sampleflg, orderorgi, orderround, firmflg, shippedflg, shippedqty, ordermonth, balqty, bidrfl, deleteflg, ordertype, reasoncd, upddte, updtime, carriercode, bioabt, bicomd, bistdp, binewt, bigrwt, bishpc, biivpx, bisafn, biwidt, bihigh, bileng, lotno, is_active, created_at, updated_at)VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+                val = []
+                for a in data:
+                    # print(a)
+                    id = generate(size=36)
+                    val.append(id, r['id'], a['vendor'], a['cd'], a['unit'], a['whs'], a['tagrp'], a['factory'], a['sortg1'], a['sortg2'], a['sortg3'], a['plantype'], a['pono'], a['biac'], a['shiptype'], a['etdtap'], a['partno'], a['partname'], a['pc'], a['commercial'], a['sampleflg'], a['orderorgi'], a['orderround'], a['firmflg'], a['shippedflg'], a['shippedqty'], a['ordermonth'], a['balqty'], a['bidrfl'], a['deleteflg'], a['ordertype'], a['reasoncd'], a['upddte'], a['updtime'], a['carriercode'], a['bioabt'], a['bicomd'], a['bistdp'], a['binewt'], a['bigrwt'], a['bishpc'], a['biivpx'], a['bisafn'], a['biwidt'], a['bihigh'], a['bileng'],a['lotno'],'1', 'current_timestamp', 'current_timestamp')
+                    
+                ### Commit MySQL
+                mycursor.execute(sql, val)
+                mydb.commit()
+                mydb.close()
+        i += 1
+    if spl.logout(token):
+        print(f'end service')
+    
 if __name__ == '__main__':
-    main()
+    # main()
+    # time.sleep(10)
+    download()
     sys.exit(0)

@@ -291,6 +291,38 @@ class SplApi:
         self.host = host
         self.username = username
         self.password = urllib.parse.quote(password)
+        
+    def __trim_txt(self, txt):
+        return str(txt).lstrip().rstrip()
+    
+    def __check_partname(self, fac, part):
+        p = str(part).lstrip().rstrip().replace(".", "")
+        partname = p
+        if fac == "AW":
+            try:
+                k = str(p[: p.index(" ")]).strip()
+                s = p[len(k) :]
+                ss = s.strip()
+                sn = str(ss[: ss.index(" ")]).strip()
+                ssize = str(ss[: ss.index(" ")])
+
+                if len(sn) > 1:
+                    ssize = str(f"{sn[:1]}.{sn[1:]}").strip()
+
+                c = str(p[(len(k) + len(ssize)) + 1 :]).strip()
+                partname = f"{k} {ssize} {c}"
+            except:
+                pass
+            finally:
+                pass
+
+        return partname
+
+    def __re_partname(self, txt):
+        return (str(txt).replace("b", "")).replace("'", "")
+
+    def __pono(self, txt):
+        return str(self.__re_partname(txt)).strip()
 
     def login(self):
         try:
@@ -359,3 +391,243 @@ class SplApi:
         
         return False
     
+    def get_link(self, token):
+        url = f"{self.host}/gedi/get"
+        payload={}
+        headers = {
+            'Authorization': f'Bearer {token}'
+        }
+
+        response = requests.request("GET", url, headers=headers, data=payload)
+
+        if response.status_code == 200:
+            obj = response.json()
+            return obj['data']
+        
+        return False
+    
+    def read_receive(self, filename, obj):
+        docs = []
+        for i in obj:
+            fac = filename[filename.find("SPL") - 2 : filename.find("SPL") - 1]
+            plantype = "RECEIVE"
+            cd = 20
+            unit = "BOX"
+            recisstype = "01"
+            factory = "INJ"
+            if fac != "5":
+                factory = "AW"
+                plantype = "RECEIVE"
+                cd = 10
+                unit = "COIL"
+                recisstype = "01"
+
+            line = i
+            try:
+                docs.append(
+                    {
+                        "factory": factory,
+                        "faczone": str(line[4 : (4 + 3)]).lstrip().rstrip(),
+                        "receivingkey": str(line[4 : (4 + 12)]).lstrip().rstrip(),
+                        "partno": str(line[76 : (76 + 25)]).lstrip().rstrip(),
+                        "partname": str(line[101 : (101 + 25)]).lstrip().rstrip(),
+                        "vendor": factory,
+                        "cd": cd,
+                        "unit": unit,
+                        "whs": factory,
+                        "tagrp": "C",
+                        "recisstype": recisstype,
+                        "plantype": plantype,
+                        "recid": str(line[0:4]).lstrip().rstrip(),
+                        "aetono": str(line[4 : (4 + 12)]).lstrip().rstrip(),
+                        "aetodt": str(line[16 : (16 + 10)]).lstrip().rstrip(),
+                        "aetctn": float(str(line[26 : (26 + 9)]).lstrip().rstrip()),
+                        "aetfob": float(str(line[35 : (35 + 9)]).lstrip().rstrip()),
+                        "aenewt": float(str(line[44 : (44 + 11)]).lstrip().rstrip()),
+                        "aentun": str(line[55 : (55 + 5)]).lstrip().rstrip(),
+                        "aegrwt": float(str(line[60 : (60 + 11)]).lstrip().rstrip()),
+                        "aegwun": str(line[71 : (71 + 5)]).lstrip().rstrip(),
+                        "aeypat": str(line[76 : (76 + 25)]).lstrip().rstrip(),
+                        "aeedes": str(
+                            self.__check_partname(
+                                factory, self.__re_partname(line[101 : (101 + 25)])
+                            )
+                        ),
+                        "aetdes": str(
+                            self.__check_partname(
+                                factory, self.__re_partname(line[101 : (101 + 25)])
+                            )
+                        ),
+                        "aetarf": float(str(line[151 : (151 + 10)]).lstrip().rstrip()),
+                        "aestat": float(str(line[161 : (161 + 10)]).lstrip().rstrip()),
+                        "aebrnd": float(str(line[171 : (171 + 10)]).lstrip().rstrip()),
+                        "aertnt": float(str(line[181 : (181 + 5)]).lstrip().rstrip()),
+                        "aetrty": float(str(line[186 : (186 + 5)]).lstrip().rstrip()),
+                        "aesppm": float(str(line[191 : (191 + 5)]).lstrip().rstrip()),
+                        "aeqty1": float(str(line[196 : (196 + 9)]).lstrip().rstrip()),
+                        "aeqty2": float(str(line[205 : (205 + 9)]).lstrip().rstrip()),
+                        "aeuntp": float(str(line[214 : (214 + 9)]).lstrip().rstrip()),
+                        "aeamot": float(str(line[223 : (223 + 11)]).lstrip().rstrip()),
+                        "plnctn": float(str(line[26 : (26 + 9)]).lstrip().rstrip()),
+                        "plnqty": float(str(line[196 : (196 + 9)]).lstrip().rstrip()),
+                        "minimum": 0,
+                        "maximum": 0,
+                        "picshelfbin": "PNON",
+                        "stkshelfbin": "SNON",
+                        "ovsshelfbin": "ONON",
+                        "picshelfbasicqty": 0,
+                        "outerpcs": 0,
+                        "allocateqty": 0,
+                        "sync": False,
+                        "updatedon": datetime.now(),
+                    }
+                )
+            except Exception as ex:
+                print(ex)
+                pass
+
+        return docs
+
+    def header_orderplan(self, fileName):
+        fac = fileName[fileName.find("SPL") - 2 : fileName.find("SPL") - 1]
+        plantype = "ORDERPLAN"
+        cd = 20
+        unit = "BOX"
+        sortg1 = "PARTTYPE"
+        sortg2 = "PARTNO"
+        sortg3 = ""
+        factory = "INJ"
+        
+        if fac != "5":
+            factory = "AW"
+            plantype = "ORDERPLAN"
+            cd = 10
+            unit = "COIL"
+            sortg1 = "PONO"
+            sortg2 = "PARTTYPE"
+            sortg3 = "PARTNO"
+            
+        return {
+            'factory': factory,
+            'plantype': plantype,
+            'cd': cd,
+            'unit': unit,
+            'sortg1': sortg1,
+            'sortg2': sortg2,
+            'sortg3': sortg3,
+        }  
+            
+    def read_orderplan(self, obj, line):
+        plantype = obj['plantype']
+        cd = obj['cd']
+        unit = obj['unit']
+        sortg1 = obj['sortg1']
+        sortg2 = obj['sortg2']
+        sortg3 = obj['sortg3']
+        factory = obj['factory']
+        oqty = str(self.__trim_txt(line[89 : (89 + 9)]))
+        if oqty == "":
+            oqty = 0
+
+        return {
+                "vendor": factory,
+                "cd": cd,
+                "unit": unit,
+                "whs": factory,
+                "tagrp": "C",
+                "factory": factory,
+                "sortg1": sortg1,
+                "sortg2": sortg2,
+                "sortg3": sortg3,
+                "plantype": plantype,
+                "orderid": str(self.__trim_txt(line[13 : (13 + 15)])),
+                # remove space
+                "pono": str(self.__pono(line[13 : (13 + 15)])),
+                "recid": str(self.__trim_txt(line[0:4])),
+                "biac": str(self.__trim_txt(line[5 : (5 + 8)])),
+                "shiptype": str(self.__trim_txt(line[4 : (4 + 1)])),
+                "etdtap": datetime.strptime(
+                    str(self.__trim_txt(line[28 : (28 + 8)])), "%Y%m%d"
+                ),
+                "partno": str(self.__trim_txt(line[36 : (36 + 25)])),
+                "partname": str(
+                    self.__check_partname(
+                        factory,
+                        self.__pono(line[61 : (61 + 25)]),
+                    )
+                ),
+                "pc": str(self.__trim_txt(line[86 : (86 + 1)])),
+                "commercial": str(self.__trim_txt(line[87 : (87 + 1)])),
+                "sampleflg": str(self.__trim_txt(line[88 : (88 + 1)])),
+                "orderorgi": int(oqty),
+                "orderround": int(str(self.__trim_txt(line[98 : (98 + 9)]))),
+                "firmflg": str(self.__trim_txt(line[107 : (107 + 1)])),
+                "shippedflg": str(self.__trim_txt(line[108 : (108 + 1)])),
+                "shippedqty": float(str(self.__trim_txt(line[109 : (109 + 9)]))),
+                "ordermonth": datetime.strptime(
+                    str(self.__trim_txt(line[118 : (118 + 8)])), "%Y%m%d"
+                ),
+                "balqty": float(str(self.__trim_txt(line[126 : (126 + 9)]))),
+                "bidrfl": str(self.__trim_txt(line[135 : (135 + 1)])),
+                "deleteflg": str(self.__trim_txt(line[136 : (136 + 1)])),
+                "ordertype": str(self.__trim_txt(line[137 : (137 + 1)])),
+                "reasoncd": str(self.__trim_txt(line[138 : (138 + 3)])),
+                "upddte": datetime.strptime(
+                    str(self.__trim_txt(line[141 : (141 + 14)])), "%Y%m%d%H%M%S"
+                ),
+                "updtime": datetime.strptime(
+                    str(self.__trim_txt(line[141 : (141 + 14)])), "%Y%m%d%H%M%S"
+                ),
+                "carriercode": str(self.__trim_txt(line[155 : (155 + 4)])),
+                "bioabt": int(str(self.__trim_txt(line[159 : (159 + 1)]))),
+                "bicomd": str(self.__trim_txt(line[160 : (160 + 1)])),
+                "bistdp": float(str(self.__trim_txt(line[165 : (165 + 9)]))),
+                "binewt": float(str(self.__trim_txt(line[174 : (174 + 9)]))),
+                "bigrwt": float(str(self.__trim_txt(line[183 : (183 + 9)]))),
+                "bishpc": str(self.__trim_txt(line[192 : (192 + 8)])),
+                "biivpx": str(self.__trim_txt(line[200 : (200 + 2)])),
+                "bisafn": str(self.__trim_txt(line[202 : (202 + 6)])),
+                "biwidt": float(str(self.__trim_txt(line[212 : (212 + 4)]))),
+                "bihigh": float(str(self.__trim_txt(line[216 : (216 + 4)]))),
+                "bileng": float(str(self.__trim_txt(line[208 : (208 + 4)]))),
+                "lotno": str(self.__trim_txt(line[220 : (220 + 8)])),
+                "minimum": 0,
+                "maximum": 0,
+                "picshelfbin": "PNON",
+                "stkshelfbin": "SNON",
+                "ovsshelfbin": "ONON",
+                "picshelfbasicqty": 0,
+                "outerpcs": 0,
+                "allocateqty": 0,
+                "sync": False,
+                "updatedon": datetime.strptime(
+                    str(self.__trim_txt(line[141 : (141 + 14)])), "%Y%m%d%H%M%S"
+                ),
+        }
+    
+    def get_file(self, name, fileName, fileType="R"):
+        is_success = True
+        try:
+            url = f"{str(self.host).replace('/api/v1', '')}{fileName}"
+            payload={}
+            headers = {}
+            response = requests.request("GET", url, headers=headers, data=payload)
+     
+            ### create temp file
+            f = open(name, mode='w+', encoding='utf-8')
+            f.write(str(response.text).replace('\n', ''))
+            f.close()
+            
+            return name
+            
+            # if fileType == 'R':print(f'Receive')
+            # elif fileType == 'O':
+            #     docs = self.read_orderplan(name)
+            
+        
+        except Exception as ex:
+            pass
+        
+        
+        return is_success
+            
