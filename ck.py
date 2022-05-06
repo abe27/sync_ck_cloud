@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 from spllibs import Yazaki, SplApi, SplSharePoint, LogActivity as log
 from dotenv import load_dotenv
 load_dotenv()
@@ -76,13 +77,14 @@ def main():
                         print(f"File Name: {gedi_name}")
                         print(f"TYPE: {x[:1]}")
                         print(f"Path: {filepath}")
-                        print('-------------------------------------------\n')
-                        
                         ### upload file to SPL Server
-                        spl.upload("CK-2", x[:1], batchId, filepath, gedi_name, spl_token)
+                        is_upload = spl.upload("CK-2", x[:1], batchId, filepath, gedi_name, spl_token)
                         # ### Upload file to SPL Share Point
                         # share_file.upload(filepath, gedi_name, f'GEDI/{x}/{p}')
+                        print(f"STATUS: {is_upload}")
                         batch_running += 1
+                        print('-------------------------------------------\n')
+                        time.sleep(3)
             
             is_success = spl.logout(spl_token)
             print(f'logout is {is_success}')
