@@ -37,7 +37,7 @@ def main():
         while i < len(link):
             x = link[i]
             # ### download gedi file
-            # yk.download_gedi_files(session, x)
+            yk.download_gedi_files(session, x)
             
             print(f"download gedi file => {x.batchfile}")   
             i += 1
