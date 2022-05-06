@@ -52,6 +52,7 @@ def main():
     
     
     ### Upload gedi to SPL Server
+    batch_running = 1
     root_pathname = "EXPORT"
     # print(os.path.exists(root_pathname))
     if os.path.exists(root_pathname):
@@ -65,7 +66,7 @@ def main():
                 for p in xpath:
                     pname = os.path.join(root_pathname, x, p)
                     for name in os.listdir(pname):
-                        batchId = "{:08}".format(random.randint(0, 999999))
+                        batchId = "{:08}".format(batch_running)
                         gedi_name = name
                         if name[:1] != "O":
                             batchId = str(name[:8]).replace('.', '')
@@ -82,8 +83,9 @@ def main():
                         
                         ### upload file to SPL Server
                         spl.upload("CK-2", x[:1], batchId, filepath, gedi_name, spl_token)
-                        ### Upload file to SPL Share Point
-                        share_file.upload(filepath, gedi_name, f'GEDI/{x}/{p}')
+                        # ### Upload file to SPL Share Point
+                        # share_file.upload(filepath, gedi_name, f'GEDI/{x}/{p}')
+                        batch_running += 1
             
             is_success = spl.logout(spl_token)
             print(f'logout is {is_success}')
