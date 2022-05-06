@@ -1,3 +1,4 @@
+import random
 import sys
 import os
 from datetime import datetime
@@ -37,8 +38,8 @@ def main():
         i = 0
         while i < len(link):
             x = link[i]
-            ### download gedi file
-            yk.download_gedi_files(session, x)
+            # ### download gedi file
+            # yk.download_gedi_files(session, x)
             
             print(f"download gedi file => {x.batchfile}")   
             i += 1
@@ -64,32 +65,33 @@ def main():
                 for p in xpath:
                     pname = os.path.join(root_pathname, x, p)
                     for name in os.listdir(pname):
-                        batchId = str(name[:8]).replace('.', '')
+                        batchId = "{:08}".format(random.randint(0, 999999))
+                        gedi_name = name
+                        if name[:1] != "O":
+                            batchId = str(name[:8]).replace('.', '')
+                            gedi_name = name[8:]
+                            
                         filepath = os.path.join(root_pathname, x, p, name)
                         print(f"Date: {p}")
                         print(f"WHS: CK-2")
                         print(f"Batch ID: {batchId}")
-                        print(f"File Name: {name[8:]}")
+                        print(f"File Name: {gedi_name}")
                         print(f"TYPE: {x[:1]}")
                         print(f"Path: {filepath}")
                         print('-------------------------------------------\n')
                         
                         ### upload file to SPL Server
-                        spl.upload("CK-2", x[:1], batchId, filepath, name[8:], spl_token)
+                        spl.upload("CK-2", x[:1], batchId, filepath, gedi_name, spl_token)
                         ### Upload file to SPL Share Point
-                        share_file.upload(filepath, name[8:], f'GEDI/{x}/{p}')
+                        share_file.upload(filepath, gedi_name, f'GEDI/{x}/{p}')
             
             is_success = spl.logout(spl_token)
             print(f'logout is {is_success}')
-            
-        # i = 0
-        # while i < len(file_for_upload):
-        #     r = file_for_upload[i]
-            
-        #     i += 1
+
         log(name='SPL', subject="STOP", status='Active',message=f"Stop SPL Service")
         
     ### Delete EXPORT Folder
+    # os.removedirs(root_pathname)
     log(name='SPL', subject="DELETE", status='Active',message=f"Delete EXPORT Folder")
     
 if __name__ == '__main__':

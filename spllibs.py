@@ -335,12 +335,13 @@ class SplApi:
         try:
             url = f"{self.host}/gedi/store"
             payload={
+                'filename': filename,
                 'whs_id': whsId,
                 'file_type': typeName,
                 'batch_id': batchId
             }
             files=[
-                ('file_name',(filename,open(filepath,'rb'),'application/octet-stream'))
+                ('file',(filename,open(filepath,'rb'),'application/octet-stream'))
             ]
             headers = {
                 'Authorization': f'Bearer {token}'
