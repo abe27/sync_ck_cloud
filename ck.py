@@ -1,9 +1,6 @@
-import random
 import sys
 import os
-from datetime import datetime
 from spllibs import Yazaki, SplApi, SplSharePoint, LogActivity as log
-from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 load_dotenv()
 
