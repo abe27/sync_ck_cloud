@@ -2,11 +2,43 @@ import urllib
 import urllib3
 import requests
 import os
-import datetime
-from datetime import timedelta
 from termcolor import colored
 from bs4 import BeautifulSoup
-from log import LogActivity as log
+from datetime import datetime, timedelta
+from shareplum import Office365
+from shareplum import Site
+from shareplum.site import Version
+
+class LogActivity:
+    def __init__(self, name='CK', subject=None, status='Active', message=None):
+        d = datetime.now().strftime('%Y%m%d')
+        filename = f"{name}-{d}.log"
+        f = open(filename, 'a+')
+        txt = f"{str(datetime.now().strftime('%Y%m%d %H:%M:%S')).ljust(25)}SUBJECT: {str(subject).ljust(20)}STATUS: {str(status).ljust(10)}MESSAGE: {str(message).ljust(50)}"
+        f.write(f"{txt}\n")
+        f.close()
+
+class SplSharePoint:
+    def __init__(self, url, site, username, password):
+        self.url = url
+        self.site = site
+        self.username = username
+        self.password = password
+        
+    def upload(self, pathname, filename, destination="Temp"):
+        try:
+            authcookie = Office365(self.url, username=self.username, password=self.password).GetCookies()
+            site = Site(f'{self.url}/sites/{self.site}', version=Version.v365, authcookie=authcookie);
+            folder = site.Folder(f'Shared Documents/{destination}')
+            with open(pathname, mode='rb') as file:
+                    fileContent = file.read()
+                    
+            folder.upload_file(fileContent, filename)
+            LogActivity(name="SPL", subject="SHAREPOINT", status="Success", message=f"Backup GEDI({filename})")
+            
+        except Exception as e:
+            LogActivity(name="SPL", subject="SHAREPOINT", status="Error", message=str(e))
+            pass
 
 class ObjectLink:
     def __init__(
@@ -37,9 +69,9 @@ class ObjectLink:
             factory = "RMW"
             filename = ""
             if ordn[:3] == "OES":
-                filename = ordn[len("OES.32TE.SPL.") :]
+                filename = ordn[len("OES.32TE.SPL."):]
             else:
-                filename = ordn[len("NRRIS.32TE.SPL.") :]
+                filename = ordn[len("NRRIS.32TE.SPL."):]
 
             filename = filename[: filename.find(".")].upper()
             if filename == "ISSUELIST":
@@ -53,7 +85,7 @@ class ObjectLink:
 
         elif objtype == "CK2":
             ordn = str(batchfile[: len("OES.VCBI")]).strip()
-            bf = int(str(batchfile[len("OES.VCBI") + 3 :])[1:2].strip())
+            bf = int(str(batchfile[len("OES.VCBI") + 3:])[1:2].strip())
             filetype = "RECEIVE"
             if ordn == "OES.VCBI":
                 filetype = "ORDERPLAN"
@@ -86,14 +118,14 @@ class ObjectLink:
         self.destination = f'{pathname}/{filetype}/{(self.currentdate).strftime("%Y%m%d")}'
         self.linkfile = f"{host}/cehttp/servlet/MailboxServlet?operation=DOWNLOAD&mailbox_id={self.mailbox}&batch_num={self.batchid}&data_format=A&batch_id={self.batchfile}"
 
-        
+
 class Yazaki:
     def __init__(self, service_type="CK2", host="https://218.225.124.157:9443", username=None, password=None):
         self.service_type = service_type
         self.host = host
         self.username = username
         self.password = password
-        
+
     # @staticmethod
     def login(self):
         response = False
@@ -106,7 +138,8 @@ class Yazaki:
             )
             headers = {"Content-Type": "application/x-www-form-urlencoded"}
             urllib3.disable_warnings()
-            response = requests.request("POST", url, headers=headers, verify=False, data=payload, timeout=3)
+            response = requests.request(
+                "POST", url, headers=headers, verify=False, data=payload, timeout=3)
 
             txt = None
             docs = BeautifulSoup(response.text, "html.parser")
@@ -118,14 +151,13 @@ class Yazaki:
                 _txt_status = "Error"
                 response = False
 
-            log(subject="LOGIN", status=_txt_status,message=str(txt))
+            LogActivity(subject="LOGIN", status=_txt_status, message=str(txt))
 
         except Exception as msg:
-            log(subject="LOGIN", status='Error',message=str(msg))
+            LogActivity(subject="LOGIN", status='Error', message=str(msg))
             pass
 
         return response
-    
 
     def logout(self, session):
         response = True
@@ -147,24 +179,25 @@ class Yazaki:
             for i in docs.find_all("hr"):
                 txt = (i.previous).replace("\n", "")
 
-            
             _txt_status = "Success"
             if txt.find("751") >= 0:
                 _txt_status = "Error"
                 response = False
-                
-            log(subject="LOGOUT", status=_txt_status,message=str(txt))
-            
+
+            LogActivity(subject="LOGOUT", status=_txt_status, message=str(txt))
+
         except Exception as txt:
-            log(subject="LOGOUT", status='Error',message=str(txt))
+            LogActivity(subject="LOGOUT", status='Error', message=str(txt))
             pass
 
         return response
-    
+
     def get_link(self, session):
         obj = []
         try:
-            etd = str((datetime.datetime.now() - timedelta(days=1)).strftime("%Y%m%d"))
+            etd = str((datetime.now() -
+                      timedelta(days=1)).strftime("%Y%m%d"))
+            # etd = '20220505'
             # get cookies after login.
             if session.status_code == 200:
                 # get html page
@@ -192,7 +225,7 @@ class Yazaki:
                         if td.find("a") != None:
                             found = True
 
-                        if found is False:  ### False =debug,True=prod.
+                        if found is True:  # False =debug,True=prod.
                             if len(docs) >= 9:
                                 l = ObjectLink(
                                     self.host,
@@ -212,19 +245,20 @@ class Yazaki:
                         i += 1
 
                 print(colored(f"found new link => {len(obj)}", "green"))
-                log(subject="GET LINK", status='Success',message=f"FOUND NEW LINK({len(obj)})")
+                LogActivity(subject="GET LINK", status='Success',
+                            message=f"FOUND NEW LINK({len(obj)})")
 
         except Exception as ex:
-            log(subject="GET LINK", status='Error',message=str(ex))
+            LogActivity(subject="GET LINK", status='Error', message=str(ex))
             pass
 
         return obj
-    
+
     def download_gedi_files(self, session, obj):
-        filename = f"{obj.destination}/{obj.batchfile}"
+        filename = f"{obj.destination}/{obj.batchid}.{obj.batchfile}"
         try:
             # print(obj)
-            ### makedir folder gedi is exits
+            # makedir folder gedi is exits
             os.makedirs(obj.destination, exist_ok=True)
             # download file
             request = requests.get(
@@ -235,17 +269,91 @@ class Yazaki:
                 allow_redirects=True,
             )
             docs = BeautifulSoup(request.content, "lxml")
-            
-            ## Write data to GEDI File
+
+            # Write data to GEDI File
             f = open(filename, mode="a", encoding="ascii", newline="\r\n")
             for p in docs:
                 f.write(p.text)
             f.close()
-            
-            log(subject="DOWNLOAD", status='Success',message=f"Download GEDI FILE({obj.batchfile})")
-            
+
+            LogActivity(subject="DOWNLOAD", status='Success',
+                        message=f"Download GEDI FILE({obj.batchfile})")
+
         except Exception as ex:
-            log(subject="DOWNLOAD", status='Error',message=str(ex))
+            LogActivity(subject="DOWNLOAD", status='Error', message=str(ex))
             filename = None
             pass
         return filename
+
+
+class SplApi:
+    def __init__(self, host, username, password):
+        self.host = host
+        self.username = username
+        self.password = urllib.parse.quote(password)
+
+    def login(self):
+        try:
+            url = f"{self.host}/login"
+            payload = f'empcode={self.username}&password={self.password}'
+            headers = {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            response = requests.request("POST", url, headers=headers, data=payload)
+            if response.status_code == 200:
+                obj = response.json()
+                LogActivity(name='SPL',subject="LOGIN", status='Success', message=f"Token is {obj['access_token']}")
+                return obj['access_token']
+            
+        except Exception as ex:
+            LogActivity(name='SPL',subject="LOGIN", status='Error', message=str(ex))
+            pass
+
+        return None
+
+    def logout(self, token):
+        try:
+            url = f"{self.host}/logout"
+            payload = {}
+            headers = {
+                'Authorization': f'Bearer {token}'
+            }
+
+            response = requests.request("GET", url, headers=headers, data=payload)
+
+            if response.status_code == 200:
+                LogActivity(name='SPL',subject="LOGOUT", status='Success', message=f"Logoff By {token}")
+                return True
+            
+        except Exception as ex:
+            LogActivity(name='SPL',subject="LOGOUT", status='Error', message=str(ex))
+            pass
+
+        return False
+    
+    def upload(self, whsId, typeName, batchId, filepath, filename, token):
+        try:
+            url = f"{self.host}/gedi/store"
+            payload={
+                'whs_id': whsId,
+                'file_type': typeName,
+                'batch_id': batchId
+            }
+            files=[
+                ('file_name',(filename,open(filepath,'rb'),'application/octet-stream'))
+            ]
+            headers = {
+                'Authorization': f'Bearer {token}'
+            }
+
+            response = requests.request("POST", url, headers=headers, data=payload, files=files)
+            if response.status_code == 200:
+                LogActivity(name='SPL', subject="UPLOAD", status='Success',message=f"Upload GEDI({filename})")
+                return True
+            
+        except Exception as ex:
+            LogActivity(name='SPL', subject="UPLOAD", status='Error',message=str(ex))
+            pass
+        
+        return False
+    
