@@ -391,8 +391,8 @@ class SplApi:
         
         return False
     
-    def get_link(self, token):
-        url = f"{self.host}/gedi/get"
+    def get_link(self, token, status=0):
+        url = f"{self.host}/gedi/get/{status}"
         payload={}
         headers = {
             'Authorization': f'Bearer {token}'
@@ -406,87 +406,90 @@ class SplApi:
         
         return False
     
-    def read_receive(self, filename, obj):
-        docs = []
-        for i in obj:
-            fac = filename[filename.find("SPL") - 2 : filename.find("SPL") - 1]
+    def header_receive(self, fileNamme):
+        fac = fileNamme[fileNamme.find("SPL") - 2 : fileNamme.find("SPL") - 1]
+        plantype = "RECEIVE"
+        cd = 20
+        unit = "BOX"
+        recisstype = "01"
+        factory = "INJ"
+        if fac != "5":
+            factory = "AW"
             plantype = "RECEIVE"
-            cd = 20
-            unit = "BOX"
+            cd = 10
+            unit = "COIL"
             recisstype = "01"
-            factory = "INJ"
-            if fac != "5":
-                factory = "AW"
-                plantype = "RECEIVE"
-                cd = 10
-                unit = "COIL"
-                recisstype = "01"
-
-            line = i
-            try:
-                docs.append(
-                    {
-                        "factory": factory,
-                        "faczone": str(line[4 : (4 + 3)]).lstrip().rstrip(),
-                        "receivingkey": str(line[4 : (4 + 12)]).lstrip().rstrip(),
-                        "partno": str(line[76 : (76 + 25)]).lstrip().rstrip(),
-                        "partname": str(line[101 : (101 + 25)]).lstrip().rstrip(),
-                        "vendor": factory,
-                        "cd": cd,
-                        "unit": unit,
-                        "whs": factory,
-                        "tagrp": "C",
-                        "recisstype": recisstype,
-                        "plantype": plantype,
-                        "recid": str(line[0:4]).lstrip().rstrip(),
-                        "aetono": str(line[4 : (4 + 12)]).lstrip().rstrip(),
-                        "aetodt": str(line[16 : (16 + 10)]).lstrip().rstrip(),
-                        "aetctn": float(str(line[26 : (26 + 9)]).lstrip().rstrip()),
-                        "aetfob": float(str(line[35 : (35 + 9)]).lstrip().rstrip()),
-                        "aenewt": float(str(line[44 : (44 + 11)]).lstrip().rstrip()),
-                        "aentun": str(line[55 : (55 + 5)]).lstrip().rstrip(),
-                        "aegrwt": float(str(line[60 : (60 + 11)]).lstrip().rstrip()),
-                        "aegwun": str(line[71 : (71 + 5)]).lstrip().rstrip(),
-                        "aeypat": str(line[76 : (76 + 25)]).lstrip().rstrip(),
-                        "aeedes": str(
-                            self.__check_partname(
-                                factory, self.__re_partname(line[101 : (101 + 25)])
-                            )
-                        ),
-                        "aetdes": str(
-                            self.__check_partname(
-                                factory, self.__re_partname(line[101 : (101 + 25)])
-                            )
-                        ),
-                        "aetarf": float(str(line[151 : (151 + 10)]).lstrip().rstrip()),
-                        "aestat": float(str(line[161 : (161 + 10)]).lstrip().rstrip()),
-                        "aebrnd": float(str(line[171 : (171 + 10)]).lstrip().rstrip()),
-                        "aertnt": float(str(line[181 : (181 + 5)]).lstrip().rstrip()),
-                        "aetrty": float(str(line[186 : (186 + 5)]).lstrip().rstrip()),
-                        "aesppm": float(str(line[191 : (191 + 5)]).lstrip().rstrip()),
-                        "aeqty1": float(str(line[196 : (196 + 9)]).lstrip().rstrip()),
-                        "aeqty2": float(str(line[205 : (205 + 9)]).lstrip().rstrip()),
-                        "aeuntp": float(str(line[214 : (214 + 9)]).lstrip().rstrip()),
-                        "aeamot": float(str(line[223 : (223 + 11)]).lstrip().rstrip()),
-                        "plnctn": float(str(line[26 : (26 + 9)]).lstrip().rstrip()),
-                        "plnqty": float(str(line[196 : (196 + 9)]).lstrip().rstrip()),
-                        "minimum": 0,
-                        "maximum": 0,
-                        "picshelfbin": "PNON",
-                        "stkshelfbin": "SNON",
-                        "ovsshelfbin": "ONON",
-                        "picshelfbasicqty": 0,
-                        "outerpcs": 0,
-                        "allocateqty": 0,
-                        "sync": False,
-                        "updatedon": datetime.now(),
-                    }
-                )
-            except Exception as ex:
-                print(ex)
-                pass
-
-        return docs
+            
+        return {
+            "plantype": plantype,
+            "cd": cd,
+            "unit": unit,
+            "recisstype": recisstype,
+            "factory": factory,
+        }
+    
+    def read_receive(self, obj, line):
+        cd = obj['cd']
+        unit = obj['unit']
+        recisstype = obj['recisstype']
+        plantype = obj['plantype']
+        factory = obj['factory']
+        return {
+                    "factory": factory,
+                    "faczone": str(line[4 : (4 + 3)]).lstrip().rstrip(),
+                    "receivingkey": str(line[4 : (4 + 12)]).lstrip().rstrip(),
+                    "partno": str(line[76 : (76 + 25)]).lstrip().rstrip(),
+                    "partname": str(line[101 : (101 + 25)]).lstrip().rstrip(),
+                    "vendor": factory,
+                    "cd": cd,
+                    "unit": unit,
+                    "whs": factory,
+                    "tagrp": "C",
+                    "recisstype": recisstype,
+                    "plantype": plantype,
+                    "recid": str(line[0:4]).lstrip().rstrip(),
+                    "aetono": str(line[4 : (4 + 12)]).lstrip().rstrip(),
+                    "aetodt": str(line[16 : (16 + 10)]).lstrip().rstrip(),
+                    "aetctn": float(str(line[26 : (26 + 9)]).lstrip().rstrip()),
+                    "aetfob": float(str(line[35 : (35 + 9)]).lstrip().rstrip()),
+                    "aenewt": float(str(line[44 : (44 + 11)]).lstrip().rstrip()),
+                    "aentun": str(line[55 : (55 + 5)]).lstrip().rstrip(),
+                    "aegrwt": float(str(line[60 : (60 + 11)]).lstrip().rstrip()),
+                    "aegwun": str(line[71 : (71 + 5)]).lstrip().rstrip(),
+                    "aeypat": str(line[76 : (76 + 25)]).lstrip().rstrip(),
+                    "aeedes": str(
+                        self.__check_partname(
+                            factory, self.__re_partname(line[101 : (101 + 25)])
+                        )
+                    ),
+                    "aetdes": str(
+                        self.__check_partname(
+                            factory, self.__re_partname(line[101 : (101 + 25)])
+                        )
+                    ),
+                    "aetarf": float(str(line[151 : (151 + 10)]).lstrip().rstrip()),
+                    "aestat": float(str(line[161 : (161 + 10)]).lstrip().rstrip()),
+                    "aebrnd": float(str(line[171 : (171 + 10)]).lstrip().rstrip()),
+                    "aertnt": float(str(line[181 : (181 + 5)]).lstrip().rstrip()),
+                    "aetrty": float(str(line[186 : (186 + 5)]).lstrip().rstrip()),
+                    "aesppm": float(str(line[191 : (191 + 5)]).lstrip().rstrip()),
+                    "aeqty1": float(str(line[196 : (196 + 9)]).lstrip().rstrip()),
+                    "aeqty2": float(str(line[205 : (205 + 9)]).lstrip().rstrip()),
+                    "aeuntp": float(str(line[214 : (214 + 9)]).lstrip().rstrip()),
+                    "aeamot": float(str(line[223 : (223 + 11)]).lstrip().rstrip()),
+                    "plnctn": float(str(line[26 : (26 + 9)]).lstrip().rstrip()),
+                    "plnqty": float(str(line[196 : (196 + 9)]).lstrip().rstrip()),
+                    "minimum": 0,
+                    "maximum": 0,
+                    "picshelfbin": "PNON",
+                    "stkshelfbin": "SNON",
+                    "ovsshelfbin": "ONON",
+                    "picshelfbasicqty": 0,
+                    "outerpcs": 0,
+                    "allocateqty": 0,
+                    "sync": False,
+                    "updatedon": datetime.now(),
+                }
 
     def header_orderplan(self, fileName):
         fac = fileName[fileName.find("SPL") - 2 : fileName.find("SPL") - 1]
@@ -605,7 +608,7 @@ class SplApi:
                 ),
         }
     
-    def get_file(self, name, fileName, fileType="R"):
+    def get_file(self, name, fileName):
         is_success = True
         try:
             url = f"{str(self.host).replace('/api/v1', '')}{fileName}"
@@ -619,15 +622,25 @@ class SplApi:
             f.close()
             
             return name
-            
-            # if fileType == 'R':print(f'Receive')
-            # elif fileType == 'O':
-            #     docs = self.read_orderplan(name)
-            
         
         except Exception as ex:
             pass
         
         
         return is_success
+    
+    def update_status(self, token, batchId, status=0):
+        url = f"{self.host}/gedi/update/{batchId}"
+        payload=f'is_downloaded={status}&is_active=1'
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+
+        response = requests.request("PUT", url, headers=headers, data=payload)
+
+        if response.status_code == 200:
+            return True
+        
+        return False
             

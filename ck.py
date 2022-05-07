@@ -1,3 +1,4 @@
+from datetime import datetime
 import sys
 import os
 import time
@@ -45,7 +46,7 @@ def main():
         while i < len(link):
             x = link[i]
             # ### download gedi file
-            yk.download_gedi_files(session, x)
+            # yk.download_gedi_files(session, x)
             
             print(f"download gedi file => {x.batchfile}")   
             i += 1
@@ -92,7 +93,7 @@ def main():
                         print(f"STATUS: {is_upload}")
                         batch_running += 1
                         print('-------------------------------------------\n')
-                        time.sleep(3)
+                        time.sleep(1.5)
             
             is_success = spl.logout(spl_token)
             print(f'logout is {is_success}')
@@ -100,50 +101,105 @@ def main():
         log(name='SPL', subject="STOP", status='Active',message=f"Stop SPL Service")
         
     ### Delete EXPORT Folder
-    # os.removedirs(root_pathname)
+    os.removedirs(root_pathname)
     log(name='SPL', subject="DELETE", status='Active',message=f"Delete EXPORT Folder")
     
 def download():
     token = spl.login()
-    obj = spl.get_link(token)
-    i = 0
-    while i < len(obj):
-        r = obj[i]
-        filename = spl.get_file(r['file_name'], r['file_path'], r['file_type'])
-        if filename:
-            if r['file_type'] == 'O':
-                head = spl.header_orderplan(filename)
-                data = []
-                f = open(filename, 'r')
-                for i in f:
-                    b = spl.read_orderplan(head, i)
-                    data.append(b)
-                f.close()
-                # ### remove temp files after load data.
-                # os.remove(filename)
-                
-                ### Insert MySQL
-                mydb = mysql.connector.connect(
-                    host=DB_HOSTNAME,
-                    port=DB_PORT,
-                    user=DB_USERNAME,
-                    password=DB_PASSWORD,
-                    database=DB_NAME,
-                )
-
-                mycursor = mydb.cursor()
-                sql = "INSERT INTO tbt_order_plans(id, file_gedi_id, vendor, cd, unit, whs, tagrp, factory, sortg1, sortg2, sortg3, plantype, pono, biac, shiptype, etdtap, partno, partname, pc, commercial, sampleflg, orderorgi, orderround, firmflg, shippedflg, shippedqty, ordermonth, balqty, bidrfl, deleteflg, ordertype, reasoncd, upddte, updtime, carriercode, bioabt, bicomd, bistdp, binewt, bigrwt, bishpc, biivpx, bisafn, biwidt, bihigh, bileng, lotno, is_active, created_at, updated_at)VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
-                val = []
-                for a in data:
-                    # print(a)
-                    id = generate(size=36)
-                    val.append(id, r['id'], a['vendor'], a['cd'], a['unit'], a['whs'], a['tagrp'], a['factory'], a['sortg1'], a['sortg2'], a['sortg3'], a['plantype'], a['pono'], a['biac'], a['shiptype'], a['etdtap'], a['partno'], a['partname'], a['pc'], a['commercial'], a['sampleflg'], a['orderorgi'], a['orderround'], a['firmflg'], a['shippedflg'], a['shippedqty'], a['ordermonth'], a['balqty'], a['bidrfl'], a['deleteflg'], a['ordertype'], a['reasoncd'], a['upddte'], a['updtime'], a['carriercode'], a['bioabt'], a['bicomd'], a['bistdp'], a['binewt'], a['bigrwt'], a['bishpc'], a['biivpx'], a['bisafn'], a['biwidt'], a['bihigh'], a['bileng'],a['lotno'],'1', 'current_timestamp', 'current_timestamp')
+    try:
+        ### Initail Mysql Server
+        mydb = mysql.connector.connect(
+            host=DB_HOSTNAME,
+            port=DB_PORT,
+            user=DB_USERNAME,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+        )
+        mycursor = mydb.cursor()
+        
+        ### start get link download
+        obj = spl.get_link(token)
+        i = 0
+        while i < len(obj):
+            r = obj[i]
+            filename = spl.get_file(str(r['file_name']).replace('TXT', 'BIN'), r['file_path'])
+            if filename:
+                ### Order Plan
+                if r['file_type'] == 'O':
+                    head = spl.header_orderplan(filename)
+                    data = []
+                    f = open(filename, 'r')
+                    for doc in f:
+                        b = spl.read_orderplan(head, doc)
+                        data.append(b)
+                    f.close()
+                    ### remove temp files after load data.
+                    os.remove(filename)
+                    ### Update status
+                    spl.update_status(token, str(r['id']), 1)
+                    sql = "INSERT INTO tbt_order_plans(id, file_gedi_id, vendor, cd, unit, whs, tagrp, factory, sortg1, sortg2, sortg3, plantype, pono, biac, shiptype, etdtap, partno, partname, pc, commercial, sampleflg, orderorgi, orderround, firmflg, shippedflg, shippedqty, ordermonth, balqty, bidrfl, deleteflg, ordertype, reasoncd, upddte, updtime, carriercode, bioabt, bicomd, bistdp, binewt, bigrwt, bishpc, biivpx, bisafn, biwidt, bihigh, bileng, lotno, is_active, created_at, updated_at)VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,1, current_timestamp, current_timestamp)"
+                    for a in data:
+                        # print(a)
+                        id = generate(size=36)
+                        val = (id, r['id'], a['vendor'], a['cd'], a['unit'], a['whs'], a['tagrp'], a['factory'], a['sortg1'], a['sortg2'], a['sortg3'], a['plantype'], a['pono'], a['biac'], a['shiptype'], (a['etdtap']).strftime('%Y-%m-%d %H:%M:%S'), a['partno'], a['partname'], a['pc'], a['commercial'], a['sampleflg'], a['orderorgi'], a['orderround'], a['firmflg'], a['shippedflg'], a['shippedqty'], (a['ordermonth']).strftime('%Y-%m-%d %H:%M:%S'), a['balqty'], a['bidrfl'], a['deleteflg'], a['ordertype'], a['reasoncd'], (a['upddte']).strftime('%Y-%m-%d %H:%M:%S'), (a['updtime']).strftime('%Y-%m-%d %H:%M:%S'), a['carriercode'], a['bioabt'], a['bicomd'], a['bistdp'], a['binewt'], a['bigrwt'], a['bishpc'], a['biivpx'], a['bisafn'], a['biwidt'], a['bihigh'], a['bileng'],a['lotno'])
+                        mycursor.execute(sql, val)
+                        
+                    ### Commit MySQL
+                    mydb.commit()
                     
-                ### Commit MySQL
-                mycursor.execute(sql, val)
-                mydb.commit()
-                mydb.close()
-        i += 1
+                    ### Log
+                    log(name='SPL', subject="INSERT", status="Success", message=f"Insert Data Order Plan({len(data)})")
+                
+                #### For Receive
+                elif r['file_type'] == 'R':
+                    head = spl.header_receive(filename)
+                    ### GET Master
+                    f = open(filename, 'r')
+                    h = f.readline()
+                    etd = datetime.strptime(str(h)[16:26], '%d/%m/%Y')
+                    whs_id = r['whs_id']
+                    mycursor.execute(f"select id from tbt_factory_types where name='{head['factory']}'")
+                    myresult = mycursor.fetchone()
+                    factory_id = myresult[0]
+                    #### create receive header
+                    receive_id = generate(size=36)
+                    print(f"""insert into tbt_receives(id, whs_id, file_gedi_id, factory_type_id, receive_date, receive_no, is_active, created_at, updated_at)
+                    values('{receive_id}', '{whs_id}', '{r['id']}', '{factory_id}', '{etd}', '{str(h)[4:16]}', 1, current_timestamp, current_timestamp)""")
+                    
+                    sql = f"""insert into tbt_receive_details(id, receive_id, ledger_id, seq, plan_qty, plan_ctn, is_active, created_at, updated_at)values(%s, %s, %s, %s, %s, %s, 1, current_timestamp, current_timestamp)"""
+                    seq = 1
+                    for doc in f:
+                        b = spl.read_receive(head, doc)
+                        mycursor.execute(f"select id from tbt_parts where no='{b['partno']}'")
+                        part_id = mycursor.fetchone()[0]
+                        mycursor.execute(f"select id from tbt_ledgers where part_id='{part_id}' and factory_id='{factory_id}'")
+                        ledger_id = mycursor.fetchone()[0]
+                        body_id = generate(size=36)
+                        plan_qty = b['plnqty']
+                        plan_ctn = b['plnctn']
+                        val = (body_id, receive_id, ledger_id, seq, plan_qty, plan_ctn)
+                        seq += 1
+                        
+                        ### insert receive body
+                        
+                    f.close()
+                    
+                    ### Commit MySQL
+                    mydb.commit()
+                    
+                    ### Log
+                    log(name='SPL', subject="INSERT", status="Success", message=f"Insert Data Receive({len(data)})")
+                    
+            time.sleep(1.5)
+            i += 1
+            
+    except Exception as ex:
+        log(name='SPL', subject="INSERT", status="Error", message=str(ex))
+        mydb.rollback()
+        pass
+    
+    ### disconnect db
+    mydb.close()
     if spl.logout(token):
         print(f'end service')
     
