@@ -287,7 +287,7 @@ class Yazaki:
 
 
 class SplApi:
-    def __init__(self, host, username, password):
+    def __init__(self, host="http://localhost:8080", username="admin", password="admin@spl"):
         self.host = host
         self.username = username
         self.password = urllib.parse.quote(password)
