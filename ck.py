@@ -102,8 +102,9 @@ def main():
         log(name='SPL', subject="STOP", status='Active',message=f"Stop SPL Service")
         
     ### Delete EXPORT Folder
-    shutil.rmtree(root_pathname)
-    log(name='SPL', subject="DELETE", status='Active',message=f"Delete EXPORT Folder")
+    if os.path.exists(root_pathname):
+        shutil.rmtree(root_pathname)
+        log(name='SPL', subject="DELETE", status='Active',message=f"Delete EXPORT Folder")
     
 def download():
     token = spl.login()
@@ -167,7 +168,7 @@ def download():
                     mycursor.execute(f"""insert into tbt_receives(id, whs_id, file_gedi_id, factory_type_id, receive_date, receive_no, is_active, created_at, updated_at)
                     values('{receive_id}', '{whs_id}', '{r['id']}', '{factory_id}', '{etd}', '{str(h)[4:16]}', 1, current_timestamp, current_timestamp)""")
                     
-                    sql = f"""insert into tbt_receive_details(id, receive_id, ledger_id, seq, plan_qty, plan_ctn, is_active, created_at, updated_at)values(%s, %s, %s, %s, %s, %s, 1, current_timestamp, current_timestamp)"""
+                    # sql = f"""insert into tbt_receive_details(id, receive_id, ledger_id, seq, plan_qty, plan_ctn, is_active, created_at, updated_at)values(%s, %s, %s, %s, %s, %s, 1, current_timestamp, current_timestamp)"""
                     seq = 1
                     for doc in f:
                         part_id = None
@@ -202,13 +203,19 @@ def download():
                         receive_body_id = generate(size=36)
                         sql_body = f"""insert into tbt_receive_details(id, receive_id, ledger_id, seq, managing_no, plan_qty, plan_ctn, is_active, created_at, updated_at)values('{receive_body_id}', '{receive_id}', '{ledger_id}', {seq}, '', {plan_qty}, {plan_ctn}, 1, current_timestamp, current_timestamp)"""
                         # val = (body_id, receive_id, ledger_id, seq, plan_qty, plan_ctn)
-                        print(sql_body)
+                        # print(sql_body)
                         mycursor.execute(sql_body)
+                        print(f"sync {str(h)[4:16]} data :=> {seq} partno: {part_id}")
                         seq += 1
                         
                         ### insert receive body
                         
                     f.close()
+                    
+                    ### remove temp files after load data.
+                    os.remove(filename)
+                    ### Update status
+                    spl.update_status(token, str(r['id']), 1)
                     
                     ### Commit MySQL
                     mydb.commit()
