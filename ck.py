@@ -1,4 +1,5 @@
 from datetime import datetime
+import shutil
 import sys
 import os
 import time
@@ -101,7 +102,7 @@ def main():
         log(name='SPL', subject="STOP", status='Active',message=f"Stop SPL Service")
         
     ### Delete EXPORT Folder
-    os.removedirs(root_pathname)
+    shutil.rmtree(root_pathname)
     log(name='SPL', subject="DELETE", status='Active',message=f"Delete EXPORT Folder")
     
 def download():
@@ -163,21 +164,46 @@ def download():
                     factory_id = myresult[0]
                     #### create receive header
                     receive_id = generate(size=36)
-                    print(f"""insert into tbt_receives(id, whs_id, file_gedi_id, factory_type_id, receive_date, receive_no, is_active, created_at, updated_at)
+                    mycursor.execute(f"""insert into tbt_receives(id, whs_id, file_gedi_id, factory_type_id, receive_date, receive_no, is_active, created_at, updated_at)
                     values('{receive_id}', '{whs_id}', '{r['id']}', '{factory_id}', '{etd}', '{str(h)[4:16]}', 1, current_timestamp, current_timestamp)""")
                     
                     sql = f"""insert into tbt_receive_details(id, receive_id, ledger_id, seq, plan_qty, plan_ctn, is_active, created_at, updated_at)values(%s, %s, %s, %s, %s, %s, 1, current_timestamp, current_timestamp)"""
                     seq = 1
                     for doc in f:
+                        part_id = None
                         b = spl.read_receive(head, doc)
                         mycursor.execute(f"select id from tbt_parts where no='{b['partno']}'")
-                        part_id = mycursor.fetchone()[0]
+                        fetch_parts = mycursor.fetchone()
+                        if fetch_parts:
+                            part_id = fetch_parts[0]
+                            
+                        else:
+                            part_running_id = generate(size=36)
+                            mycursor.execute(f"""insert into tbt_parts(id, no, name, is_active, created_at, updated_at)values('{part_running_id}', '{b['partno']}', '{b['partname']}', 1, current_timestamp, current_timestamp)""")
+                            
+                            ### get unit
+                            mycursor.execute(f"select id from tbt_units where name='{b['unit']}'")
+                            fetch_units = mycursor.fetchone()
+                            
+                            ### get tagrp_id
+                            mycursor.execute(f"select id from tbt_tagrps where name='{b['tagrp']}'")
+                            tagrp_id = mycursor.fetchone()
+                            
+                            ### insert ledger
+                            ledger_running_id = generate(size=36)
+                            mycursor.execute(f"""insert into tbt_ledgers(id, tagrp_id, factory_id, whs_id, part_id, net_weight, gross_weight, unit_id, is_active, created_at, updated_at)
+                                    values('{ledger_running_id}', '{tagrp_id}', '{factory_id}', '{whs_id}', '{part_running_id}', '{b['aenewt']}', '{b['aegrwt']}', '{fetch_units[0]}', 1, current_timestamp, current_timestamp)""")
+                            part_id = part_running_id
+                            
                         mycursor.execute(f"select id from tbt_ledgers where part_id='{part_id}' and factory_id='{factory_id}'")
                         ledger_id = mycursor.fetchone()[0]
-                        body_id = generate(size=36)
                         plan_qty = b['plnqty']
                         plan_ctn = b['plnctn']
-                        val = (body_id, receive_id, ledger_id, seq, plan_qty, plan_ctn)
+                        receive_body_id = generate(size=36)
+                        sql_body = f"""insert into tbt_receive_details(id, receive_id, ledger_id, seq, managing_no, plan_qty, plan_ctn, is_active, created_at, updated_at)values('{receive_body_id}', '{receive_id}', '{ledger_id}', {seq}, '', {plan_qty}, {plan_ctn}, 1, current_timestamp, current_timestamp)"""
+                        # val = (body_id, receive_id, ledger_id, seq, plan_qty, plan_ctn)
+                        print(sql_body)
+                        mycursor.execute(sql_body)
                         seq += 1
                         
                         ### insert receive body
