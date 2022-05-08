@@ -18,37 +18,35 @@ def main():
                     fname = os.path.join(root_pathname, x, p, name)
                     if x == "ORDERPLAN":
                         head = spl.header_orderplan(name)
-                        if head['factory'] == 'INJ':
-                            f = open(fname, 'r')
-                            for w in f:
-                                data = spl.read_orderplan(head, w)
-                                part_sql = Oracur.execute(f"select partno from txp_part where partno='{data['partno']}'")
-                                if part_sql.fetchone() is None:
-                                    Oracur.execute(f"""insert into txp_part (tagrp,partno,partname,CD,VENDORCD,UNIT ,upddte,sysdte)values('C','{data['partno']}','{data['partname']}','{data['cd']}', '{data['factory']}', '{data['unit']}',sysdate,sysdate)""")
-                                
-                                part_sql = Oracur.execute(f"select partno from TXP_LEDGER where partno='{data['partno']}'")
-                                if part_sql.fetchone() is None:
-                                    Oracur.execute(f"""INSERT INTO TXP_LEDGER(PARTNO,TAGRP,MINIMUM,MAXIMUM,WHS,PICSHELFBIN,STKSHELFBIN,OVSSHELFBIN,OUTERPCS,UPDDTE, SYSDTE)VALUES('{data['partno']}', 'C',0,0,'{data['factory']}','PNON', 'SNON','ONON',0, sysdate, sysdate)""")
-
-                                print(f"{p} check part: {data['partno']}")
-                                
-                            f.close()
+                        # if head['factory'] == 'INJ':
+                        f = open(fname, 'r')
+                        for w in f:
+                            data = spl.read_orderplan(head, w)
+                            part_sql = Oracur.execute(f"select partno from txp_part where partno='{data['partno']}'")
+                            if part_sql.fetchone() is None:
+                                Oracur.execute(f"""insert into txp_part (tagrp,partno,partname,CD,VENDORCD,UNIT ,upddte,sysdte)values('C','{data['partno']}','{data['partname']}','{data['cd']}', '{data['factory']}', '{data['unit']}',sysdate,sysdate)""")
+                            
+                            part_sql = Oracur.execute(f"select partno from TXP_LEDGER where partno='{data['partno']}'")
+                            if part_sql.fetchone() is None:
+                                Oracur.execute(f"""INSERT INTO TXP_LEDGER(PARTNO,TAGRP,MINIMUM,MAXIMUM,WHS,PICSHELFBIN,STKSHELFBIN,OVSSHELFBIN,OUTERPCS,UPDDTE, SYSDTE)VALUES('{data['partno']}', 'C',0,0,'{data['factory']}','PNON', 'SNON','ONON',0, sysdate, sysdate)""")
+                            print(f"{p} check part: {data['partno']}")
+                            
+                        f.close()
                     else:
                         head = spl.header_receive(name)
-                        if head['factory'] == 'INJ':
-                            f = open(fname, 'r')
-                            for w in f:
-                                data = spl.read_receive(head, w)
-                                part_sql = Oracur.execute(f"select partno from txp_part where partno='{data['partno']}'")
-                                if part_sql.fetchone() is None:
-                                    Oracur.execute(f"""insert into txp_part (tagrp,partno,partname,CD,VENDORCD,UNIT ,upddte,sysdte)values('C','{data['partno']}','{data['partname']}','{data['cd']}', '{data['factory']}', '{data['unit']}',sysdate,sysdate)""")
-                                
-                                part_sql = Oracur.execute(f"select partno from TXP_LEDGER where partno='{data['partno']}'")
-                                if part_sql.fetchone() is None:
-                                    Oracur.execute(f"""INSERT INTO TXP_LEDGER(PARTNO,TAGRP,MINIMUM,MAXIMUM,WHS,PICSHELFBIN,STKSHELFBIN,OVSSHELFBIN,OUTERPCS,UPDDTE, SYSDTE)VALUES('{data['partno']}', 'C',0,0,'{data['factory']}','PNON', 'SNON','ONON',0, sysdate, sysdate)""")
-
-                                print(f"{p} check part: {data['partno']}")
-                            f.close()
+                        # if head['factory'] == 'INJ':
+                        f = open(fname, 'r')
+                        for w in f:
+                            data = spl.read_receive(head, w)
+                            part_sql = Oracur.execute(f"select partno from txp_part where partno='{data['partno']}'")
+                            if part_sql.fetchone() is None:
+                                Oracur.execute(f"""insert into txp_part (tagrp,partno,partname,CD,VENDORCD,UNIT ,upddte,sysdte)values('C','{data['partno']}','{data['partname']}','{data['cd']}', '{data['factory']}', '{data['unit']}',sysdate,sysdate)""")
+                            
+                            part_sql = Oracur.execute(f"select partno from TXP_LEDGER where partno='{data['partno']}'")
+                            if part_sql.fetchone() is None:
+                                Oracur.execute(f"""INSERT INTO TXP_LEDGER(PARTNO,TAGRP,MINIMUM,MAXIMUM,WHS,PICSHELFBIN,STKSHELFBIN,OVSSHELFBIN,OUTERPCS,UPDDTE, SYSDTE)VALUES('{data['partno']}', 'C',0,0,'{data['factory']}','PNON', 'SNON','ONON',0, sysdate, sysdate)""")
+                            print(f"{p} check part: {data['partno']}")
+                        f.close()
                         
                     print(fname)
                     
