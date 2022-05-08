@@ -230,7 +230,7 @@ def download():
         print(f'end service')
     
 if __name__ == '__main__':
-    # main()
-    # time.sleep(10)
+    main()
+    time.sleep(0.1)
     download()
     sys.exit(0)
