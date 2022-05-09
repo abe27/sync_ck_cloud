@@ -643,4 +643,27 @@ class SplApi:
             return True
         
         return False
-            
+    
+    def get_receive(self, token, status=0):
+        url = f"{self.host}/receive/header/index/{status}"
+        payload={}
+        headers = {
+            'Authorization': f'Bearer {token}'
+        }
+        response = requests.request("GET", url, headers=headers, data=payload)
+        if response.status_code != 200:return False
+        data = response.json()
+        return data['data']
+    
+    def get_receive_body(self, token, receive_id, status=1):
+        url = f"{self.host}/receive/body/index/{status}/{receive_id}"
+        payload={}
+        headers = {
+            'Authorization': f'Bearer {token}'
+        }
+        response = requests.request("GET", url, headers=headers, data=payload)
+        if response.status_code != 200:
+            return False
+        
+        data = response.json()
+        return data['data']

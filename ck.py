@@ -3,7 +3,7 @@ import shutil
 import sys
 import os
 import time
-import mysql.connector
+import psycopg2 as pgsql
 from nanoid import generate
 from spllibs import Yazaki, SplApi, SplSharePoint, LogActivity as log
 from dotenv import load_dotenv
@@ -109,8 +109,12 @@ def main():
 def download():
     token = spl.login()
     try:
+        ### start get link download
+        obj = spl.get_link(token)
+        if len(obj) <= 0: return
+        
         ### Initail Mysql Server
-        mydb = mysql.connector.connect(
+        mydb = pgsql.connect(
             host=DB_HOSTNAME,
             port=DB_PORT,
             user=DB_USERNAME,
@@ -119,8 +123,6 @@ def download():
         )
         mycursor = mydb.cursor()
         
-        ### start get link download
-        obj = spl.get_link(token)
         i = 0
         while i < len(obj):
             r = obj[i]
@@ -139,7 +141,7 @@ def download():
                     os.remove(filename)
                     ### Update status
                     spl.update_status(token, str(r['id']), 1)
-                    sql = "INSERT INTO tbt_order_plans(id, file_gedi_id, vendor, cd, unit, whs, tagrp, factory, sortg1, sortg2, sortg3, plantype, pono, biac, shiptype, etdtap, partno, partname, pc, commercial, sampleflg, orderorgi, orderround, firmflg, shippedflg, shippedqty, ordermonth, balqty, bidrfl, deleteflg, ordertype, reasoncd, upddte, updtime, carriercode, bioabt, bicomd, bistdp, binewt, bigrwt, bishpc, biivpx, bisafn, biwidt, bihigh, bileng, lotno, is_active, created_at, updated_at)VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,1, current_timestamp, current_timestamp)"
+                    sql = "INSERT INTO tbt_order_plans(id, file_gedi_id, vendor, cd, unit, whs, tagrp, factory, sortg1, sortg2, sortg3, plantype, pono, biac, shiptype, etdtap, partno, partname, pc, commercial, sampleflg, orderorgi, orderround, firmflg, shippedflg, shippedqty, ordermonth, balqty, bidrfl, deleteflg, ordertype, reasoncd, upddte, updtime, carriercode, bioabt, bicomd, bistdp, binewt, bigrwt, bishpc, biivpx, bisafn, biwidt, bihigh, bileng, lotno, is_active, created_at, updated_at)VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,true, current_timestamp, current_timestamp)"
                     for a in data:
                         # print(a)
                         id = generate(size=36)
@@ -154,25 +156,36 @@ def download():
                 
                 #### For Receive
                 elif r['file_type'] == 'R':
+                    receive_no = []
                     head = spl.header_receive(filename)
                     ### GET Master
                     f = open(filename, 'r')
-                    h = f.readline()
-                    etd = datetime.strptime(str(h)[16:26], '%d/%m/%Y')
-                    whs_id = r['whs_id']
-                    mycursor.execute(f"select id from tbt_factory_types where name='{head['factory']}'")
-                    myresult = mycursor.fetchone()
-                    factory_id = myresult[0]
-                    #### create receive header
-                    receive_id = generate(size=36)
-                    mycursor.execute(f"""insert into tbt_receives(id, whs_id, file_gedi_id, factory_type_id, receive_date, receive_no, is_active, created_at, updated_at)
-                    values('{receive_id}', '{whs_id}', '{r['id']}', '{factory_id}', '{etd}', '{str(h)[4:16]}', 1, current_timestamp, current_timestamp)""")
-                    
-                    # sql = f"""insert into tbt_receive_details(id, receive_id, ledger_id, seq, plan_qty, plan_ctn, is_active, created_at, updated_at)values(%s, %s, %s, %s, %s, %s, 1, current_timestamp, current_timestamp)"""
                     seq = 1
                     for doc in f:
+                        h = doc
+                        etd = datetime.strptime(str(h)[16:26], '%d/%m/%Y')
+                        whs_id = r['whs_id']
+                        mycursor.execute(f"select id from tbt_factory_types where name='{head['factory']}'")
+                        myresult = mycursor.fetchone()
+                        factory_id = myresult[0]
+                        #### create receive header
+                        if ((str(h)[4:16]) in receive_no) is False:receive_no.append(str(h)[4:16])
+                        receive_id = generate(size=36)
+                        
+                        ### check duplicate
+                        mycursor.execute(f"select id from tbt_receives where receive_no='{str(h)[4:16]}'")
+                        receive_data = mycursor.fetchone()
+                        if receive_data:
+                            receive_id = receive_data[0]
+                        else:
+                            mycursor.execute(f"""insert into tbt_receives(id, whs_id, file_gedi_id, factory_type_id, receive_date, receive_no, receive_sync,is_active, created_at, updated_at)values('{receive_id}', '{whs_id}', '{r['id']}', '{factory_id}', '{etd}', '{str(h)[4:16]}', true, true, current_timestamp, current_timestamp)""")
+                            
+                        ### check body
                         part_id = None
                         b = spl.read_receive(head, doc)
+                        ### Log
+                        log(name='SPL', subject="INSERT", status="Success", message=f"Insert Data Receive {(str(h)[4:16])}({b['partno']})")
+                        
                         mycursor.execute(f"select id from tbt_parts where no='{b['partno']}'")
                         fetch_parts = mycursor.fetchone()
                         if fetch_parts:
@@ -180,48 +193,46 @@ def download():
                             
                         else:
                             part_running_id = generate(size=36)
-                            mycursor.execute(f"""insert into tbt_parts(id, no, name, is_active, created_at, updated_at)values('{part_running_id}', '{b['partno']}', '{b['partname']}', 1, current_timestamp, current_timestamp)""")
+                            mycursor.execute(f"""insert into tbt_parts(id, no, name, is_active, created_at, updated_at)values('{part_running_id}', '{b['partno']}', '{b['partname']}', true, current_timestamp, current_timestamp)""")
                             
                             ### get unit
                             mycursor.execute(f"select id from tbt_units where name='{b['unit']}'")
-                            fetch_units = mycursor.fetchone()
+                            fetch_units = mycursor.fetchone()[0]
                             
                             ### get tagrp_id
                             mycursor.execute(f"select id from tbt_tagrps where name='{b['tagrp']}'")
-                            tagrp_id = mycursor.fetchone()
+                            tagrp_id = mycursor.fetchone()[0]
                             
                             ### insert ledger
                             ledger_running_id = generate(size=36)
                             mycursor.execute(f"""insert into tbt_ledgers(id, tagrp_id, factory_id, whs_id, part_id, net_weight, gross_weight, unit_id, is_active, created_at, updated_at)
-                                    values('{ledger_running_id}', '{tagrp_id}', '{factory_id}', '{whs_id}', '{part_running_id}', '{b['aenewt']}', '{b['aegrwt']}', '{fetch_units[0]}', 1, current_timestamp, current_timestamp)""")
+                                    values('{ledger_running_id}', '{tagrp_id}', '{factory_id}', '{whs_id}', '{part_running_id}', '{b['aenewt']}', '{b['aegrwt']}', '{fetch_units}', true, current_timestamp, current_timestamp)""")
                             part_id = part_running_id
                             
-                        mycursor.execute(f"select id from tbt_ledgers where part_id='{part_id}' and factory_id='{factory_id}'")
+                        mycursor.execute(f"select id from tbt_ledgers where part_id='{part_id}' and factory_id='{factory_id}' and whs_id='{whs_id}'")
                         ledger_id = mycursor.fetchone()[0]
                         plan_qty = b['plnqty']
                         plan_ctn = b['plnctn']
-                        receive_body_id = generate(size=36)
-                        sql_body = f"""insert into tbt_receive_details(id, receive_id, ledger_id, seq, managing_no, plan_qty, plan_ctn, is_active, created_at, updated_at)values('{receive_body_id}', '{receive_id}', '{ledger_id}', {seq}, '', {plan_qty}, {plan_ctn}, 1, current_timestamp, current_timestamp)"""
-                        # val = (body_id, receive_id, ledger_id, seq, plan_qty, plan_ctn)
-                        # print(sql_body)
-                        mycursor.execute(sql_body)
-                        print(f"sync {str(h)[4:16]} data :=> {seq} partno: {part_id}")
-                        seq += 1
                         
                         ### insert receive body
+                        receive_body_id = generate(size=36)
+                        sql_body = f"""insert into tbt_receive_details(id, receive_id, ledger_id, seq, managing_no, plan_qty, plan_ctn, is_active, created_at, updated_at)values('{receive_body_id}', '{receive_id}', '{ledger_id}', {seq}, '', {plan_qty}, {plan_ctn}, true, current_timestamp, current_timestamp)"""
+                        mycursor.execute(sql_body)
+                        print(f"Sync {str(h)[4:16]} Data :=> {seq} Part: {part_id}")
+                        seq += 1
                         
                     f.close()
-                    
+                    ### after insert data receive set update status receive_sync=True
+                    for no in receive_no:
+                        mycursor.execute(f"update tbt_receives set receive_sync=false where receive_no='{no}'")
+                        ### Log
+                        log(name='SPL', subject="UPDATE", status="Success", message=f"Update Status Sync Receive {no} Set False")
+                        
+                    mydb.commit()
                     ### remove temp files after load data.
                     os.remove(filename)
                     ### Update status
                     spl.update_status(token, str(r['id']), 1)
-                    
-                    ### Commit MySQL
-                    mydb.commit()
-                    
-                    ### Log
-                    log(name='SPL', subject="INSERT", status="Success", message=f"Insert Data Receive({len(data)})")
                     
             time.sleep(1.5)
             i += 1
@@ -235,9 +246,26 @@ def download():
     mydb.close()
     if spl.logout(token):
         print(f'end service')
-    
+        
+def get_receive():
+    token = spl.login()
+    data = spl.get_receive(token)
+    obj = data['data']
+    for i in obj:
+        body = spl.get_receive_body(token, i['id'], 1)
+        x = 0
+        while x < len(body):
+            r = body[x]
+            print(list(r))
+            
+            x += 1
+        
+    if spl.logout(token):
+        print(f'end service')
 if __name__ == '__main__':
-    main()
-    time.sleep(0.1)
-    download()
+    # main()
+    # time.sleep(0.1)
+    # download()
+    # time.sleep(0.1)
+    get_receive()
     sys.exit(0)
