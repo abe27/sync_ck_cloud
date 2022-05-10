@@ -256,8 +256,22 @@ def get_receive():
         x = 0
         while x < len(body):
             r = body[x]
-            print(list(r))
+            head = r['receive']
+            receive_no = head['receive_no']
+            receive_date = datetime.strptime(head['receive_date'], '%Y-%m-%d')
+            factory_type = head['factory_type']['name']
+            ### get part type
+            part_type = "PART"
             
+            ### check part on master
+            
+            ### check part on ledger
+            
+            
+            ### receive body
+            
+            
+            ### receive ent
             x += 1
         
     if spl.logout(token):
