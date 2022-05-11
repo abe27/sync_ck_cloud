@@ -195,8 +195,7 @@ class Yazaki:
     def get_link(self, session):
         obj = []
         try:
-            etd = str((datetime.now() -
-                      timedelta(days=1)).strftime("%Y%m%d"))
+            etd = str((datetime.now() - timedelta(days=1)).strftime("%Y%m%d"))
             # etd = '20220505'
             # get cookies after login.
             if session.status_code == 200:
@@ -323,6 +322,24 @@ class SplApi:
 
     def __pono(self, txt):
         return str(self.__re_partname(txt)).strip()
+    
+    def line_notification(self, msg):
+        url = "https://notify-api.line.me/api/notify"
+        payload = f"message={msg}"
+        headers = {
+            "Authorization": f"Bearer {os.getenv('LINE_NOTIFICATION_TOKEN')}",
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
+
+        # BugDWScwhYvjVc5EyRi5sa28LmJxE2G5NIJsrs6vEV7
+
+        response = requests.request(
+            "POST", url, headers=headers, data=payload.encode("utf-8")
+        )
+
+        print(f"line status => {response}")
+        if response.status_code == 200:return True
+        return False
 
     def login(self):
         try:
@@ -651,6 +668,18 @@ class SplApi:
             'Authorization': f'Bearer {token}'
         }
         response = requests.request("GET", url, headers=headers, data=payload)
+        if response.status_code != 200:return False
+        data = response.json()
+        return data['data']
+    
+    def update_receive_ent(self, token, receive_id, is_sync=0, status=1):
+        url = f"{self.host}/receive/header/update/{receive_id}"
+        payload=f'receive_sync={is_sync}&active={status}'
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+        response = requests.request("PUT", url, headers=headers, data=payload)
         if response.status_code != 200:return False
         data = response.json()
         return data['data']

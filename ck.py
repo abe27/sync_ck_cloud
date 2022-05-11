@@ -52,7 +52,7 @@ def main():
         while i < len(link):
             x = link[i]
             # ### download gedi file
-            # yk.download_gedi_files(session, x)
+            yk.download_gedi_files(session, x)
             
             print(f"download gedi file => {x.batchfile}")   
             i += 1
@@ -260,19 +260,32 @@ def get_receive():
         token = spl.login()
         data = spl.get_receive(token)
         obj = data['data']
+        receive_array = []
         for i in obj:
+            receive_id = str(i['id'])
             body = spl.get_receive_body(token, i['id'], 1)
+            sum_pln = 0
             x = 0
             while x < len(body):
                 r = body[x]
                 head = r['receive']
                 receive_no = head['receive_no']
+                ### append to receive key
+                if len(receive_array) == 0:
+                    receive_array.append(receive_no)
+                    
+                if (receive_no in receive_array) is False:
+                    receive_array.append(receive_no)
+                
+                ### check receive date
                 receive_date = datetime.strptime(head['receive_date'], '%Y-%m-%d')
                 factory_type = head['factory_type']['name']
                 cd = '20'
                 if factory_type == "AW": cd = "10"
                 part = r['ledger']['part']['no']
                 part_name = r['ledger']['part']['name']
+                unit = r['ledger']['unit']['name']
+                whs = r['ledger']['whs']['name']
                 ### get part type
                 part_type = "PART"
                 sub_part = part[:2]
@@ -281,7 +294,7 @@ def get_receive():
                 ### check part on master
                 part_sql = Oracur.execute(f"select partno from txp_part where partno='{part}'")
                 part_upd = "INSERT"
-                sql_part_insert = f"""insert into txp_part(tagrp,partno,partname,carmaker,CD,TYPE,VENDORCD,UNIT ,upddte,sysdte)values('C','{part}','{part_name}','E', '{cd}', '{part_type}', '{factory_type}', 'BOX',sysdate,sysdate)"""
+                sql_part_insert = f"""insert into txp_part(tagrp,partno,partname,carmaker,CD,TYPE,VENDORCD,UNIT ,upddte,sysdte)values('C','{part}','{part_name}','E', '{cd}', '{part_type}', '{factory_type}', '{unit}',sysdate,sysdate)"""
                 if part_sql.fetchone():
                     part_upd = "UPDATE"
                     sql_part_insert = f"""update txp_part set  partname='{part_name}',upddte=sysdate where partno='{part}'"""
@@ -298,29 +311,128 @@ def get_receive():
                 print(f"{part_upd} PART: {part} TYPE: {part_type} OUTER: {outer_qty}")
                 
                 ### get manno.
-                sql_manage_no = (Oracur.execute(f"select 'BD'|| SUBSTR(TO_CHAR(sysdate,'yyMMdd'), 2, 6)  || replace(to_char((SELECT count(*) FROM TXP_RECTRANSBODY) + 1,'000099'),' ','') as genrunno  from dual")).fetchone()[0]
+                rvm_no = (Oracur.execute(f"SELECT 'BD'|| SUBSTR(TO_CHAR(sysdate,'yyMMdd'), 2, 6)  || replace(to_char((SELECT count(*) FROM TXP_RECTRANSBODY WHERE TO_CHAR(SYSDTE, 'YYYYMMDD') = TO_CHAR(sysdate, 'YYYYMMDD')) + 1,'000099'),' ','') as genrunno  from dual")).fetchone()[0]
+                
+                ### delete data when duplicate
+                Oracur.execute(f"DELETE TXP_RECTRANSBODY where RECEIVINGKEY='{receive_no}' AND PARTNO='{part}' AND RECCTN=0")
                 ### receive body
                 receive_body = Oracur.execute(f"""SELECT PARTNO from TXP_RECTRANSBODY WHERE RECEIVINGKEY='{receive_no}' AND PARTNO='{part}'""")
-                sql_receive_body = f""""""
+                sql_receive_body = f"""INSERT INTO TXP_RECTRANSBODY
+                                    (RECEIVINGKEY, RECEIVINGSEQ, PARTNO, PLNQTY, PLNCTN,RECQTY,RECCTN,TAGRP, UNIT, CD, WHS, DESCRI, RVMANAGINGNO,UPDDTE, SYSDTE, CREATEDBY,MODIFIEDBY,OLDERKEY)
+                                    VALUES('{receive_no}', '{(x + 1)}', '{part}', {r['plan_qty']}, {r['plan_ctn']},0,0,'C', '{unit}','{cd}' , '{whs}','{part_name}', '{rvm_no}',sysdate, sysdate, 'SKTSYS', 'SKTSYS', '{receive_no}')"""
                 if receive_body.fetchone():
-                    sql_receive_body = f""""""
+                    sql_receive_body = f"""UPDATE TXP_RECTRANSBODY SET PLNQTY='{r['plan_qty']}', PLNCTN={r['plan_ctn']} WHERE RECEIVINGKEY='{receive_no}'"""
                 
-                ### receive ent
+                Oracur.execute(sql_receive_body)
+                sum_pln += float(str(r['plan_ctn']))
                 x += 1
+                ### create receive ent
+                receive_ent = Oracur.execute(f"SELECT RECEIVINGKEY from TXP_RECTRANSENT where RECEIVINGKEY='{receive_no}'")
+                sql_rec_ent = f"""INSERT INTO TXP_RECTRANSENT(RECEIVINGKEY, RECEIVINGMAX, RECEIVINGDTE, VENDOR, RECSTATUS, RECISSTYPE, RECPLNCTN,RECENDCTN, UPDDTE, SYSDTE, GEDI_FILE)
+                VALUES('{receive_no}', {len(body)}, to_date('{str(receive_date)[:10]}', 'YYYY-MM-DD'), '{factory_type}', 0, '01', 0,0, current_timestamp, current_timestamp, '{r['receive']['file_gedi']['batch_id']}')"""
+                if receive_ent.fetchone():
+                    sql_rec_ent = f"""UPDATE TXP_RECTRANSENT SET RECEIVINGMAX='{len(body)}',RECPLNCTN={sum_pln} WHERE RECEIVINGKEY='{receive_no}'"""
+                
+                Oracur.execute(sql_rec_ent)
+                
+            #### update receive ent status
+            response = spl.update_receive_ent(token, receive_id, is_sync=1)
+            if response is False:
+                return
             
         if spl.logout(token):
             print(f'end service')
+            Oracon.commit()
             
-        Oracon.commit()
+        ### notifications
+        if len(receive_array) > 0:
+            x = 0
+            while x < len(receive_array):
+                r = receive_array[x]
+                fac = "AW"
+                if r[:2] == "TI":fac = "INJ"
+                recbody = Oracur.execute(f"SELECT sum(PLNCTN),count(PARTNO) FROM TXP_RECTRANSBODY WHERE RECEIVINGKEY='{r}'")
+                p = recbody.fetchone()
+                d = datetime.now()
+                if p != None:
+                    msg = f"""{fac}\nRECEIVENO: {r}\nITEM: {p[1]} CTN: {p[0]}\nAT: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
+                    spl.line_notification(msg)
+                    log(name='SPL', subject="SYNC RECEIVE", status="Success", message=f"Sync Receive({r})")
+                x += 1
+        
         Oracon.close()
+        
         
     except Exception as ex:
         log(name='SPL', subject="SYNC RECEIVE", status="Error", message=str(ex))
         pass
+    
+def merge_receive():
+    try:
+        Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
+        Oracur = Oracon.cursor()
+        ### GEDI BATCHID
+        obj = Oracur.execute(f"SELECT GEDI_FILE,ctn  FROM (SELECT GEDI_FILE,count(GEDI_FILE) ctn FROM TXP_RECTRANSENT WHERE VENDOR='INJ'  GROUP BY GEDI_FILE ORDER BY GEDI_FILE) WHERE CTN > 1")
+        for r in obj.fetchall():
+            #### get ent data
+            receive_no = []
+            receive_date = None
+            key_no = None
+            
+            receive_list = []
+            ent = Oracur.execute(f"SELECT RECEIVINGKEY, to_char(RECEIVINGDTE, 'YYYYMMDD')  FROM TXP_RECTRANSENT WHERE GEDI_FILE='{r[0]}' ORDER BY RECEIVINGKEY")
+            for k in ent.fetchall():
+                receive_date = k[1]
+                if (k[0] in receive_list) is False:
+                    receive_list.append(k[0])
+                    receive_no.append(str(k[0])[10:])
+            
+            #### new receive key    
+            sql_key = f"SELECT TO_CHAR(count(*) + 1, '00009')  FROM TXP_RECTRANSENT t WHERE t.RECEIVINGKEY LIKE 'SI{datetime.now().strftime('%y%m%d')}%'"
+            key = Oracur.execute(sql_key)
+            key_no = (f"SI{datetime.now().strftime('%y%m%d')}{(key.fetchone())[0]}").replace(" ", "")
+            receive_key = ",".join(receive_no)
+            sql = f"""SELECT '{key_no}' RECEIVINGKEY,0 SEQ, PARTNO,sum(PLNQTY) PLNQTY,sum(PLNCTN) plnctn,0 RECQTY,0 RECCTN,TAGRP, UNIT, CD, WHS, DESCRI, '' RVMNO,sysdate UPDDTE, sysdate SYSDTE, 'SKTSYS' CREATEDBY,'SKTSYS' MODIFIEDBY,'{receive_key}' OLDERKEY  FROM TXP_RECTRANSBODY WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')}) GROUP BY PARTNO,TAGRP, UNIT, CD, WHS, DESCRI ORDER BY PARTNO"""
+            # print(sql)
+            body = Oracur.execute(sql)
+            seq = 1
+            ctn = 0
+            for b in body.fetchall():
+                ### get manno.
+                rvm_no = (Oracur.execute(f"SELECT 'BD'|| SUBSTR(TO_CHAR(sysdate,'yyMMdd'), 2, 6)  || replace(to_char((SELECT count(*) FROM TXP_RECTRANSBODY WHERE TO_CHAR(SYSDTE, 'YYYYMMDD') = TO_CHAR(sysdate, 'YYYYMMDD')) + 1,'000099'),' ','') as genrunno  from dual")).fetchone()[0]
+                ql_receive_body = f"""INSERT INTO TXP_RECTRANSBODY(RECEIVINGKEY, RECEIVINGSEQ, PARTNO, PLNQTY, PLNCTN,RECQTY,RECCTN,TAGRP, UNIT, CD, WHS, DESCRI, RVMANAGINGNO,UPDDTE, SYSDTE, CREATEDBY,MODIFIEDBY,OLDERKEY)VALUES('{key_no}', '{seq}', '{b[2]}', {b[3]}, {b[4]},0,0,'C', '{b[8]}','{b[9]}' , '{b[10]}','{b[11]}', '{rvm_no}',sysdate, sysdate, 'SKTSYS', 'SKTSYS', '{receive_key}')"""
+                Oracur.execute(ql_receive_body)
+                ctn += float(str(b[4]))
+                seq += 1
+            
+            sql_rec_ent = f"""INSERT INTO TXP_RECTRANSENT(RECEIVINGKEY, RECEIVINGMAX, RECEIVINGDTE, VENDOR, RECSTATUS, RECISSTYPE, RECPLNCTN,RECENDCTN, UPDDTE, SYSDTE, GEDI_FILE)
+                VALUES('{key_no}', {seq}, to_date('{str(receive_date)}', 'YYYYMMDD'), 'INJ', 0, '01', {ctn},0, current_timestamp, current_timestamp, '{r[0]}')"""
+            
+            Oracur.execute(sql_rec_ent)   
+            Oracur.execute(f"""INSERT INTO TMP_RECTRANSENT SELECT RECEIVINGKEY, RECEIVINGMAX, RECEIVINGDTE, RECSTATUS, RECPLNCTN, RECENDCTN, UPDDTE, '{key_no}' MERGEID, 0 SYNC FROM TXP_RECTRANSENT WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')})""")
+            Oracur.execute(f"""INSERT INTO TMP_RECTRANSBODY SELECT RECEIVINGKEY, RECEIVINGSEQ, PARTNO, PLNQTY, RECQTY, PLNCTN, RECCTN, UNIT, RUNNINGNO, UPDDTE, '{key_no}' MERGEID, 0 SYNC FROM TXP_RECTRANSBODY WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')})""")
+            ### after insert delete ent
+            Oracur.execute(f"DELETE TXP_RECTRANSENT WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')})")
+            Oracur.execute(f"DELETE TXP_RECTRANSBODY WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')})")
+            
+            d = datetime.now()
+            msg = f"""รวบรอบ INJ\nรอบ: {key_no}\nจำนวน: {seq} กล่อง: {ctn}\nรอบที่รวม: {receive_key}\nเมื่อ: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
+            spl.line_notification(msg)
+            log(name='SPL', subject="MRGE RECEIVE", status="Success", message=f"Merge Receive({key_no}) with {receive_key}")
+            
+        Oracon.commit()
+        Oracon.close()
+    except Exception as ex:
+        log(name='SPL', subject="MERGE", status="Error", message=str(ex))
+        pass
+    
+    
 if __name__ == '__main__':
-    # main()
-    # time.sleep(0.1)
-    # download()
-    # time.sleep(0.1)
+    main()
+    time.sleep(0.1)
+    download()
+    time.sleep(0.1)
     get_receive()
+    time.sleep(0.1)
+    merge_receive()
     sys.exit(0)
