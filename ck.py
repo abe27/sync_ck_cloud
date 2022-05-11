@@ -4,6 +4,7 @@ import sys
 import os
 import time
 import psycopg2 as pgsql
+import cx_Oracle
 from nanoid import generate
 from spllibs import Yazaki, SplApi, SplSharePoint, LogActivity as log
 from dotenv import load_dotenv
@@ -28,6 +29,10 @@ DB_PORT=os.environ.get('DATABASE_PORT')
 DB_NAME=os.environ.get('DATABASE_NAME')
 DB_USERNAME=os.environ.get('DATABASE_USERNAME')
 DB_PASSWORD=os.environ.get('DATABASE_PASSWORD')
+
+ORA_DNS=f"{os.environ.get('ORAC_DB_HOST')}/{os.environ.get('ORAC_DB_SERVICE')}"
+ORA_USERNAME=os.environ.get('ORAC_DB_USERNAME')
+ORA_PASSWORD=os.environ.get('ORAC_DB_PASSWORD')
 
 ### Initail Data
 yk = Yazaki(SERVICE_TYPE,YAZAKI_HOST, YAZAKI_USER, YAZAKI_PASSWORD)
@@ -248,34 +253,70 @@ def download():
         print(f'end service')
         
 def get_receive():
-    token = spl.login()
-    data = spl.get_receive(token)
-    obj = data['data']
-    for i in obj:
-        body = spl.get_receive_body(token, i['id'], 1)
-        x = 0
-        while x < len(body):
-            r = body[x]
-            head = r['receive']
-            receive_no = head['receive_no']
-            receive_date = datetime.strptime(head['receive_date'], '%Y-%m-%d')
-            factory_type = head['factory_type']['name']
-            ### get part type
-            part_type = "PART"
+    log(name='SPL', subject="START SYNC RECEIVE", status="Success", message=f"Get Receive Start Success")
+    try:
+        Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
+        Oracur = Oracon.cursor()
+        token = spl.login()
+        data = spl.get_receive(token)
+        obj = data['data']
+        for i in obj:
+            body = spl.get_receive_body(token, i['id'], 1)
+            x = 0
+            while x < len(body):
+                r = body[x]
+                head = r['receive']
+                receive_no = head['receive_no']
+                receive_date = datetime.strptime(head['receive_date'], '%Y-%m-%d')
+                factory_type = head['factory_type']['name']
+                cd = '20'
+                if factory_type == "AW": cd = "10"
+                part = r['ledger']['part']['no']
+                part_name = r['ledger']['part']['name']
+                ### get part type
+                part_type = "PART"
+                sub_part = part[:2]
+                if sub_part == "18":part_type = "WIRE"
+                elif sub_part == "71":part_type = "PLATE"
+                ### check part on master
+                part_sql = Oracur.execute(f"select partno from txp_part where partno='{part}'")
+                part_upd = "INSERT"
+                sql_part_insert = f"""insert into txp_part(tagrp,partno,partname,carmaker,CD,TYPE,VENDORCD,UNIT ,upddte,sysdte)values('C','{part}','{part_name}','E', '{cd}', '{part_type}', '{factory_type}', 'BOX',sysdate,sysdate)"""
+                if part_sql.fetchone():
+                    part_upd = "UPDATE"
+                    sql_part_insert = f"""update txp_part set  partname='{part_name}',upddte=sysdate where partno='{part}'"""
+                Oracur.execute(sql_part_insert)
+                
+                ### check part on ledger
+                outer_qty = float(str(r['plan_qty']))/float(str(r['plan_ctn']))
+                part_ledger_sql = Oracur.execute(f"select partno from TXP_LEDGER where partno='{part}'")
+                ledger_sql = f"""INSERT INTO TXP_LEDGER(PARTNO,TAGRP,MINIMUM,MAXIMUM,WHS,PICSHELFBIN,STKSHELFBIN,OVSSHELFBIN,OUTERPCS,UPDDTE, SYSDTE)VALUES('{part}', 'C',0,0,'{factory_type}','PNON', 'SNON','ONON',{outer_qty}, sysdate, sysdate)"""
+                if part_ledger_sql.fetchone():
+                    ledger_sql = f"""UPDATE TXP_LEDGER SET RECORDMAX=1,LASTRECDTE=sysdate,LASTISSDTE=sysdate WHERE PARTNO='{part}'"""
+                
+                Oracur.execute(ledger_sql)    
+                print(f"{part_upd} PART: {part} TYPE: {part_type} OUTER: {outer_qty}")
+                
+                ### get manno.
+                sql_manage_no = (Oracur.execute(f"select 'BD'|| SUBSTR(TO_CHAR(sysdate,'yyMMdd'), 2, 6)  || replace(to_char((SELECT count(*) FROM TXP_RECTRANSBODY) + 1,'000099'),' ','') as genrunno  from dual")).fetchone()[0]
+                ### receive body
+                receive_body = Oracur.execute(f"""SELECT PARTNO from TXP_RECTRANSBODY WHERE RECEIVINGKEY='{receive_no}' AND PARTNO='{part}'""")
+                sql_receive_body = f""""""
+                if receive_body.fetchone():
+                    sql_receive_body = f""""""
+                
+                ### receive ent
+                x += 1
             
-            ### check part on master
+        if spl.logout(token):
+            print(f'end service')
             
-            ### check part on ledger
-            
-            
-            ### receive body
-            
-            
-            ### receive ent
-            x += 1
+        Oracon.commit()
+        Oracon.close()
         
-    if spl.logout(token):
-        print(f'end service')
+    except Exception as ex:
+        log(name='SPL', subject="SYNC RECEIVE", status="Error", message=str(ex))
+        pass
 if __name__ == '__main__':
     # main()
     # time.sleep(0.1)
