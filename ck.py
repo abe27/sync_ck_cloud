@@ -108,9 +108,9 @@ def main():
         
     ### Delete EXPORT Folder
     if os.path.exists(root_pathname):
-        # shutil.rmtree(root_pathname)
-        if os.path.exists("BACKUP") is False:os.makedirs("BACKUP")
-        shutil.move(root_pathname, "BACKUP") 
+        shutil.rmtree(root_pathname)
+        # if os.path.exists("BACKUP") is False:os.makedirs("BACKUP")
+        # shutil.move(root_pathname, "BACKUP") 
         log(name='SPL', subject="DELETE", status='Active',message=f"Delete EXPORT Folder")
     
 def download():
@@ -430,7 +430,49 @@ def merge_receive():
         pass
     
 def orderplans():
-    print(f"sync order plan")
+    token = spl.login()
+    try:
+        ### (f"start sync order plans")
+        Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
+        Oracur = Oracon.cursor()
+        data = spl.get_order_plan(token, 0, 1)
+        obj = data['data']
+        for i in obj:
+            part_type = "PART"
+            part = i['partno']
+            part_name = i['partname']
+            cd = i['cd']
+            factory_type = i['vendor']
+            unit = i['unit']
+            outer_qty = i['bistdp']
+            sub_part = part[:2]
+            if sub_part == "18":part_type = "WIRE"
+            elif sub_part == "71":part_type = "PLATE"
+            ### check part on master
+            part_sql = Oracur.execute(f"select partno from txp_part where partno='{part}'")
+            part_upd = "INSERT"
+            sql_part_insert = f"""insert into txp_part(tagrp,partno,partname,carmaker,CD,TYPE,VENDORCD,UNIT ,upddte,sysdte)values('C','{part}','{part_name}','E', '{cd}', '{part_type}', '{factory_type}', '{unit}',sysdate,sysdate)"""
+            if part_sql.fetchone():
+                part_upd = "UPDATE"
+                sql_part_insert = f"""update txp_part set  partname='{part_name}',upddte=sysdate where partno='{part}'"""
+            Oracur.execute(sql_part_insert)
+            
+            ### check part on ledger
+            part_ledger_sql = Oracur.execute(f"select partno from TXP_LEDGER where partno='{part}'")
+            ledger_sql = f"""INSERT INTO TXP_LEDGER(PARTNO,TAGRP,MINIMUM,MAXIMUM,WHS,PICSHELFBIN,STKSHELFBIN,OVSSHELFBIN,OUTERPCS,UPDDTE, SYSDTE)VALUES('{part}', 'C',0,0,'{factory_type}','PNON', 'SNON','ONON',{outer_qty}, sysdate, sysdate)"""
+            if part_ledger_sql.fetchone():
+                ledger_sql = f"""UPDATE TXP_LEDGER SET RECORDMAX=1,LASTRECDTE=sysdate,LASTISSDTE=sysdate WHERE PARTNO='{part}'"""
+            
+            Oracur.execute(ledger_sql)
+            print(f"{part_upd} LEDGER PART")
+            
+        Oracon.commit()
+    except Exception as ex:
+        log(name='SPL', subject="MERGE", status="Error", message=str(ex))
+        pass
+    
+    Oracon.close()
+    spl.logout(token)
     
     
 if __name__ == '__main__':

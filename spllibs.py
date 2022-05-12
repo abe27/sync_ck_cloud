@@ -696,3 +696,19 @@ class SplApi:
         
         data = response.json()
         return data['data']
+    
+
+    def get_order_plan(self, token, is_sync=0, status=1):
+        url = f"{self.host}/order/plan/index/{status}/{is_sync}"
+        payload={}
+        headers = {
+            'Authorization': f'Bearer {token}'
+        }
+
+        response = requests.request("GET", url, headers=headers, data=payload)
+
+        if response.status_code != 200:
+            return False
+        
+        data = response.json()
+        return data['data']
