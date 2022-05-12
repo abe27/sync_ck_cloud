@@ -453,9 +453,10 @@ def orderplans():
         ### (f"start sync order plans")
         Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
         Oracur = Oracon.cursor()
-        data = spl.get_order_plan(token, 200, 0, 1)
+        data = spl.get_order_plan(token, 2000, 0, 1)
         obj = data['data']
         
+        order_id = []
         rnd = 1
         for i in obj:
             part_type = "PART"
@@ -487,7 +488,7 @@ def orderplans():
             ### create order plan
             factory =  i['factory']
             shiptype =  i['shiptype']
-            affcode =  i['affcode']
+            affcode =  i['biac']
             pono =  i['pono']
             etdtap =  i['etdtap']
             partno =  i['partno']
@@ -500,10 +501,9 @@ def orderplans():
             shippedqty =  i['shippedqty']
             pc =  i['pc']
             commercial =  i['commercial']
-            sampflg =  i['sampflg']
+            sampflg =  i['sampleflg']
             carriercode =  i['carriercode']
             ordertype =  i['ordertype']
-            upddte =  i['upddte']
             allocateqty =  i['allocateqty']
             bidrfl =  i['bidrfl']
             deleteflg =  i['deleteflg']
@@ -520,18 +520,37 @@ def orderplans():
             bileng =  i['bileng']
             biwidt =  i['biwidt']
             bihigh =  i['bihigh']
-            sysdte =  i['sysdte']
-            poupdflag =  i['poupdflag']
-            uuid =  i['id']
             createdby =  'SKTSYS'
             modifiedby =  'SKTSYS'
             lotno =  i['lotno']
-            orderid =  i['pono']
-            sql_order_plan = f"""INSERT INTO TXP_ORDERPLAN(FACTORY, SHIPTYPE, AFFCODE, PONO, ETDTAP, PARTNO, PARTNAME, ORDERMONTH, ORDERORGI, ORDERROUND, BALQTY, SHIPPEDFLG, SHIPPEDQTY, PC, COMMERCIAL, SAMPFLG, CARRIERCODE, ORDERTYPE, UPDDTE, ALLOCATEQTY, BIDRFL, DELETEFLG, REASONCD, BIOABT, FIRMFLG, BICOMD, BISTDP, BINEWT, BIGRWT, BISHPC, BIIVPX, BISAFN, BILENG, BIWIDT, BIHIGH, SYSDTE, POUPDFLAG, UUID, CREATEDBY, MODIFIEDBY, LOTNO, ORDERID)VALUES('', '', '', '', '', '', '', '', 0, 0, 0, '', 0, '', '', '', '', '', '', 0, '', '', '', '', '', '', 0, 0, 0, '', '', '', 0, 0, 0, '', '', '', '', '', '', '', '', '')"""
+            orderid =  i['id']
+            sql_order_plan = f"""INSERT INTO TXP_ORDERPLAN(FACTORY, SHIPTYPE, AFFCODE, PONO, ETDTAP, PARTNO, PARTNAME, ORDERMONTH, ORDERORGI, ORDERROUND, BALQTY, SHIPPEDFLG, SHIPPEDQTY, PC, COMMERCIAL, SAMPFLG, CARRIERCODE, ORDERTYPE, UPDDTE, ALLOCATEQTY, BIDRFL, DELETEFLG, REASONCD, BIOABT, FIRMFLG, BICOMD, BISTDP, BINEWT, BIGRWT, BISHPC, BIIVPX, BISAFN, BILENG, BIWIDT, BIHIGH, SYSDTE, CREATEDBY, MODIFIEDBY, LOTNO, ORDERID)VALUES('{factory}','{shiptype}','{affcode}','{pono}',to_date('{etdtap}', 'YYYY-MM-DD'),'{partno}','{partname}',to_date('{ordermonth}', 'YYYY-MM-DD'),'{orderorgi}','{orderround}','{balqty}','{shippedflg}','{shippedqty}','{pc}','{commercial}','{sampflg}','{carriercode}','{ordertype}',sysdate,'{allocateqty}','{bidrfl}','{deleteflg}','{reasoncd}','{bioabt}','{firmflg}','{bicomd}','{bistdp}','{binewt}','{bigrwt}','{bishpc}','{biivpx}','{bisafn}','{bileng}','{biwidt}','{bihigh}',sysdate,'{createdby}','{modifiedby}','{lotno}','{orderid}')"""
+            Oracur.execute(sql_order_plan)
             print(f"{rnd} => {part_upd} LEDGER PART {part} {part_name}")
+            order_id.append(orderid)
             rnd += 1
             
         Oracon.commit()
+        
+        ### after insert orderplan
+        mydb = pgsql.connect(
+            host=DB_HOSTNAME,
+            port=DB_PORT,
+            user=DB_USERNAME,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+        )
+        
+        mycursor = mydb.cursor()
+        mycursor.execute(f"update tbt_order_plans set is_sync=true where id in ({str(order_id).replace('[', '').replace(']', '')})")
+        mydb.commit()
+        mydb.close()
+        
+        d = datetime.now()
+        _rnd = f"{(rnd - 1):,}"
+        msg = f"""ซิงค์ข้อมูล OrderPlan\nจำนวน: {_rnd} รายการ\nวดป.: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
+        print(msg)
+        
     except Exception as ex:
         log(name='SPL', subject="MERGE", status="Error", message=str(ex))
         pass
@@ -541,15 +560,15 @@ def orderplans():
     
     
 if __name__ == '__main__':
-    # main()
-    # time.sleep(0.1)
-    # download()
-    # time.sleep(0.1)
-    # get_receive()
-    # time.sleep(0.1)
-    # merge_receive()
-    # time.sleep(0.1)
-    # update_receive_ctn()
-    # time.sleep(0.1)
+    main()
+    time.sleep(0.1)
+    download()
+    time.sleep(0.1)
+    get_receive()
+    time.sleep(0.1)
+    merge_receive()
+    time.sleep(0.1)
+    update_receive_ctn()
+    time.sleep(0.1)
     orderplans()
     sys.exit(0)
