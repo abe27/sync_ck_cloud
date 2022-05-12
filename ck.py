@@ -357,7 +357,7 @@ def get_receive():
                 d = datetime.now()
                 if p != None:
                     _ctn = f"{int(str(p[0])):,}"
-                    msg = f"""{fac}\nRECEIVENO: {r}\nITEM: {p[1]} CTN: {_ctn}\nAT: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
+                    msg = f"""{fac}\nเลขที่: {r}\nจำนวน: {p[1]} กล่อง: {_ctn}\nวดป.: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
                     spl.line_notification(msg)
                     log(name='SPL', subject="SYNC RECEIVE", status="Success", message=f"Sync Receive({r})")
                 x += 1
@@ -419,7 +419,7 @@ def merge_receive():
             
             d = datetime.now()
             _ctn = f"{ctn:,}"
-            msg = f"""รวบรอบ INJ\nรอบ: {key_no}\nจำนวน: {seq} กล่อง: {_ctn}\nรอบที่รวม: {receive_key}\nเมื่อ: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
+            msg = f"""รวมรอบ INJ\nรอบ: {key_no}\nจำนวน: {seq} กล่อง: {_ctn}\nรอบที่รวม: {receive_key}\nวดป.: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
             spl.line_notification(msg)
             log(name='SPL', subject="MRGE RECEIVE", status="Success", message=f"Merge Receive({key_no}) with {receive_key}")
             
