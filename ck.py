@@ -429,20 +429,40 @@ def merge_receive():
         log(name='SPL', subject="MERGE", status="Error", message=str(ex))
         pass
     
+def update_receive_ctn():
+    Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
+    Oracur = Oracon.cursor()
+    sql = f"""SELECT t.RECEIVINGKEY,count(t.RECEIVINGKEY) seq, sum(t.PLNCTN) ctn  FROM TXP_RECTRANSBODY t 
+            INNER JOIN TXP_RECTRANSENT e ON t.RECEIVINGKEY = e.RECEIVINGKEY  
+            WHERE TO_CHAR(e.RECEIVINGDTE, 'YYYYMMDD')  = TO_CHAR(sysdate, 'YYYYMMDD') 
+            GROUP BY t.RECEIVINGKEY"""
+            
+    rec = Oracur.execute(sql)
+    data = rec.fetchall()
+    for i in data:
+        Oracur.execute(f"UPDATE TXP_RECTRANSENT SET RECEIVINGMAX='{i[1]}',RECPLNCTN={i[2]} WHERE RECEIVINGKEY='{i[0]}'")
+    
+    ### commit the transaction
+    Oracon.commit()
+    Oracur.close()
+    Oracon.close()
+    
 def orderplans():
     token = spl.login()
     try:
         ### (f"start sync order plans")
         Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
         Oracur = Oracon.cursor()
-        data = spl.get_order_plan(token, 0, 1)
+        data = spl.get_order_plan(token, 200, 0, 1)
         obj = data['data']
+        
+        rnd = 1
         for i in obj:
             part_type = "PART"
             part = i['partno']
             part_name = i['partname']
             cd = i['cd']
-            factory_type = i['vendor']
+            factory_type = i['factory']
             unit = i['unit']
             outer_qty = i['bistdp']
             sub_part = part[:2]
@@ -461,10 +481,55 @@ def orderplans():
             part_ledger_sql = Oracur.execute(f"select partno from TXP_LEDGER where partno='{part}'")
             ledger_sql = f"""INSERT INTO TXP_LEDGER(PARTNO,TAGRP,MINIMUM,MAXIMUM,WHS,PICSHELFBIN,STKSHELFBIN,OVSSHELFBIN,OUTERPCS,UPDDTE, SYSDTE)VALUES('{part}', 'C',0,0,'{factory_type}','PNON', 'SNON','ONON',{outer_qty}, sysdate, sysdate)"""
             if part_ledger_sql.fetchone():
-                ledger_sql = f"""UPDATE TXP_LEDGER SET RECORDMAX=1,LASTRECDTE=sysdate,LASTISSDTE=sysdate WHERE PARTNO='{part}'"""
+                ledger_sql = f"""UPDATE TXP_LEDGER SET OUTERPCS={outer_qty},RECORDMAX=1,LASTRECDTE=sysdate,LASTISSDTE=sysdate WHERE PARTNO='{part}'"""
             
             Oracur.execute(ledger_sql)
-            print(f"{part_upd} LEDGER PART")
+            ### create order plan
+            factory =  i['factory']
+            shiptype =  i['shiptype']
+            affcode =  i['affcode']
+            pono =  i['pono']
+            etdtap =  i['etdtap']
+            partno =  i['partno']
+            partname =  i['partname']
+            ordermonth =  i['ordermonth']
+            orderorgi =  i['orderorgi']
+            orderround =  i['orderround']
+            balqty =  i['balqty']
+            shippedflg =  i['shippedflg']
+            shippedqty =  i['shippedqty']
+            pc =  i['pc']
+            commercial =  i['commercial']
+            sampflg =  i['sampflg']
+            carriercode =  i['carriercode']
+            ordertype =  i['ordertype']
+            upddte =  i['upddte']
+            allocateqty =  i['allocateqty']
+            bidrfl =  i['bidrfl']
+            deleteflg =  i['deleteflg']
+            reasoncd =  i['reasoncd']
+            bioabt =  i['bioabt']
+            firmflg =  i['firmflg']
+            bicomd =  i['bicomd']
+            bistdp =  i['bistdp']
+            binewt =  i['binewt']
+            bigrwt =  i['bigrwt']
+            bishpc =  i['bishpc']
+            biivpx =  i['biivpx']
+            bisafn =  i['bisafn']
+            bileng =  i['bileng']
+            biwidt =  i['biwidt']
+            bihigh =  i['bihigh']
+            sysdte =  i['sysdte']
+            poupdflag =  i['poupdflag']
+            uuid =  i['id']
+            createdby =  'SKTSYS'
+            modifiedby =  'SKTSYS'
+            lotno =  i['lotno']
+            orderid =  i['pono']
+            sql_order_plan = f"""INSERT INTO TXP_ORDERPLAN(FACTORY, SHIPTYPE, AFFCODE, PONO, ETDTAP, PARTNO, PARTNAME, ORDERMONTH, ORDERORGI, ORDERROUND, BALQTY, SHIPPEDFLG, SHIPPEDQTY, PC, COMMERCIAL, SAMPFLG, CARRIERCODE, ORDERTYPE, UPDDTE, ALLOCATEQTY, BIDRFL, DELETEFLG, REASONCD, BIOABT, FIRMFLG, BICOMD, BISTDP, BINEWT, BIGRWT, BISHPC, BIIVPX, BISAFN, BILENG, BIWIDT, BIHIGH, SYSDTE, POUPDFLAG, UUID, CREATEDBY, MODIFIEDBY, LOTNO, ORDERID)VALUES('', '', '', '', '', '', '', '', 0, 0, 0, '', 0, '', '', '', '', '', '', 0, '', '', '', '', '', '', 0, 0, 0, '', '', '', 0, 0, 0, '', '', '', '', '', '', '', '', '')"""
+            print(f"{rnd} => {part_upd} LEDGER PART {part} {part_name}")
+            rnd += 1
             
         Oracon.commit()
     except Exception as ex:
@@ -476,13 +541,15 @@ def orderplans():
     
     
 if __name__ == '__main__':
-    main()
-    time.sleep(0.1)
-    download()
-    time.sleep(0.1)
-    get_receive()
-    time.sleep(0.1)
-    merge_receive()
-    time.sleep(0.1)
+    # main()
+    # time.sleep(0.1)
+    # download()
+    # time.sleep(0.1)
+    # get_receive()
+    # time.sleep(0.1)
+    # merge_receive()
+    # time.sleep(0.1)
+    # update_receive_ctn()
+    # time.sleep(0.1)
     orderplans()
     sys.exit(0)

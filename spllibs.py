@@ -698,8 +698,8 @@ class SplApi:
         return data['data']
     
 
-    def get_order_plan(self, token, is_sync=0, status=1):
-        url = f"{self.host}/order/plan/index/{status}/{is_sync}"
+    def get_order_plan(self, token, limit=100, is_sync=0, status=1):
+        url = f"{self.host}/order/plan/index/{status}/{is_sync}/{limit}"
         payload={}
         headers = {
             'Authorization': f'Bearer {token}'
