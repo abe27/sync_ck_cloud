@@ -108,24 +108,25 @@ def main():
         
     ### Delete EXPORT Folder
     if os.path.exists(root_pathname):
-        shutil.rmtree(root_pathname)
+        # shutil.rmtree(root_pathname)
+        if os.path.exists("BACKUP") is False:os.makedirs("BACKUP")
+        shutil.move(root_pathname, "BACKUP") 
         log(name='SPL', subject="DELETE", status='Active',message=f"Delete EXPORT Folder")
     
 def download():
+    ### Initail Mysql Server
+    mydb = pgsql.connect(
+        host=DB_HOSTNAME,
+        port=DB_PORT,
+        user=DB_USERNAME,
+        password=DB_PASSWORD,
+        database=DB_NAME,
+    )
     token = spl.login()
     try:
         ### start get link download
         obj = spl.get_link(token)
         if len(obj) <= 0: return
-        
-        ### Initail Mysql Server
-        mydb = pgsql.connect(
-            host=DB_HOSTNAME,
-            port=DB_PORT,
-            user=DB_USERNAME,
-            password=DB_PASSWORD,
-            database=DB_NAME,
-        )
         mycursor = mydb.cursor()
         
         i = 0
