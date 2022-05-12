@@ -355,7 +355,8 @@ def get_receive():
                 p = recbody.fetchone()
                 d = datetime.now()
                 if p != None:
-                    msg = f"""{fac}\nRECEIVENO: {r}\nITEM: {p[1]} CTN: {p[0]}\nAT: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
+                    _ctn = f"{int(str(p[0])):,}"
+                    msg = f"""{fac}\nRECEIVENO: {r}\nITEM: {p[1]} CTN: {_ctn}\nAT: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
                     spl.line_notification(msg)
                     log(name='SPL', subject="SYNC RECEIVE", status="Success", message=f"Sync Receive({r})")
                 x += 1
@@ -416,7 +417,8 @@ def merge_receive():
             Oracur.execute(f"DELETE TXP_RECTRANSBODY WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')})")
             
             d = datetime.now()
-            msg = f"""รวบรอบ INJ\nรอบ: {key_no}\nจำนวน: {seq} กล่อง: {ctn}\nรอบที่รวม: {receive_key}\nเมื่อ: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
+            _ctn = f"{ctn:,}"
+            msg = f"""รวบรอบ INJ\nรอบ: {key_no}\nจำนวน: {seq} กล่อง: {_ctn}\nรอบที่รวม: {receive_key}\nเมื่อ: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
             spl.line_notification(msg)
             log(name='SPL', subject="MRGE RECEIVE", status="Success", message=f"Merge Receive({key_no}) with {receive_key}")
             
