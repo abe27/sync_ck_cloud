@@ -429,6 +429,9 @@ def merge_receive():
         log(name='SPL', subject="MERGE", status="Error", message=str(ex))
         pass
     
+def orderplans():
+    print(f"sync order plan")
+    
     
 if __name__ == '__main__':
     main()
@@ -438,4 +441,6 @@ if __name__ == '__main__':
     get_receive()
     time.sleep(0.1)
     merge_receive()
+    time.sleep(0.1)
+    orderplans()
     sys.exit(0)
