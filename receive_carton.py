@@ -43,8 +43,10 @@ def main():
             select cc.receive_detail_id,count(cc.receive_detail_id) ctn from tbt_cartons cc group by cc.receive_detail_id
         ) c on d.id = c.receive_detail_id 
         where t.receive_date >= (current_date - 1) and d.plan_ctn > (case when c.ctn is null then 0 else c.ctn end) and t.receive_no like 'TI%'
-        order by t.receive_date,t.receive_no,p.no,p.name""")
+        order by t.receive_date,t.receive_no,p.no,p.name
+        limit 20""")
         
+        rnd_x = 1
         data = mycursor.fetchall()
         for i in data:
             receive_body_id = str(i[0])
@@ -54,7 +56,7 @@ def main():
             part_no = str(i[4])
             plan_ctn = str(i[7])
             ledger_id = str(i[9])
-            print(f"CHECK RECEIVE :=> {receive_no} PART: {part_no}")
+            
             ora_sql = f"""SELECT '{receive_body_id}' rec_id,e.RECEIVINGDTE,t.RECEIVINGKEY,c.PARTNO,c.RVMANAGINGNO,c.LOTNO,c.RUNNINGNO,c.CASEID dieno,c.CASENO division,c.STOCKQUANTITY,t.OLDERKEY,c.SHELVE,c.PALLETKEY FROM TXP_RECTRANSBODY t 
             INNER JOIN TXP_RECTRANSENT e ON t.RECEIVINGKEY = e.RECEIVINGKEY 
             INNER JOIN TXP_CARTONDETAILS c ON t.RVMANAGINGNO = c.RVMANAGINGNO  AND t.PARTNO = c.PARTNO  
@@ -115,9 +117,13 @@ def main():
                 sql_update_receive = f"update tbt_receive_details set managing_no='{rvm_no}',updated_at=current_timestamp where id='{receive_body_id}'"
                 # print(sql_update_receive)
                 mycursor.execute(sql_update_receive)
+                print(f"{rnd_x} :=> {receive_no} update part: {part_no} rvm: {rvm_no} ctn: {plan_ctn}") 
+                
+            ### commit data
+            Oracon.commit()    
+            mydb.commit()
+            rnd_x += 1 # increment
             
-        Oracon.commit()    
-        mydb.commit()
         log(name='CARTON', subject="END", status="Success", message=f"Sync Receive")    
     except Exception as ex:
         log(name='CARTON', subject="UPLOAD RECEIVE", status="Error", message=str(ex))
@@ -188,13 +194,13 @@ def update_master_location():
         obj = Oracur.execute(sql)
         for x in obj.fetchall():
             mycursor.execute(f"select id from tbt_locations where name='{str(x[0])}'")
-            txt = "UPDATE"
+            # txt = "UPDATE"
             if mycursor.fetchone() is None:
-                txt = "INSERT"
+                # txt = "INSERT"
                 shelve_id = generate(size=36)
                 mycursor.execute(f"insert into tbt_locations(id, name, description, is_active, created_at, updated_at)values('{shelve_id}', '{str(x[0])}', '-', true, current_timestamp, current_timestamp)")
             
-            print(f"{txt} {str(x[0])}")
+            # print(f"{txt} {str(x[0])}")
         mydb.commit()    
     except Exception as ex:
         log(name='CARTON', subject="UPLOAD RECEIVE", status="Error", message=str(ex))
@@ -206,5 +212,5 @@ def update_master_location():
     
 if __name__ == '__main__':
     main()
-    update_master_location()
+    # update_master_location()
     sys.exit(0)
