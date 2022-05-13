@@ -43,8 +43,7 @@ def main():
             select cc.receive_detail_id,count(cc.receive_detail_id) ctn from tbt_cartons cc group by cc.receive_detail_id
         ) c on d.id = c.receive_detail_id 
         where t.receive_date >= (current_date - 1) and d.plan_ctn > (case when c.ctn is null then 0 else c.ctn end) and t.receive_no like 'TI%'
-        order by t.receive_date,t.receive_no,p.no,p.name
-        limit 20""")
+        order by t.receive_date,t.receive_no,p.no,p.name""")
         
         rnd_x = 1
         data = mycursor.fetchall()
