@@ -160,5 +160,6 @@ cython_debug/
 #.idea/
 EXPORT*
 EXPORT/
+LOGS/
 *.BIN
 *.log

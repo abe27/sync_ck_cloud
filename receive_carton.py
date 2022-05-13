@@ -54,8 +54,8 @@ def main():
             part_no = str(i[4])
             plan_ctn = str(i[7])
             ledger_id = str(i[9])
-            print(f":=> {receive_no} PART: {part_no}")
-            ora_sql = f"""SELECT '{receive_body_id}' rec_id,e.RECEIVINGDTE,t.RECEIVINGKEY,c.PARTNO,c.RVMANAGINGNO,c.LOTNO,c.RUNNINGNO,'' dieno,'' division,c.STOCKQUANTITY,t.OLDERKEY FROM TXP_RECTRANSBODY t 
+            print(f"CHECK RECEIVE :=> {receive_no} PART: {part_no}")
+            ora_sql = f"""SELECT '{receive_body_id}' rec_id,e.RECEIVINGDTE,t.RECEIVINGKEY,c.PARTNO,c.RVMANAGINGNO,c.LOTNO,c.RUNNINGNO,c.CASEID dieno,'' division,c.STOCKQUANTITY,t.OLDERKEY FROM TXP_RECTRANSBODY t 
             INNER JOIN TXP_RECTRANSENT e ON t.RECEIVINGKEY = e.RECEIVINGKEY 
             INNER JOIN TXP_CARTONDETAILS c ON t.RECEIVINGKEY = c.INVOICENO AND t.PARTNO = c.PARTNO 
             WHERE c.PARTNO='{part_no}' AND TO_CHAR(e.RECEIVINGDTE, 'YYYY-MM-DD') = '{receive_date}' AND IS_CHECK=0  AND t.OLDERKEY LIKE '%{rnd}%'
