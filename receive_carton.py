@@ -88,10 +88,11 @@ def main():
                 print(f"RVM NO: {rvm_no} SERIAL NO: {serial_no}")
                 
             #### update rvm no
-            log(name='CARTON', subject="SYNC RECEIVE", status="Success", message=f"Sync {receive_no} PART: {part_no} RVM NO: {rvm_no}")    
-            sql_update_receive = f"update tbt_receive_details set managing_no='{rvm_no}',updated_at=current_timestamp where id='{receive_body_id}'"
-            # print(sql_update_receive)
-            mycursor.execute(sql_update_receive)
+            if rvm_no:
+                log(name='CARTON', subject="SYNC RECEIVE", status="Success", message=f"Sync {receive_no} PART: {part_no} RVM NO: {rvm_no}")    
+                sql_update_receive = f"update tbt_receive_details set managing_no='{rvm_no}',updated_at=current_timestamp where id='{receive_body_id}'"
+                # print(sql_update_receive)
+                mycursor.execute(sql_update_receive)
             
         Oracon.commit()    
         mydb.commit()
