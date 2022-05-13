@@ -55,7 +55,7 @@ def main():
             plan_ctn = str(i[7])
             ledger_id = str(i[9])
             print(f"CHECK RECEIVE :=> {receive_no} PART: {part_no}")
-            ora_sql = f"""SELECT '{receive_body_id}' rec_id,e.RECEIVINGDTE,t.RECEIVINGKEY,c.PARTNO,c.RVMANAGINGNO,c.LOTNO,c.RUNNINGNO,c.CASEID dieno,'' division,c.STOCKQUANTITY,t.OLDERKEY FROM TXP_RECTRANSBODY t 
+            ora_sql = f"""SELECT '{receive_body_id}' rec_id,e.RECEIVINGDTE,t.RECEIVINGKEY,c.PARTNO,c.RVMANAGINGNO,c.LOTNO,c.RUNNINGNO,c.CASEID dieno,c.CASENO division,c.STOCKQUANTITY,t.OLDERKEY FROM TXP_RECTRANSBODY t 
             INNER JOIN TXP_RECTRANSENT e ON t.RECEIVINGKEY = e.RECEIVINGKEY 
             INNER JOIN TXP_CARTONDETAILS c ON t.RECEIVINGKEY = c.INVOICENO AND t.PARTNO = c.PARTNO 
             WHERE c.PARTNO='{part_no}' AND TO_CHAR(e.RECEIVINGDTE, 'YYYY-MM-DD') = '{receive_date}' AND IS_CHECK=0  AND t.OLDERKEY LIKE '%{rnd}%'
@@ -68,8 +68,8 @@ def main():
                 rvm_no = str(x[4])
                 lotno = str(x[5])
                 serial_no = str(x[6])
-                die_no = str(x[7])
-                division_no = str(x[8])
+                die_no = str(x[7]).replace('None', '')
+                division_no = str(x[8]).replace('None', '')
                 std_pack = str(x[9])
                 #### create carton on stock Cloud
                 mycursor.execute(f"select id from tbt_cartons where serial_no='{serial_no}'")
