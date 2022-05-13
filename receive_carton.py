@@ -149,6 +149,7 @@ def main():
 #     # Oracon.commit()
 #     Oracon.close()
 #     mydb.close()
+
 def update_master_location():
     mydb = pgsql.connect(
         host=DB_HOSTNAME,
@@ -166,11 +167,13 @@ def update_master_location():
         obj = Oracur.execute(sql)
         for x in obj.fetchall():
             mycursor.execute(f"select id from tbt_locations where name='{str(x[0])}'")
+            txt = "UPDATE"
             if mycursor.fetchone() is None:
-                print(f"insert {str(x[0])}")
+                txt = "INSERT"
                 shelve_id = generate(size=36)
                 mycursor.execute(f"insert into tbt_locations(id, name, description, is_active, created_at, updated_at)values('{shelve_id}', '{str(x[0])}', '-', true, current_timestamp, current_timestamp)")
-        
+            
+            print(f"{txt} {str(x[0])}")
         mydb.commit()    
     except Exception as ex:
         log(name='CARTON', subject="UPLOAD RECEIVE", status="Error", message=str(ex))
