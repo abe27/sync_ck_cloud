@@ -33,6 +33,7 @@ def main():
     Oracur = Oracon.cursor()
         
     try:
+        log(name='CARTON', subject="Start", status="Success", message=f"Sync Receive")    
         mycursor = mydb.cursor()
         mycursor.execute("""select d.id,t.receive_date,t.receive_no,substring(t.receive_no, 11, 2) rnd,p."no",p."name",d.plan_qty,d.plan_ctn,case when c.ctn is null then 0 else c.ctn end,l.id ledger_id from tbt_receives t
         inner join tbt_receive_details d on t.id = d.receive_id
@@ -96,7 +97,7 @@ def main():
             
         Oracon.commit()    
         mydb.commit()
-        
+        log(name='CARTON', subject="END", status="Success", message=f"Sync Receive")    
     except Exception as ex:
         log(name='CARTON', subject="UPLOAD RECEIVE", status="Error", message=str(ex))
         Oracon.rollback()
