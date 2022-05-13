@@ -61,6 +61,7 @@ def main():
             ORDER BY c.RUNNINGNO
             FETCH FIRST {plan_ctn} ROWS ONLY"""
             # print(ora_sql)
+            rvm_no = None
             obj = Oracur.execute(ora_sql)
             for x in obj.fetchall():
                 rvm_no = str(x[4])
@@ -85,11 +86,12 @@ def main():
                     
                 Oracur.execute(f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{serial_no}'")
                 print(f"RVM NO: {rvm_no} SERIAL NO: {serial_no}")
-                #### update rvm no
-                log(name='CARTON', subject="SYNC RECEIVE", status="Success", message=f"Sync {receive_no} PART: {part_no} RVM NO: {rvm_no}")    
-                sql_update_receive = f"update tbt_receive_details set managing_no='{rvm_no}',updated_at=current_timestamp where id='{receive_body_id}'"
-                # print(sql_update_receive)
-                mycursor.execute(sql_update_receive)
+                
+            #### update rvm no
+            log(name='CARTON', subject="SYNC RECEIVE", status="Success", message=f"Sync {receive_no} PART: {part_no} RVM NO: {rvm_no}")    
+            sql_update_receive = f"update tbt_receive_details set managing_no='{rvm_no}',updated_at=current_timestamp where id='{receive_body_id}'"
+            # print(sql_update_receive)
+            mycursor.execute(sql_update_receive)
             
         Oracon.commit()    
         mydb.commit()
