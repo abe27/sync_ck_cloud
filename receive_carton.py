@@ -34,7 +34,7 @@ def main():
         
     try:
         mycursor = mydb.cursor()
-        mycursor.execute("""select d.id,t.receive_date,t.receive_no,substring(t.receive_no, 11, 2) rnd,p."no",p."name",d.plan_qty,d.plan_ctn,case when c.ctn is null then 0 else c.ctn end from tbt_receives t
+        mycursor.execute("""select d.id,t.receive_date,t.receive_no,substring(t.receive_no, 11, 2) rnd,p."no",p."name",d.plan_qty,d.plan_ctn,case when c.ctn is null then 0 else c.ctn end,l.id ledger_id from tbt_receives t
         inner join tbt_receive_details d on t.id = d.receive_id
         inner join tbt_ledgers l on d.ledger_id = l.id
         inner join tbt_parts p on l.part_id = p.id
@@ -52,6 +52,7 @@ def main():
             rnd = str(i[3])
             part_no = str(i[4])
             plan_ctn = str(i[7])
+            ledger_id = str(i[9])
             print(f":=> {receive_no} PART: {part_no}")
             ora_sql = f"""SELECT '{receive_body_id}' rec_id,e.RECEIVINGDTE,t.RECEIVINGKEY,c.PARTNO,c.RVMANAGINGNO,c.LOTNO,c.RUNNINGNO,'' dieno,'' division,c.STOCKQUANTITY,t.OLDERKEY FROM TXP_RECTRANSBODY t 
             INNER JOIN TXP_RECTRANSENT e ON t.RECEIVINGKEY = e.RECEIVINGKEY 
@@ -73,21 +74,30 @@ def main():
                 carton_id = generate(size=36)
                 sql_carton = f"""insert into tbt_cartons(id, receive_detail_id, lot_no, serial_no, die_no, division_no, qty, is_active, created_at, updated_at)values('{carton_id}', '{receive_body_id}', '{lotno}', '{serial_no}', '{die_no}', '{division_no}', '{std_pack}', true, current_timestamp, current_timestamp)"""
                 if mycursor.fetchone() is None:
-                    # print(f"insert {serial_no}")
+                    #### check stock
+                    mycursor.execute(f"select id from tbt_stocks where ledger_id='{ledger_id}'")
+                    if mycursor.fetchone() is None:
+                        stock_id = generate(size=36)
+                        mycursor.execute(f"""insert into tbt_stocks(id, ledger_id, per_qty, ctn, is_active, created_at, updated_at)values('{stock_id}', '{ledger_id}', {std_pack}, 0, true, current_timestamp, current_timestamp)""")
+                        
+                    mycursor.execute(f"update tbt_stocks set per_qty='{std_pack}',ctn=(ctn + 1) where ledger_id='{ledger_id}'")
                     mycursor.execute(sql_carton)
                     
                 Oracur.execute(f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{serial_no}'")
-                Oracon.commit()
                 print(f"RVM NO: {rvm_no} SERIAL NO: {serial_no}")
                 
             #### update rvm no
             sql_update_receive = f"update tbt_receive_details set managing_no='{rvm_no}',updated_at=current_timestamp where id='{receive_body_id}'"
             # print(sql_update_receive)
             mycursor.execute(sql_update_receive)
-            mydb.commit()
+            
+        Oracon.commit()    
+        mydb.commit()
         
     except Exception as ex:
         log(name='SPL', subject="UPLOAD RECEIVE", status="Error", message=str(ex))
+        Oracon.rollback()
+        mydb.rollback()
         pass
     
     # Oracon.commit()
