@@ -110,6 +110,7 @@ def update_carton():
     try:
         mycursor.execute(f"""select c.id,d.ledger_id,c.serial_no,d.managing_no,c.qty  from tbt_cartons c inner join tbt_receive_details d on c.receive_detail_id=d.id order by c.lot_no,c.serial_no""")
         # txt = "UPDATE"
+        rnd = 1
         for i in mycursor.fetchall():
             id = str(i[0])
             ledger_id = str(i[1])
@@ -140,10 +141,11 @@ def update_carton():
                     txt = f"update id: {id}"
                 
                 mycursor.execute(sql_shelve)
-                print(f"{txt}")
+                print(f"{rnd}. {txt}")
                 ### update carton
                 sql_update_carton = f"update tbt_cartons set qty='{STOCKQUANTITY}',updated_at=current_timestamp where id='{id}'"
                 mycursor.execute(sql_update_carton)
+                rnd += 1
                 
             log(name='MASTER', subject="UPDATE STOCK", status="Success", message=f"Update Carton {serial_no}")
         
