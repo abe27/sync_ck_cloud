@@ -40,7 +40,7 @@ def main():
     log(name='TRIGGER', subject="UPDATE DATA", status="Success", message=f"Start Service")
     try:
         rnd = 1
-        db = Oracur.execute(f"SELECT UUID_KEY,SERIALNO,LASTUPDATE FROM TMP_SERIALTRACKING ORDER BY LASTUPDATE FETCH FIRST 200 ROWS ONLY")
+        db = Oracur.execute(f"SELECT UUID_KEY,SERIALNO,LASTUPDATE FROM TMP_SERIALTRACKING ORDER BY LASTUPDATE FETCH FIRST 500 ROWS ONLY")
         stock = db.fetchall()
         if stock:
             mydb = pgsql.connect(
