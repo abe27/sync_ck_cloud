@@ -221,8 +221,14 @@ def download():
                         plan_ctn = b['plnctn']
                         
                         ### insert receive body
+                        mycursor.execute(f"select id from tbt_receive_details where receive_id='{receive_id}' and ledger_id='{ledger_id}'")
+                        rec_body = mycursor.fetchone()
                         receive_body_id = generate(size=36)
                         sql_body = f"""insert into tbt_receive_details(id, receive_id, ledger_id, seq, managing_no, plan_qty, plan_ctn, is_active, created_at, updated_at)values('{receive_body_id}', '{receive_id}', '{ledger_id}', {seq}, '', {plan_qty}, {plan_ctn}, true, current_timestamp, current_timestamp)"""
+                        if rec_body:
+                            receive_body_id = rec_body[0]
+                            sql_body = f"update tbt_receive_details set plan_qty='{plan_qty}', plan_ctn='{plan_ctn}',updated_at=current_timestamp where id='{receive_body_id}'"
+                            
                         mycursor.execute(sql_body)
                         print(f"Sync {str(h)[4:16]} Data :=> {seq} Part: {part_id}")
                         seq += 1
