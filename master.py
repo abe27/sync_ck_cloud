@@ -95,8 +95,40 @@ def update_master_location():
     Oracon.close()
     mydb.close()
     
+def update_stock():
+    mydb = pgsql.connect(
+        host=DB_HOSTNAME,
+        port=DB_PORT,
+        user=DB_USERNAME,
+        password=DB_PASSWORD,
+        database=DB_NAME,
+    )
+    mycursor = mydb.cursor()
+    Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
+    Oracur = Oracon.cursor()
+    
+    try:
+        mycursor.execute(f"select serial_no from tbt_cartons order by serial_no")
+        # txt = "UPDATE"
+        for i in mycursor.fetchall():
+            print(i[0])
+            sql = f"SELECT PALLETKEY,CASEID,SHELVE,STOCKQUANTITY  FROM TXP_CARTONDETAILS WHERE RUNNINGNO='S2F0190221'"
+        
+        # print(f"{txt} {str(x[0])}")
+        mydb.commit()
+        
+    except Exception as ex:
+        log(name='CARTON', subject="UPLOAD RECEIVE", status="Error", message=str(ex))
+        pass
+    
+    # Oracon.commit()
+    Oracon.close()
+    mydb.close()
+    
 if __name__ == '__main__':
-    update_master_location()
-    time.sleep(0.1)
-    update_die()
+    update_stock()
+    # time.sleep(0.1)
+    # update_master_location()
+    # time.sleep(0.1)
+    # update_die()
     sys.exit(0)
