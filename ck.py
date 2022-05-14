@@ -533,18 +533,19 @@ def orderplans():
         Oracon.commit()
         
         ### after insert orderplan
-        mydb = pgsql.connect(
-            host=DB_HOSTNAME,
-            port=DB_PORT,
-            user=DB_USERNAME,
-            password=DB_PASSWORD,
-            database=DB_NAME,
-        )
-        
-        mycursor = mydb.cursor()
-        mycursor.execute(f"update tbt_order_plans set is_sync=true where id in ({str(order_id).replace('[', '').replace(']', '')})")
-        mydb.commit()
-        mydb.close()
+        if len(order_id) > 0:
+            mydb = pgsql.connect(
+                host=DB_HOSTNAME,
+                port=DB_PORT,
+                user=DB_USERNAME,
+                password=DB_PASSWORD,
+                database=DB_NAME,
+            )
+            
+            mycursor = mydb.cursor()
+            mycursor.execute(f"update tbt_order_plans set is_sync=true where id in ({str(order_id).replace('[', '').replace(']', '')})")
+            mydb.commit()
+            mydb.close()
         
         d = datetime.now()
         _rnd = f"{(rnd - 1):,}"
