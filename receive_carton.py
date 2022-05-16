@@ -92,9 +92,13 @@ def main():
                         stock_id = generate(size=36)
                         mycursor.execute(f"""insert into tbt_stocks(id, ledger_id, per_qty, ctn, is_active, created_at, updated_at)values('{stock_id}', '{ledger_id}', {std_pack}, 0, true, current_timestamp, current_timestamp)""")
                     
-                    sql_update_stock = f"update tbt_stocks set per_qty='{std_pack}',ctn=(ctn + 1),updated_at=current_timestamp where ledger_id='{ledger_id}'"
+                    
+                    ### get stock
+                    stock_check = Oracur.execute(f"SELECT count(*) FROM  TXP_CARTONDETAILS WHERE PARTNO='{part_no}' AND SHELVE NOT IN ('S-PLOUT')")
+                    ctn_stock = stock_check.fetchone()[0]
+                    sql_update_stock = f"update tbt_stocks set per_qty='{std_pack}',ctn={ctn_stock},updated_at=current_timestamp where ledger_id='{ledger_id}'"
                     if int(std_pack) > 0:   
-                        sql_update_stock = f"update tbt_stocks set ctn=(ctn + 1),updated_at=current_timestamp where ledger_id='{ledger_id}'"
+                        sql_update_stock = f"update tbt_stocks set ctn={ctn_stock},updated_at=current_timestamp where ledger_id='{ledger_id}'"
                     
                     mycursor.execute(sql_update_stock)    
                     mycursor.execute(sql_carton)
