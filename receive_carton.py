@@ -69,7 +69,7 @@ def main():
             # WHERE c.PARTNO='{part_no}' AND TO_CHAR(e.RECEIVINGDTE, 'YYYY-MM-DD') = '{receive_date}' AND t.OLDERKEY LIKE '%{rnd}%'
             # ORDER BY c.RUNNINGNO
             # FETCH FIRST {plan_ctn} ROWS ONLY"""
-            print(ora_sql)
+            # print(ora_sql)
             rvm_no = None
             obj = Oracur.execute(ora_sql)
             for x in obj.fetchall():
