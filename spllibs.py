@@ -254,6 +254,37 @@ class Yazaki:
             pass
 
         return obj
+    
+    def spec_download_gedi_files(self, session, obj):
+        filename = f"{obj['destination']}/{obj['batchid']}.{obj['batchfile']}"
+        try:
+            # print(obj)
+            # makedir folder gedi is exits
+            os.makedirs(obj['destination'], exist_ok=True)
+            # download file
+            request = requests.get(
+                obj['linkfile'],
+                stream=True,
+                verify=False,
+                cookies=session.cookies,
+                allow_redirects=True,
+            )
+            docs = BeautifulSoup(request.content, "lxml")
+
+            # Write data to GEDI File
+            f = open(filename, mode="a", encoding="ascii", newline="\r\n")
+            for p in docs:
+                f.write(p.text)
+            f.close()
+
+            LogActivity(subject="DOWNLOAD", status='Success',
+                        message=f"Download GEDI FILE({obj['batchfile']})")
+
+        except Exception as ex:
+            LogActivity(subject="DOWNLOAD", status='Error', message=str(ex))
+            filename = None
+            pass
+        return filename
 
     def download_gedi_files(self, session, obj):
         filename = f"{obj.destination}/{obj.batchid}.{obj.batchfile}"

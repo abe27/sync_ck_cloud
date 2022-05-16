@@ -47,15 +47,14 @@ def main():
 
     if session != False:
         ### get link gedi
-        link = yk.get_link(session)
-        i = 0
-        while i < len(link):
-            x = link[i]
+        x = {
+                "destination": "EXPORT/RECEIVE/20220516",
+                "batchid": "0129249",
+                "batchfile": "OES.WHAE.32T5.SPL20220516131045.TXT",
+                "linkfile": "https://218.225.124.157:9443/cehttp/servlet/MailboxServlet?operation=DOWNLOAD&mailbox_id=Y32V802&batch_num=0129249&data_format=A&batch_id=OES.WHAE.32T5.SPL20220516131045.TXT"
+            }
             # ### download gedi file
-            yk.download_gedi_files(session, x)
-            
-            print(f"download gedi file => {x.batchfile}")   
-            i += 1
+        yk.spec_download_gedi_files(session, x)
             
         ### logout
         yk.logout(session)
@@ -276,12 +275,6 @@ def get_receive():
             while x < len(body):
                 r = body[x]
                 head = r['receive']
-                batch_id = 'NOTFOUND'
-                try:
-                    batch_id = r['receive']['file_gedi']['batch_id']
-                except Exception as ex:
-                    pass
-                
                 receive_no = head['receive_no']
                 ### append to receive key
                 if len(receive_array) == 0:
@@ -342,7 +335,7 @@ def get_receive():
                 ### create receive ent
                 receive_ent = Oracur.execute(f"SELECT RECEIVINGKEY from TXP_RECTRANSENT where RECEIVINGKEY='{receive_no}'")
                 sql_rec_ent = f"""INSERT INTO TXP_RECTRANSENT(RECEIVINGKEY, RECEIVINGMAX, RECEIVINGDTE, VENDOR, RECSTATUS, RECISSTYPE, RECPLNCTN,RECENDCTN, UPDDTE, SYSDTE, GEDI_FILE)
-                VALUES('{receive_no}', {len(body)}, to_date('{str(receive_date)[:10]}', 'YYYY-MM-DD'), '{factory_type}', 0, '01', 0,0, current_timestamp, current_timestamp, '{batch_id}')"""
+                VALUES('{receive_no}', {len(body)}, to_date('{str(receive_date)[:10]}', 'YYYY-MM-DD'), '{factory_type}', 0, '01', 0,0, current_timestamp, current_timestamp, '{r['receive']['file_gedi']['batch_id']}')"""
                 if receive_ent.fetchone():
                     sql_rec_ent = f"""UPDATE TXP_RECTRANSENT SET RECEIVINGMAX='{len(body)}',RECPLNCTN={sum_pln} WHERE RECEIVINGKEY='{receive_no}'"""
                 
@@ -574,14 +567,4 @@ def orderplans():
     
 if __name__ == '__main__':
     main()
-    time.sleep(0.1)
-    download()
-    time.sleep(0.1)
-    get_receive()
-    time.sleep(0.1)
-    merge_receive()
-    time.sleep(0.1)
-    update_receive_ctn()
-    time.sleep(0.1)
-    orderplans()
     sys.exit(0)
