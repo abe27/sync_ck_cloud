@@ -40,7 +40,7 @@ def main():
     log(name='TRIGGER', subject="UPDATE DATA", status="Success", message=f"Start Service")
     try:
         rnd = 1
-        db = Oracur.execute(f"SELECT UUID_KEY,SERIALNO,LASTUPDATE FROM TMP_SERIALTRACKING ORDER BY LASTUPDATE FETCH FIRST 500 ROWS ONLY")
+        db = Oracur.execute(f"SELECT UUID_KEY,SERIALNO,LASTUPDATE FROM TMP_SERIALTRACKING ORDER BY LASTUPDATE")
         stock = db.fetchall()
         if stock:
             mydb = pgsql.connect(
@@ -75,7 +75,12 @@ def main():
                         
                         ### get location_id
                         mycursor.execute(f"select id from tbt_locations where name='{shelve_no}'")
-                        location_id = mycursor.fetchone()[0]
+                        if mycursor.fetchone():
+                            location_id = mycursor.fetchone()[0]
+                        else:
+                            shelve_id = generate(size=36)
+                            mycursor.execute(f"insert into tbt_locations(id, name, description, is_active, created_at, updated_at)values('{shelve_id}', '{shelve_no}', '-', true, current_timestamp, current_timestamp)")
+                            location_id = shelve_id
                         
                         ### update shelve
                         mycursor.execute(f"select id from tbt_shelves where carton_id='{carton_id}' and location_id='{location_id}'")
