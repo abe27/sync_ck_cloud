@@ -53,7 +53,8 @@ def main():
             receive_no = str(i[2])
             rnd = str(i[3])
             part_no = str(i[4])
-            plan_ctn = str(i[7])
+            plan_ctn = float(str(i[7]))
+            diff_plan_ctn = float(str(i[8]))
             ledger_id = str(i[9])
             
             ora_sql = f"""SELECT '{receive_body_id}' rec_id,e.RECEIVINGDTE,t.RECEIVINGKEY,c.PARTNO,c.RVMANAGINGNO,c.LOTNO,c.RUNNINGNO,c.CASEID dieno,c.CASENO division,c.STOCKQUANTITY,t.OLDERKEY,c.SHELVE,c.PALLETKEY FROM TXP_RECTRANSBODY t 
@@ -61,7 +62,7 @@ def main():
             INNER JOIN TXP_CARTONDETAILS c ON t.RECEIVINGKEY = c.INVOICENO AND t.PARTNO = c.PARTNO 
             WHERE c.PARTNO='{part_no}' AND TO_CHAR(e.RECEIVINGDTE, 'YYYY-MM-DD') = '{receive_date}' AND IS_CHECK=0  AND t.OLDERKEY LIKE '%{rnd}%'
             ORDER BY c.RUNNINGNO
-            FETCH FIRST {plan_ctn} ROWS ONLY"""
+            FETCH FIRST {plan_ctn - diff_plan_ctn} ROWS ONLY"""
             # ora_sql = f"""SELECT '{receive_body_id}' rec_id,e.RECEIVINGDTE,t.RECEIVINGKEY,c.PARTNO,c.RVMANAGINGNO,c.LOTNO,c.RUNNINGNO,c.CASEID dieno,c.CASENO division,c.STOCKQUANTITY,t.OLDERKEY,c.SHELVE,c.PALLETKEY FROM TXP_RECTRANSBODY t 
             # INNER JOIN TXP_RECTRANSENT e ON t.RECEIVINGKEY = e.RECEIVINGKEY 
             # INNER JOIN TXP_CARTONDETAILS c ON t.RECEIVINGKEY = c.INVOICENO AND t.PARTNO = c.PARTNO 
