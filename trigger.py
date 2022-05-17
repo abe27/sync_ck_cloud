@@ -1,12 +1,9 @@
-from datetime import datetime
-import shutil
 import sys
 import os
-import time
 import psycopg2 as pgsql
 import cx_Oracle
 from nanoid import generate
-from spllibs import Yazaki, SplApi, SplSharePoint, LogActivity as log
+from spllibs import LogActivity as log
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -74,9 +71,11 @@ def main():
                         ledger_id = carton[1]
                         
                         ### get location_id
+                        location_id = None
                         mycursor.execute(f"select id from tbt_locations where name='{shelve_no}'")
-                        if mycursor.fetchone():
-                            location_id = mycursor.fetchone()[0]
+                        loc = mycursor.fetchone()
+                        if loc:
+                            location_id = loc[0]
                         else:
                             shelve_id = generate(size=36)
                             mycursor.execute(f"insert into tbt_locations(id, name, description, is_active, created_at, updated_at)values('{shelve_id}', '{shelve_no}', '-', true, current_timestamp, current_timestamp)")
