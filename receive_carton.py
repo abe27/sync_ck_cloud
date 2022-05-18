@@ -103,7 +103,7 @@ def main():
                     mycursor.execute(sql_update_stock) 
                     
                 else:
-                    sql_carton = f"update tbt_cartons set updated_at=current_timestamp where serial_no='{serial_no}'"
+                    sql_carton = f"update tbt_cartons set receive_detail_id='{receive_body_id}',updated_at=current_timestamp where serial_no='{serial_no}'"
                     
                 mycursor.execute(sql_carton)
                     
