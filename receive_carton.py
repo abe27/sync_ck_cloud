@@ -100,8 +100,12 @@ def main():
                     if int(std_pack) > 0:   
                         sql_update_stock = f"update tbt_stocks set ctn={ctn_stock},updated_at=current_timestamp where ledger_id='{ledger_id}'"
                     
-                    mycursor.execute(sql_update_stock)    
-                    mycursor.execute(sql_carton)
+                    mycursor.execute(sql_update_stock) 
+                    
+                else:
+                    sql_carton = f"update tbt_cartons set updated_at=current_timestamp where serial_no='{serial_no}'"
+                    
+                mycursor.execute(sql_carton)
                     
                 #### update location
                 mycursor.execute(f"select id from tbt_locations where name='{location_no}'")
