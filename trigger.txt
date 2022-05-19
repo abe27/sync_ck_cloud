@@ -83,3 +83,29 @@ BEGIN
 		resp := UTL_HTTP.GET_RESPONSE(req);
 		UTL_HTTP.END_RESPONSE(resp);
 END SEND_SERIAL;
+
+#####################################
+TRIGGER "INSERT"
+BEFORE INSERT ON TXP_CARTONDETAILS 
+  FOR EACH ROW
+BEGIN
+	declare
+		serial_no varchar(50) := :NEW.RUNNINGNO;
+		part_no varchar(50) := :NEW.PARTNO;
+	BEGIN
+		SEND_SERIAL(serial_no, part_no);
+	END;
+END;
+
+####################################
+TRIGGER "UPDATE"
+AFTER UPDATE OF SHELVE ON TXP_CARTONDETAILS 
+  FOR EACH ROW
+BEGIN
+	declare
+		serial_no varchar(50) := :OLD.RUNNINGNO;
+		part_no varchar(50) := :OLD.PARTNO;
+	BEGIN
+		SEND_SERIAL(serial_no, part_no);
+	END;
+END;
