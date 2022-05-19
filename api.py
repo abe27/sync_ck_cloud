@@ -1,3 +1,4 @@
+from lib2to3.pgen2 import token
 import os
 import cx_Oracle
 from typing import Union
@@ -10,6 +11,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+SPL_API_HOST=os.environ.get('SPL_SITE_URL')
+SPL_API_USERNAME=os.environ.get('SPL_USERNAME')
+SPL_API_PASSWORD=os.environ.get('SPL_PASSWORD')
+
 ORA_DNS = f"{os.environ.get('ORAC_DB_HOST')}/{os.environ.get('ORAC_DB_SERVICE')}"
 ORA_USERNAME = os.environ.get('ORAC_DB_USERNAME')
 ORA_PASSWORD = os.environ.get('ORAC_DB_PASSWORD')
@@ -21,6 +26,7 @@ class Item(BaseModel):
     serial_no: str
 
 
+spl = SplApi(SPL_API_HOST, SPL_API_USERNAME, SPL_API_PASSWORD)
 app = FastAPI()
 
 
@@ -77,6 +83,8 @@ async def create_item(item: Item):
         }
 
     Oracon.close()
-    print(doc)
+    token = spl.login()
+    spl.serial_no_tracking(token, doc)
+    spl.logout(token)
     log(name='API', subject='GET request', status='Success', message=f'Get Data {doc["serial_no"]}')
     return doc
