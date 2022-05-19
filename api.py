@@ -38,7 +38,7 @@ async def get():
 
 
 @app.post("/")
-def create_item(item: Item):
+async def create_item(item: Item):
     token = None
     Oracon = cx_Oracle.connect(
         user=ORA_PASSWORD, password=ORA_USERNAME, dsn=ORA_DNS)
