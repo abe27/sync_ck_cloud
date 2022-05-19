@@ -424,7 +424,7 @@ def merge_receive():
             
             Oracur.execute(sql_rec_ent)   
             Oracur.execute(f"""INSERT INTO TMP_RECTRANSENT SELECT RECEIVINGKEY, RECEIVINGMAX, RECEIVINGDTE, RECSTATUS, RECPLNCTN, RECENDCTN, UPDDTE, '{key_no}' MERGEID, 0 SYNC FROM TXP_RECTRANSENT WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')})""")
-            Oracur.execute(f"""INSERT INTO TMP_RECTRANSBODY SELECT RECEIVINGKEY, RECEIVINGSEQ, PARTNO, PLNQTY, RECQTY, PLNCTN, RECCTN, UNIT, RUNNINGNO, UPDDTE, '{key_no}' MERGEID, 0 SYNC FROM TXP_RECTRANSBODY WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')})""")
+            Oracur.execute(f"""INSERT INTO TMP_RECTRANSBODY SELECT RECEIVINGKEY, RECEIVINGSEQ, PARTNO, PLNQTY, RECQTY, PLNCTN, RECCTN, UNIT, RVMANAGINGNO, UPDDTE, '{key_no}' MERGEID, 0 SYNC FROM TXP_RECTRANSBODY WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')})""")
             ### after insert delete ent
             Oracur.execute(f"DELETE TXP_RECTRANSENT WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')})")
             Oracur.execute(f"DELETE TXP_RECTRANSBODY WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')})")
