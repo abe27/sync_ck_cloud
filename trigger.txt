@@ -59,3 +59,27 @@ BEGIN
 		UTL_HTTP.END_RESPONSE(resp);
 	END;
 END;
+
+################################################
+CREATE OR REPLACE PROCEDURE SKTSYS.SEND_SERIAL(sSerial in varchar2,sPart in varchar2)
+IS
+	req UTL_HTTP.REQ;
+	resp UTL_HTTP.RESP;
+	url varchar2(4000) := 'http://192.168.104.120:5000/';
+	v_buffer    varchar2(4000); 
+	v_body      varchar2(4000);
+BEGIN
+	v_body := '{
+			"whs": "CK-2",
+		    "receive_type":"-",
+		    "part_no":"'||sPart||'",
+		    "serial_no":"'||sSerial||'"
+		}'; 
+	
+		req := UTL_HTTP.BEGIN_REQUEST(url, 'POST');
+		UTL_HTTP.SET_HEADER(req, 'content-type', 'application/json'); 
+    	UTL_HTTP.SET_HEADER(req, 'Content-Length', length(v_body));
+    	UTL_HTTP.WRITE_TEXT(req, v_body);
+		resp := UTL_HTTP.GET_RESPONSE(req);
+		UTL_HTTP.END_RESPONSE(resp);
+END SEND_SERIAL;
