@@ -1,0 +1,61 @@
+TRIGGER "UPDATE" 
+  AFTER UPDATE ON TXP_CARTONDETAILS 
+  FOR EACH ROW
+BEGIN
+	declare
+		req UTL_HTTP.REQ;
+		resp UTL_HTTP.RESP;
+		serial_no varchar(50) := :OLD.RUNNINGNO;
+		part_no varchar(50) := :OLD.PARTNO;
+		url varchar2(4000) := 'http://192.168.101.217:5000/';
+		v_buffer    varchar2(4000); 
+	    v_body      varchar2(4000);
+	BEGIN
+		
+		v_body := '{
+			"whs": "CK-2",
+		    "receive_type":"-",
+		    "part_no":"'||part_no||'",
+		    "serial_no":"'||serial_no||'"
+		}'; 
+	
+		req := UTL_HTTP.BEGIN_REQUEST(url, 'POST');
+		UTL_HTTP.SET_HEADER(req, 'content-type', 'application/json'); 
+    	UTL_HTTP.SET_HEADER(req, 'Content-Length', length(v_body));
+    	UTL_HTTP.WRITE_TEXT(req, v_body);
+		resp := UTL_HTTP.GET_RESPONSE(req);
+		UTL_HTTP.END_RESPONSE(resp);
+	END;
+END;
+
+
+###################################################################
+TRIGGER "INSERT"
+AFTER INSERT ON TXP_CARTONDETAILS 
+FOR EACH ROW
+BEGIN
+	declare
+		req UTL_HTTP.REQ;
+		resp UTL_HTTP.RESP;
+		serial_no varchar(50) := :NEW.RUNNINGNO;
+		part_no varchar(50) := :NEW.PARTNO;
+		url varchar2(4000) := 'http://192.168.101.217:5000/';
+		v_buffer    varchar2(4000); 
+	    v_body      varchar2(4000);
+	BEGIN
+		
+		v_body := '{
+			"whs": "CK-2",
+		    "receive_type":"R",
+		    "part_no":"'||part_no||'",
+		    "serial_no":"'||serial_no||'"
+		}'; 
+	
+		req := UTL_HTTP.BEGIN_REQUEST(url, 'POST');
+		UTL_HTTP.SET_HEADER(req, 'content-type', 'application/json'); 
+    	UTL_HTTP.SET_HEADER(req, 'Content-Length', length(v_body));
+    	UTL_HTTP.WRITE_TEXT(req, v_body);
+		resp := UTL_HTTP.GET_RESPONSE(req);
+		UTL_HTTP.END_RESPONSE(resp);
+	END;
+END;
