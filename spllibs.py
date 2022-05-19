@@ -747,7 +747,7 @@ class SplApi:
         data = response.json()
         return data['data']
     
-    def serial_no_tracking(self, token, obj):
+    def serial_no_tracking(self, token=None, obj=[]):
         try:
             url = f"{self.host}/trigger/store"
             payload = json.dumps({

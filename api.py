@@ -38,7 +38,8 @@ async def get():
 
 
 @app.post("/")
-async def create_item(item: Item):
+def create_item(item: Item):
+    token = None
     Oracon = cx_Oracle.connect(
         user=ORA_PASSWORD, password=ORA_USERNAME, dsn=ORA_DNS)
     Oracur = Oracon.cursor()
@@ -57,34 +58,33 @@ async def create_item(item: Item):
     ) r ON t.INVOICENO = r.RECEIVINGKEY AND t.RVMANAGINGNO=r.RVMANAGINGNO AND t.PARTNO=r.PARTNO
     WHERE t.PARTNO='{item.part_no}' AND t.RUNNINGNO='{item.serial_no}'"""
     obj = Oracur.execute(sql)
-    
-    doc = []
-    for i in obj.fetchall():
-        doc = {
-            "whs" : i[0],
-            "factory" : i[1],
-            "rec_date" : i[2],
-            "invoice_no" : i[3],
-            "rvmanagingno" : i[4],
-            "part_type" : i[5],
-            "part_no" : i[6],
-            "unit" : i[7],
-            "serial_no" : i[8],
-            "lot_no" : i[9],
-            "case_id" : i[10],
-            "case_no" : i[11],
-            "std_pack_qty" : float(i[12]),
-            "qty" : float(i[13]),
-            "shelve" : i[14],
-            "pallet_no" : i[15],
-            "on_stock_ctn" : float(i[16]),
-            "event_trigger" : i[17],
-            "olderkey" : i[18],
-        }
+    i = obj.fetchone()
+    doc = {
+        "whs" : i[0],
+        "factory" : i[1],
+        "rec_date" : i[2],
+        "invoice_no" : i[3],
+        "rvmanagingno" : i[4],
+        "part_type" : i[5],
+        "part_no" : i[6],
+        "unit" : i[7],
+        "serial_no" : i[8],
+        "lot_no" : i[9],
+        "case_id" : i[10],
+        "case_no" : i[11],
+        "std_pack_qty" : float(i[12]),
+        "qty" : float(i[13]),
+        "shelve" : i[14],
+        "pallet_no" : i[15],
+        "on_stock_ctn" : float(i[16]),
+        "event_trigger" : i[17],
+        "olderkey" : i[18],
+    }
 
     Oracon.close()
-    token = spl.login()
+    # token = spl.login()
+    # spl.serial_no_tracking(token, doc)
+    # spl.logout(token)
     spl.serial_no_tracking(token, doc)
-    spl.logout(token)
     log(name='API', subject='GET request', status='Success', message=f'Get Data {doc["serial_no"]}')
     return doc
