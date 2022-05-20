@@ -23,9 +23,9 @@ def main():
     mycursor = mydb.cursor()
     
     try:
-        mycursor.execute("select count(*) from tbt_serial_no_triggers")
+        mycursor.execute("select count(emp_id),emp_id from tbt_serial_no_triggers group by emp_id")
         for x in mycursor.fetchall():
-            mycursor.execute(f"insert into tbt_mobile_scan_histories(id, on_date, scan_counter, emp_id, created_at, updated_at)values('{generate(size=36)}', current_timestamp, '{str(x[0])}', 'XXX', current_timestamp, current_timestamp)")
+            mycursor.execute(f"insert into tbt_mobile_scan_histories(id, on_date, scan_counter, emp_id, created_at, updated_at)values('{generate(size=36)}', current_timestamp, '{str(x[0])}', '{str(x[1])}', current_timestamp, current_timestamp)")
         
         mycursor.execute(f"truncate tbt_serial_no_triggers")
         mydb.commit()
