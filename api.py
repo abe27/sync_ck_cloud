@@ -43,24 +43,11 @@ async def create_item(item: Item):
     Oracon = cx_Oracle.connect(
         user=ORA_PASSWORD, password=ORA_USERNAME, dsn=ORA_DNS)
     Oracur = Oracon.cursor()
-    sql = f"""SELECT '{item.whs}' whs,r.factory,r.rec_date,CASE WHEN bb.RECEIVINGKEY IS NULL THEN t.INVOICENO ELSE bb.RECEIVINGKEY END invoice_no,t.RVMANAGINGNO,CASE WHEN substr(t.PARTNO, 1, 2) = '71' THEN 'PLATE' ELSE 'PART' END part_type,t.PARTNO part_no,'BOX' unit,t.RUNNINGNO serial_no,t.LOTNO lot_no,t.CASEID case_id,CASE WHEN t.CASENO IS NULL THEN 0 ELSE t.CASENO END case_no,t.RECEIVINGQUANTITY std_pack_qty,t.RECEIVINGQUANTITY qty,t.SHELVE shelve,CASE WHEN t.PALLETKEY IS NULL THEN '-' ELSE t.PALLETKEY END pallet_no,stk.on_stock on_stock_ctn,'{item.receive_type}' event_trigger,r.olderkey,CASE WHEN t.SIID IS NULL THEN 'NO' ELSE t.SIID END SIID
-    FROM TXP_CARTONDETAILS t
-    LEFT JOIN (
-        SELECT c.partno, count(c.partno) on_stock FROM TXP_CARTONDETAILS c WHERE c.shelve NOT IN ('S-PLOUT') GROUP BY c.partno
-    ) stk ON t.PARTNO=stk.partno 
-    LEFT JOIN (
-        SELECT b.MERGEID,b.PARTNO,b.PLNCTN,b.RECEIVINGKEY,b.RUNNINGNO  FROM TMP_RECTRANSBODY b
-    ) bb ON t.INVOICENO = bb.MERGEID AND t.PARTNO=bb.PARTNO AND t.RVMANAGINGNO=bb.RUNNINGNO
-    LEFT JOIN (
-        SELECT e.VENDOR factory,to_char(e.RECEIVINGDTE, 'YYYY-MM-DD') rec_date,b.RECEIVINGKEY,b.PARTNO,b.RVMANAGINGNO,b.whs,b.olderkey FROM TXP_RECTRANSBODY b 
-        INNER JOIN TXP_RECTRANSENT e ON b.RECEIVINGKEY = e.RECEIVINGKEY 
-        GROUP BY b.PARTNO,b.RECEIVINGKEY,b.RVMANAGINGNO,b.whs,b.olderkey,e.RECEIVINGDTE,e.VENDOR
-    ) r ON t.INVOICENO = r.RECEIVINGKEY AND t.RVMANAGINGNO=r.RVMANAGINGNO AND t.PARTNO=r.PARTNO
-    WHERE t.PARTNO='{item.part_no}' AND t.RUNNINGNO='{item.serial_no}'"""
+    sql = f"""SELECT whs,factory,rec_date,invoice_no,rvmanagingno,part_type,part_no,unit,serial_no,lot_no,case_id,case_no,std_pack_qty,qty,shelve,pallet_no,on_stock_ctn,event_trigger,olderkey,siid FROM TBT_SERIAL_TRIGGER WHERE SERIAL_NO='{item.serial_no}' AND PART_NO='{item.part_no}'"""
     obj = Oracur.execute(sql)
     i = obj.fetchone()
     doc = {
-        "whs" : i[0],
+        "whs" : item.whs,
         "factory" : i[1],
         "rec_date" : i[2],
         "invoice_no" : i[3],
@@ -77,7 +64,7 @@ async def create_item(item: Item):
         "shelve" : i[14],
         "pallet_no" : i[15],
         "on_stock_ctn" : float(i[16]),
-        "event_trigger" : i[17],
+        "event_trigger" : item.receive_type,
         "olderkey" : i[18],
         "emp_id" : i[19],
     }

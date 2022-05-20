@@ -771,7 +771,6 @@ class SplApi:
             })
             
             headers = {
-                'Authorization': f'Bearer {token}',
                 'Content-Type': 'application/json'
             }
             requests.request("POST", url, headers=headers, data=payload)
