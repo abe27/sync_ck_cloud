@@ -418,7 +418,7 @@ def merge_receive():
             for b in body.fetchall():
                 ### get manno.
                 rvm_no = (Oracur.execute(f"SELECT 'BD'|| SUBSTR(TO_CHAR(sysdate,'yyMMdd'), 2, 6)  || replace(to_char((SELECT count(*) FROM TXP_RECTRANSBODY WHERE TO_CHAR(SYSDTE, 'YYYYMMDD') = TO_CHAR(sysdate, 'YYYYMMDD')) + 1,'000099'),' ','') as genrunno  from dual")).fetchone()[0]
-                ql_receive_body = f"""INSERT INTO TXP_RECTRANSBODY(RECEIVINGKEY, RECEIVINGSEQ, PARTNO, PLNQTY, PLNCTN,RECQTY,RECCTN,TAGRP, UNIT, CD, WHS, DESCRI, RVMANAGINGNO,UPDDTE, SYSDTE, CREATEDBY,MODIFIEDBY,OLDERKEY)VALUES('{key_no}', '{seq}', '{b[2]}', {b[3]}, {b[4]},0,0,'C', '{b[8]}','{b[9]}' , '{b[10]}','{b[11]}', '{rvm_no}',sysdate, sysdate, 'SKTSYS', 'SKTSYS', '{receive_key}')"""
+                ql_receive_body = f"""INSERT INTO TXP_RECTRANSBODY(RECEIVINGKEY, RECEIVINGSEQ, PARTNO, PLNQTY, PLNCTN,RECQTY,RECCTN,TAGRP, UNIT, CD, WHS, DESCRI, RVMANAGINGNO,UPDDTE, SYSDTE, CREATEDBY,MODIFIEDBY,OLDERKEY)VALUES('{key_no}', '{seq}', '{b[2]}', {b[3]}, {b[4]},0,0,'C', '{b[8]}','{b[9]}' , '{b[10]}','{str(b[11]).replace("'", "''")}', '{rvm_no}',sysdate, sysdate, 'SKTSYS', 'SKTSYS', '{receive_key}')"""
                 Oracur.execute(ql_receive_body)
                 ctn += float(str(b[4]))
                 seq += 1
