@@ -274,6 +274,8 @@ def get_receive():
             sum_pln = 0
             x = 0
             while x < len(body):
+                if x == 10:
+                    print(x)
                 r = body[x]
                 head = r['receive']
                 batch_id = 'NOTFOUND'
@@ -296,7 +298,7 @@ def get_receive():
                 cd = '20'
                 if factory_type == "AW": cd = "10"
                 part = r['ledger']['part']['no']
-                part_name = r['ledger']['part']['name']
+                part_name = str(r['ledger']['part']['name']).replace("'","''")
                 unit = r['ledger']['unit']['name']
                 whs = r['ledger']['whs']['name']
                 ### get part type
@@ -314,9 +316,11 @@ def get_receive():
                 Oracur.execute(sql_part_insert)
                 
                 ### check part on ledger
+                print(r['plan_qty'])
+                print(r['plan_ctn'])
                 outer_qty = float(str(r['plan_qty']))/float(str(r['plan_ctn']))
                 part_ledger_sql = Oracur.execute(f"select partno from TXP_LEDGER where partno='{part}'")
-                ledger_sql = f"""INSERT INTO TXP_LEDGER(PARTNO,TAGRP,MINIMUM,MAXIMUM,WHS,PICSHELFBIN,STKSHELFBIN,OVSSHELFBIN,OUTERPCS,UPDDTE, SYSDTE)VALUES('{part}', 'C',0,0,'{factory_type}','PNON', 'SNON','ONON',{outer_qty}, sysdate, sysdate)"""
+                ledger_sql = f"""INSERT INTO TXP_LEDGER(PARTNO,TAGRP,MINIMUM,MAXIMUM,WHS,PICSHELFBIN,STKSHELFBIN,OVSSHELFBIN,OUTERPCS,UPDDTE, SYSDTE)VALUES('{part}', 'C',0,0,'{factory_type}','PNON', 'SNON','ONON'0, sysdate, sysdate)"""
                 if part_ledger_sql.fetchone():
                     ledger_sql = f"""UPDATE TXP_LEDGER SET RECORDMAX=1,LASTRECDTE=sysdate,LASTISSDTE=sysdate WHERE PARTNO='{part}'"""
                 
@@ -586,8 +590,8 @@ if __name__ == '__main__':
     get_receive()
     time.sleep(0.1)
     merge_receive()
-    # time.sleep(0.1)
-    # update_receive_ctn()
+    time.sleep(0.1)
+    update_receive_ctn()
     time.sleep(0.1)
     orderplans()
     sys.exit(0)
