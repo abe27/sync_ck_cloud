@@ -766,7 +766,8 @@ class SplApi:
                 "shelve": obj["shelve"],
                 "pallet_no": obj["pallet_no"],
                 "on_stock_ctn": obj["on_stock_ctn"],
-                "event_trigger": obj["event_trigger"]
+                "event_trigger": obj["event_trigger"],
+                "emp_id": obj["event_trigger"]
             })
             
             headers = {
