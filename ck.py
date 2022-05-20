@@ -565,6 +565,9 @@ def orderplans():
         d = datetime.now()
         _rnd = f"{(rnd - 1):,}"
         msg = f"""ซิงค์ข้อมูล OrderPlan\nจำนวน: {_rnd} รายการ\nวดป.: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
+        if _rnd > 0:
+            spl.line_notification(msg)
+            
         print(msg)
         
     except Exception as ex:
