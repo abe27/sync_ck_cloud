@@ -444,15 +444,18 @@ def merge_receive():
 def update_receive_ctn():
     Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
     Oracur = Oracon.cursor()
-    sql = f"""SELECT t.RECEIVINGKEY,count(t.RECEIVINGKEY) seq, sum(t.PLNCTN) ctn  FROM TXP_RECTRANSBODY t 
-            INNER JOIN TXP_RECTRANSENT e ON t.RECEIVINGKEY = e.RECEIVINGKEY  
-            WHERE TO_CHAR(e.RECEIVINGDTE, 'YYYYMMDD')  = TO_CHAR(sysdate, 'YYYYMMDD') 
-            GROUP BY t.RECEIVINGKEY"""
+    sql = f"""SELECT t.RECEIVINGKEY,count(t.RECEIVINGKEY) seq, e.RECPLNCTN  ctn,CASE WHEN cc.rec_ctn IS NULL THEN 0 ELSE cc.rec_ctn END rec_ctn  FROM TXP_RECTRANSBODY t 
+                INNER JOIN TXP_RECTRANSENT e ON t.RECEIVINGKEY = e.RECEIVINGKEY
+                LEFT JOIN (
+                    SELECT c.invoiceno,count(*) rec_ctn FROM TXP_CARTONDETAILS c GROUP BY c.invoiceno
+                ) cc ON e.RECEIVINGKEY = cc.invoiceno
+                WHERE TO_CHAR(e.RECEIVINGDTE, 'YYYYMMDD') = TO_CHAR(sysdate - 1, 'YYYYMMDD') 
+                GROUP BY t.RECEIVINGKEY,e.RECPLNCTN,cc.rec_ctn"""
             
     rec = Oracur.execute(sql)
     data = rec.fetchall()
     for i in data:
-        Oracur.execute(f"UPDATE TXP_RECTRANSENT SET RECEIVINGMAX='{i[1]}',RECPLNCTN={i[2]} WHERE RECEIVINGKEY='{i[0]}'")
+        Oracur.execute(f"UPDATE TXP_RECTRANSENT SET RECEIVINGMAX='{i[1]}',RECPLNCTN={i[2]},RECENDCTN='{i[3]}' WHERE RECEIVINGKEY='{i[0]}'")
     
     ### commit the transaction
     Oracon.commit()
