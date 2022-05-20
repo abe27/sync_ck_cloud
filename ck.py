@@ -449,7 +449,7 @@ def update_receive_ctn():
                 LEFT JOIN (
                     SELECT c.invoiceno,count(*) rec_ctn FROM TXP_CARTONDETAILS c GROUP BY c.invoiceno
                 ) cc ON e.RECEIVINGKEY = cc.invoiceno
-                WHERE TO_CHAR(e.RECEIVINGDTE, 'YYYYMMDD') = TO_CHAR(sysdate - 1, 'YYYYMMDD') 
+                WHERE TO_CHAR(e.RECEIVINGDTE, 'YYYYMMDD') = TO_CHAR(sysdate - 0, 'YYYYMMDD') 
                 GROUP BY t.RECEIVINGKEY,e.RECPLNCTN,cc.rec_ctn"""
             
     rec = Oracur.execute(sql)
