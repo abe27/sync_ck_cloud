@@ -88,7 +88,7 @@ async def get_receive_factory(factory):
         user=ORA_PASSWORD, password=ORA_USERNAME, dsn=ORA_DNS)
     Oracur = Oracon.cursor()
     Oracur.execute(
-        f"SELECT RECEIVINGKEY,RECPLNCTN,RECENDCTN,RECPLNCTN-RECENDCTN diff FROM TXP_RECTRANSENT WHERE to_char(RECEIVINGDTE, 'YYYYMMDD') = TO_CHAR(sysdate - 1, 'YYYYMMDD') AND VENDOR='{factory}' order by RECEIVINGDTE")
+        f"SELECT RECEIVINGKEY,RECPLNCTN,RECENDCTN,RECPLNCTN-RECENDCTN diff FROM TXP_RECTRANSENT WHERE to_char(RECEIVINGDTE, 'YYYYMMDD') = TO_CHAR(sysdate - 0, 'YYYYMMDD') AND VENDOR='{factory}' order by RECEIVINGDTE")
     obj = Oracur.fetchall()
     doc = []
     for i in obj:
