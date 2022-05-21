@@ -189,6 +189,7 @@ def download():
                         ### check body
                         part_id = None
                         b = spl.read_receive(head, doc)
+                        partname = str(b['partname']).replace("'", "''")
                         ### Log
                         log(name='SPL', subject="INSERT", status="Success", message=f"Insert Data Receive {(str(h)[4:16])}({b['partno']})")
                         
@@ -199,7 +200,7 @@ def download():
                             
                         else:
                             part_running_id = generate(size=36)
-                            mycursor.execute(f"""insert into tbt_parts(id, no, name, is_active, created_at, updated_at)values('{part_running_id}', '{b['partno']}', '{b['partname']}', true, current_timestamp, current_timestamp)""")
+                            mycursor.execute(f"""insert into tbt_parts(id, no, name, is_active, created_at, updated_at)values('{part_running_id}', '{b['partno']}', '{partname}', true, current_timestamp, current_timestamp)""")
                             
                             ### get unit
                             mycursor.execute(f"select id from tbt_units where name='{b['unit']}'")
@@ -214,9 +215,26 @@ def download():
                             mycursor.execute(f"""insert into tbt_ledgers(id, tagrp_id, factory_id, whs_id, part_id, net_weight, gross_weight, unit_id, is_active, created_at, updated_at)
                                     values('{ledger_running_id}', '{tagrp_id}', '{factory_id}', '{whs_id}', '{part_running_id}', '{b['aenewt']}', '{b['aegrwt']}', '{fetch_units}', true, current_timestamp, current_timestamp)""")
                             part_id = part_running_id
-                            
+                        
+                        print(f"select id from tbt_ledgers where part_id='{part_id}' and factory_id='{factory_id}' and whs_id='{whs_id}'")   
                         mycursor.execute(f"select id from tbt_ledgers where part_id='{part_id}' and factory_id='{factory_id}' and whs_id='{whs_id}'")
-                        ledger_id = mycursor.fetchone()[0]
+                        ledgers = mycursor.fetchone()
+                        if ledgers is None:
+                            ### get unit
+                            mycursor.execute(f"select id from tbt_units where name='{b['unit']}'")
+                            fetch_units = mycursor.fetchone()[0]
+                            
+                            ### get tagrp_id
+                            mycursor.execute(f"select id from tbt_tagrps where name='{b['tagrp']}'")
+                            tagrp_id = mycursor.fetchone()[0]
+                            
+                            ### insert ledger
+                            ledger_id = generate(size=36)
+                            mycursor.execute(f"""insert into tbt_ledgers(id, tagrp_id, factory_id, whs_id, part_id, net_weight, gross_weight, unit_id, is_active, created_at, updated_at)
+                                    values('{ledger_id}', '{tagrp_id}', '{factory_id}', '{whs_id}', '{part_id}', '{b['aenewt']}', '{b['aegrwt']}', '{fetch_units}', true, current_timestamp, current_timestamp)""")
+                        else:
+                            ledger_id = ledgers[0]
+                            
                         plan_qty = b['plnqty']
                         plan_ctn = b['plnctn']
                         
@@ -230,6 +248,9 @@ def download():
                             sql_body = f"update tbt_receive_details set plan_qty='{plan_qty}', plan_ctn='{plan_ctn}',updated_at=current_timestamp where id='{receive_body_id}'"
                             
                         mycursor.execute(sql_body)
+                        if seq == 6:
+                            print(f"CHECK")
+                            
                         print(f"Sync {str(h)[4:16]} Data :=> {seq} Part: {part_id}")
                         seq += 1
                         
@@ -274,8 +295,6 @@ def get_receive():
             sum_pln = 0
             x = 0
             while x < len(body):
-                if x == 10:
-                    print(x)
                 r = body[x]
                 head = r['receive']
                 batch_id = 'NOTFOUND'
@@ -357,9 +376,8 @@ def get_receive():
             if response is False:
                 return
             
-        if spl.logout(token):
-            print(f'end service')
-            Oracon.commit()
+        spl.logout(token)
+        Oracon.commit()
             
         ### notifications
         if len(receive_array) > 0:
@@ -480,7 +498,7 @@ def orderplans():
         for i in obj:
             part_type = "PART"
             part = i['partno']
-            part_name = i['partname']
+            part_name = str(i['partname']).replace("'", "''")
             cd = i['cd']
             factory_type = i['factory']
             unit = i['unit']
@@ -511,7 +529,7 @@ def orderplans():
             pono =  i['pono']
             etdtap =  i['etdtap']
             partno =  i['partno']
-            partname =  i['partname']
+            partname =  str(i['partname']).replace("'", "''")
             ordermonth =  i['ordermonth']
             orderorgi =  i['orderorgi']
             orderround =  i['orderround']
@@ -575,7 +593,7 @@ def orderplans():
         print(msg)
         
     except Exception as ex:
-        log(name='SPL', subject="MERGE", status="Error", message=str(ex))
+        log(name='SPL', subject="ORDERPLAN", status="Error", message=str(ex))
         pass
     
     Oracon.close()
