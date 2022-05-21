@@ -193,41 +193,29 @@ def download():
                         ### Log
                         log(name='SPL', subject="INSERT", status="Success", message=f"Insert Data Receive {(str(h)[4:16])}({b['partno']})")
                         
+                        
+                        #### get master
+                        ### get unit
+                        mycursor.execute(f"select id from tbt_units where name='{b['unit']}'")
+                        fetch_units = mycursor.fetchone()[0]
+                        
+                        ### get tagrp_id
+                        mycursor.execute(f"select id from tbt_tagrps where name='{b['tagrp']}'")
+                        tagrp_id = mycursor.fetchone()[0]
+                        
+                        #### check master part
                         mycursor.execute(f"select id from tbt_parts where no='{b['partno']}'")
                         fetch_parts = mycursor.fetchone()
                         if fetch_parts:
                             part_id = fetch_parts[0]
                             
                         else:
-                            part_running_id = generate(size=36)
-                            mycursor.execute(f"""insert into tbt_parts(id, no, name, is_active, created_at, updated_at)values('{part_running_id}', '{b['partno']}', '{partname}', true, current_timestamp, current_timestamp)""")
-                            
-                            ### get unit
-                            mycursor.execute(f"select id from tbt_units where name='{b['unit']}'")
-                            fetch_units = mycursor.fetchone()[0]
-                            
-                            ### get tagrp_id
-                            mycursor.execute(f"select id from tbt_tagrps where name='{b['tagrp']}'")
-                            tagrp_id = mycursor.fetchone()[0]
-                            
-                            ### insert ledger
-                            ledger_running_id = generate(size=36)
-                            mycursor.execute(f"""insert into tbt_ledgers(id, tagrp_id, factory_id, whs_id, part_id, net_weight, gross_weight, unit_id, is_active, created_at, updated_at)
-                                    values('{ledger_running_id}', '{tagrp_id}', '{factory_id}', '{whs_id}', '{part_running_id}', '{b['aenewt']}', '{b['aegrwt']}', '{fetch_units}', true, current_timestamp, current_timestamp)""")
-                            part_id = part_running_id
+                            part_id = generate(size=36)
+                            mycursor.execute(f"""insert into tbt_parts(id, no, name, is_active, created_at, updated_at)values('{part_id}', '{b['partno']}', '{partname}', true, current_timestamp, current_timestamp)""")
                         
-                        print(f"select id from tbt_ledgers where part_id='{part_id}' and factory_id='{factory_id}' and whs_id='{whs_id}'")   
                         mycursor.execute(f"select id from tbt_ledgers where part_id='{part_id}' and factory_id='{factory_id}' and whs_id='{whs_id}'")
                         ledgers = mycursor.fetchone()
                         if ledgers is None:
-                            ### get unit
-                            mycursor.execute(f"select id from tbt_units where name='{b['unit']}'")
-                            fetch_units = mycursor.fetchone()[0]
-                            
-                            ### get tagrp_id
-                            mycursor.execute(f"select id from tbt_tagrps where name='{b['tagrp']}'")
-                            tagrp_id = mycursor.fetchone()[0]
-                            
                             ### insert ledger
                             ledger_id = generate(size=36)
                             mycursor.execute(f"""insert into tbt_ledgers(id, tagrp_id, factory_id, whs_id, part_id, net_weight, gross_weight, unit_id, is_active, created_at, updated_at)
