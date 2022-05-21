@@ -492,6 +492,9 @@ def orderplans():
         Oracur = Oracon.cursor()
         data = spl.get_order_plan(token, 2000, 0, 1)
         obj = data['data']
+        if len(obj) == 0:
+            Oracon.close()
+            return spl.logout(token)
         
         order_id = []
         rnd = 1
