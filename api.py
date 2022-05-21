@@ -45,10 +45,11 @@ async def get():
     }
 
 
-@app.get('/receive/{receive_id}')
-async def get(receive_id):
+@app.get('/receive/key/{receive_id}')
+async def get_receive_receive_key(receive_id):
     credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)
-    parameters = pika.ConnectionParameters(RABBITMQ_HOST, RABBITMQ_PORT, '/', credentials)
+    parameters = pika.ConnectionParameters(
+        RABBITMQ_HOST, RABBITMQ_PORT, '/', credentials)
     connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
     channel.queue_declare(queue='receive_data')
@@ -59,11 +60,11 @@ async def get(receive_id):
         f"SELECT RECEIVINGKEY,RECPLNCTN,RECENDCTN,RECPLNCTN-RECENDCTN diff FROM TXP_RECTRANSENT WHERE RECEIVINGKEY='{receive_id}'")
     obj = Oracur.fetchone()
     doc = {
-        "receive_no":obj[0],
+        "receive_no": obj[0],
         "plan_ctn": float(str(obj[1])),
         "rec_ctn": float(str(obj[2])),
         "diff_ctn": float(str(obj[3]))
-        }
+    }
 
     channel.basic_publish(
         exchange='', routing_key='receive_data', body=json.dumps(doc))
@@ -72,6 +73,40 @@ async def get(receive_id):
     Oracon.close()
     return {
         "message": "Send Hello world"
+    }
+
+
+@app.get('/receive/get/{factory}')
+async def get_receive_factory(factory):
+    credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)
+    parameters = pika.ConnectionParameters(
+        RABBITMQ_HOST, RABBITMQ_PORT, '/', credentials)
+    connection = pika.BlockingConnection(parameters)
+    channel = connection.channel()
+    channel.queue_declare(queue='receive_data')
+    Oracon = cx_Oracle.connect(
+        user=ORA_PASSWORD, password=ORA_USERNAME, dsn=ORA_DNS)
+    Oracur = Oracon.cursor()
+    Oracur.execute(
+        f"SELECT RECEIVINGKEY,RECPLNCTN,RECENDCTN,RECPLNCTN-RECENDCTN diff FROM TXP_RECTRANSENT WHERE to_char(RECEIVINGDTE, 'YYYYMMDD') = TO_CHAR(sysdate - 1, 'YYYYMMDD') AND VENDOR='{factory}' order by RECEIVINGDTE")
+    obj = Oracur.fetchall()
+    doc = []
+    for i in obj:
+        doc.append({
+            "receive_no": i[0],
+            "plan_ctn": float(str(i[1])),
+            "rec_ctn": float(str(i[2])),
+            "diff_ctn": float(str(i[3]))
+        })
+
+    channel.basic_publish(
+        exchange='', routing_key='receive_data', body=json.dumps(doc))
+    print(" [x] Sent 'Hello World!'")
+    connection.close()
+    Oracon.close()
+    return {
+        "message": f"Send Receive Data",
+        "data": doc
     }
 
 
