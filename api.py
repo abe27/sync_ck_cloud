@@ -101,7 +101,7 @@ async def get_receive_factory(factory):
 
     channel.basic_publish(
         exchange='', routing_key='receive_data', body=json.dumps(doc))
-    print(" [x] Sent 'Hello World!'")
+    print(f"[x] Sent 'Receive Data({len(doc)})!'")
     connection.close()
     Oracon.close()
     return {
