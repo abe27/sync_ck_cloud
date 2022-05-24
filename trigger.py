@@ -119,4 +119,5 @@ def check_carton():
 
 if __name__ == '__main__':
     main()
+    check_carton()
     sys.exit(0)
