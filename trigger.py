@@ -108,12 +108,12 @@ def check_carton():
             
             spl.update_receive_trigger(doc)
             Oracur.execute(f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{str(b[5])}'")
-            print(b)
+            Oracon.commit()
+            print(f"carton ==>b {str(b)}" )
     except Exception as ex:
         print(ex)
         pass
     
-    Oracon.commit()
     Oracon.close()
 
 
