@@ -44,7 +44,6 @@ Oracur = Oracon.cursor()
 @app.on_event("shutdown")
 async def shut_down():
     Oracon.close()
-    print("shutdown app")
 
 @app.get('/')
 async def get():
