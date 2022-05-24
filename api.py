@@ -32,6 +32,11 @@ class Item(BaseModel):
     receive_type: str
     part_no: str
     serial_no: str
+    
+class ReceiveEnt(BaseModel):
+    receive_no: str
+    plan_ctn: int
+    rec_ctn: int
 
 
 spl = SplApi(SPL_API_HOST, SPL_API_USERNAME, SPL_API_PASSWORD)
@@ -155,3 +160,9 @@ async def create_item(item: Item):
     log(name='API', subject='GET request', status='Success',
         message=f'Get Data {doc["serial_no"]}')
     return doc
+
+@app.post('/receive/trigger')
+async def  receive_trigger(recData: ReceiveEnt):
+    # print(recData)
+    return (recData)
+    
