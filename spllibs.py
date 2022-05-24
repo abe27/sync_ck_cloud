@@ -780,3 +780,31 @@ class SplApi:
             pass
         
         return True
+    
+    def update_receive_trigger(self, obj):
+        # print(obj['serial_no'])
+        try:
+            url = f"{self.host}/trigger/receive"
+            payload = json.dumps({
+                "receive_no": obj["receive_no"],
+                "part_no": obj["part_no"],
+                "lot_no": obj["lot_no"],
+                "serial_no": obj["serial_no"],
+                "case_id": obj["case_id"],
+                "std_pack_qty": obj["std_pack_qty"],
+                "shelve": obj["shelve"],
+                "pallet_no": obj["pallet_no"],
+                "transfer_out": obj["transfer_out"],
+                "event_trigger": obj["event_trigger"]
+            })
+            
+            headers = {
+                'Content-Type': 'application/json'
+            }
+            requests.request("POST", url, headers=headers, data=payload)
+            
+        except Exception as ex:
+            LogActivity(name='SPL', subject="SERIAL TRACKING", status='Error',message=str(ex))
+            pass
+        
+        return True

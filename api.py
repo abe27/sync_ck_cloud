@@ -163,11 +163,11 @@ async def create_item(item: Item):
 
 @app.post('/receive/trigger')
 async def  receive_trigger(recData: ReceiveEnt):
+    # print(recData)
     diff = recData.plan_ctn - recData.rec_ctn
     if diff == 0:
         Oracur.execute(f"UPDATE TMP_RECTRANSENT SET RECENDCTN=RECPLNCTN WHERE MERGEID='{recData.receive_no}'")
         Oracur.execute(f"UPDATE TMP_RECTRANSBODY SET RECCTN=PLNCTN  WHERE MERGEID='{recData.receive_no}'")
-        
-    Oracon.commit()
+        Oracon.commit()
     return (recData)
     
