@@ -34,80 +34,26 @@ ORA_PASSWORD=os.environ.get('ORAC_DB_PASSWORD')
 def main():
     Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
     Oracur = Oracon.cursor()
-    log(name='TRIGGER', subject="UPDATE DATA", status="Success", message=f"Start Service")
     try:
-        rnd = 1
-        db = Oracur.execute(f"SELECT UUID_KEY,SERIALNO,LASTUPDATE FROM TMP_SERIALTRACKING ORDER BY LASTUPDATE")
-        stock = db.fetchall()
-        if stock:
-            mydb = pgsql.connect(
-                host=DB_HOSTNAME,
-                port=DB_PORT,
-                user=DB_USERNAME,
-                password=DB_PASSWORD,
-                database=DB_NAME,
-            )
-            mycursor = mydb.cursor()
-            for s in stock:
-                uuid = str(s[0])
-                serial_no = str(s[1])
-                sql = f"SELECT CASE WHEN PALLETKEY IS NULL THEN '-' ELSE PALLETKEY END plkey,CASE WHEN CASEID IS NULL THEN '-' ELSE CASEID END CASEID,SHELVE,STOCKQUANTITY  FROM TXP_CARTONDETAILS WHERE RUNNINGNO='{serial_no}'"
-                obj = Oracur.execute(sql)
+        sql = f"SELECT RECEIVINGKEY,RECPLNCTN,RECENDCTN,RECPLNCTN-RECENDCTN diff  FROM TXP_RECTRANSENT WHERE VENDOR='INJ' AND  RECEIVINGDTE >= (sysdate - 1)"
+        obj = Oracur.execute(sql)
+        for i in obj.fetchall():
+            receive_no = str(i[0])
+            receive_pln = int(str(i[1]))
+            receive_rec = int(str(i[2]))
+            receive_diff = int(str(i[3]))
+            print(f"update receive_no {receive_no}")
+            if receive_diff == 0:
+                Oracur.execute(f"UPDATE TMP_RECTRANSENT SET RECENDCTN=RECPLNCTN WHERE MERGEID='{receive_no}'")
+                Oracur.execute(f"UPDATE TMP_RECTRANSBODY SET RECCTN=PLNCTN  WHERE MERGEID='{receive_no}'")
                 
-                txt = "UPDATE"
-                for i in obj.fetchall():
-                    pl_no = str(i[0])
-                    dv_no = str(i[1])
-                    shelve_no = str(i[2])
-                    on_stock = float(str(i[3]))
-                    on_stock_ctn = float(str(i[3]))
-                    
-                    ### get tbt_cartons
-                    mycursor.execute(f"select c.id,d.ledger_id,c.serial_no from tbt_cartons c inner join tbt_receive_details d on c.receive_detail_id = d.id where c.serial_no='{serial_no}'")
-                    carton = mycursor.fetchone()
-                    txt = f"NOT UPDATE {serial_no}"
-                    if carton:
-                        carton_id = carton[0]
-                        ledger_id = carton[1]
-                        
-                        ### get location_id
-                        location_id = None
-                        mycursor.execute(f"select id from tbt_locations where name='{shelve_no}'")
-                        loc = mycursor.fetchone()
-                        if loc:
-                            location_id = loc[0]
-                        else:
-                            shelve_id = generate(size=36)
-                            mycursor.execute(f"insert into tbt_locations(id, name, description, is_active, created_at, updated_at)values('{shelve_id}', '{shelve_no}', '-', true, current_timestamp, current_timestamp)")
-                            location_id = shelve_id
-                        
-                        ### update shelve
-                        mycursor.execute(f"select id from tbt_shelves where carton_id='{carton_id}' and location_id='{location_id}'")
-                        shelve = mycursor.fetchone()
-                        if shelve:
-                            mycursor.execute(f"update tbt_shelves set location_id='{location_id}',pallet_no='{pl_no}',updated_at=current_timestamp  where id='{shelve[0]}'")
-                            
-                        mycursor.execute(f"update tbt_cartons set qty='{on_stock}',updated_at=current_timestamp  where id='{carton_id}'")
-                        part = Oracur.execute(f"SELECT count(*) FROM TXP_CARTONDETAILS WHERE PARTNO=(SELECT PARTNO  FROM TXP_CARTONDETAILS WHERE RUNNINGNO='{serial_no}') AND SHELVE NOT IN ('S-PLOUT')")
-                        on_stock_ctn = part.fetchone()[0]
-                        mycursor.execute(f"update tbt_stocks set ctn='{on_stock_ctn}',updated_at=current_timestamp  where ledger_id='{ledger_id}'")
-                        txt = f"UPDATE {serial_no} STOCK: {on_stock_ctn}"
-                        
-                    Oracur.execute(f"DELETE FROM TMP_SERIALTRACKING WHERE UUID_KEY='{uuid}'")
-                    
-                log(name='TRIGGER', subject="UPDATE DATA", status="Success", message=f"{rnd}. Sync {txt} ID: {uuid}")
-                print(f"{rnd}. Sync {txt} ID: {uuid}")
-                rnd += 1
-                
-            mydb.commit()    
-            mydb.close()
             Oracon.commit()
+            
     except Exception as ex:
-        log(name='TRIGGER', subject="UPDATE DATA", status="Error", message=str(ex))
+        print(ex)
         pass
     
     Oracon.close()
-    log(name='TRIGGER', subject="UPDATE DATA", status="Success", message=f"End Service")
 
 if __name__ == '__main__':
     main()
