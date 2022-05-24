@@ -81,6 +81,40 @@ def main():
         pass
 
     Oracon.close()
+    
+def check_carton():
+    Oracon = cx_Oracle.connect(
+        user=ORA_PASSWORD, password=ORA_USERNAME, dsn=ORA_DNS)
+    Oracur = Oracon.cursor()
+    try:
+        sql_carton = f"""SELECT 'CK-2' whs, 'INJ' factory,INVOICENO,PARTNO,LOTNO,RUNNINGNO,CASE WHEN CASEID IS NULL THEN '-' ELSE CASEID END CASEID,RECEIVINGQUANTITY,SHELVE,CASE WHEN PALLETKEY IS NULL THEN '-' ELSE PALLETKEY END PALLETKEY,PALLETNO transferout,IS_CHECK  FROM TXP_CARTONDETAILS WHERE IS_CHECK=0 ORDER BY LOTNO,RUNNINGNO"""
+        sql_data_receive = Oracur.execute(sql_carton)
+        doc = []
+        for b in sql_data_receive.fetchall():
+            doc = {
+                "whs": str(b[0]),
+                "factory": str(b[1]),
+                "receive_no": str(b[2]),
+                "part_no": str(b[3]),
+                "lot_no": str(b[4]),
+                "serial_no": str(b[5]),
+                "case_id": str(b[6]),
+                "std_pack_qty": float(str(b[7])),
+                "shelve": str(b[8]),
+                "pallet_no": str(b[9]),
+                "transfer_out": str(b[10]),
+                "event_trigger": "R"
+            }
+            
+            spl.update_receive_trigger(doc)
+            Oracur.execute(f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{str(b[5])}'")
+            print(b)
+    except Exception as ex:
+        print(ex)
+        pass
+    
+    Oracon.commit()
+    Oracon.close()
 
 
 if __name__ == '__main__':
