@@ -37,6 +37,14 @@ class Item(BaseModel):
 spl = SplApi(SPL_API_HOST, SPL_API_USERNAME, SPL_API_PASSWORD)
 app = FastAPI()
 
+### Start Up
+Oracon = cx_Oracle.connect(user=ORA_PASSWORD, password=ORA_USERNAME, dsn=ORA_DNS)
+Oracur = Oracon.cursor()
+
+@app.on_event("shutdown")
+async def shut_down():
+    Oracon.close()
+    print("shutdown app")
 
 @app.get('/')
 async def get():
@@ -53,9 +61,6 @@ async def get_receive_receive_key(receive_id):
     connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
     channel.queue_declare(queue='receive_data')
-    Oracon = cx_Oracle.connect(
-        user=ORA_PASSWORD, password=ORA_USERNAME, dsn=ORA_DNS)
-    Oracur = Oracon.cursor()
     Oracur.execute(
         f"SELECT RECEIVINGKEY,RECPLNCTN,RECENDCTN,RECPLNCTN-RECENDCTN diff FROM TXP_RECTRANSENT WHERE RECEIVINGKEY='{receive_id}'")
     obj = Oracur.fetchone()
@@ -70,7 +75,6 @@ async def get_receive_receive_key(receive_id):
         exchange='', routing_key='receive_data', body=json.dumps(doc))
     print(" [x] Sent 'Hello World!'")
     connection.close()
-    Oracon.close()
     return {
         "message": "Send Hello world"
     }
@@ -84,9 +88,6 @@ async def get_receive_factory(factory):
     connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
     channel.queue_declare(queue='receive_data')
-    Oracon = cx_Oracle.connect(
-        user=ORA_PASSWORD, password=ORA_USERNAME, dsn=ORA_DNS)
-    Oracur = Oracon.cursor()
     Oracur.execute(
         f"SELECT RECEIVINGKEY,RECPLNCTN,RECENDCTN,RECPLNCTN-RECENDCTN diff FROM TXP_RECTRANSENT WHERE to_char(RECEIVINGDTE, 'YYYYMMDD') = TO_CHAR(sysdate - 0, 'YYYYMMDD') AND VENDOR='{factory}' order by RECEIVINGDTE")
     obj = Oracur.fetchall()
@@ -103,7 +104,6 @@ async def get_receive_factory(factory):
         exchange='', routing_key='receive_data', body=json.dumps(doc))
     print(f"[x] Sent 'Receive Data({len(doc)})!'")
     connection.close()
-    Oracon.close()
     return {
         "message": f"Send Receive Data",
         "data": doc
@@ -113,9 +113,6 @@ async def get_receive_factory(factory):
 @app.post("/")
 async def create_item(item: Item):
     token = None
-    Oracon = cx_Oracle.connect(
-        user=ORA_PASSWORD, password=ORA_USERNAME, dsn=ORA_DNS)
-    Oracur = Oracon.cursor()
     sql = f"""SELECT '{item.whs}' whs,r.factory,r.rec_date,CASE WHEN bb.RECEIVINGKEY IS NULL THEN t.INVOICENO ELSE bb.RECEIVINGKEY END invoice_no,t.RVMANAGINGNO,CASE WHEN substr(t.PARTNO, 1, 2) = '71' THEN 'PLATE' ELSE 'PART' END part_type,t.PARTNO part_no,'BOX' unit,t.RUNNINGNO serial_no,t.LOTNO lot_no,t.CASEID case_id,CASE WHEN t.CASENO IS NULL THEN 0 ELSE t.CASENO END case_no,t.RECEIVINGQUANTITY std_pack_qty,t.RECEIVINGQUANTITY qty,t.SHELVE shelve,CASE WHEN t.PALLETKEY IS NULL THEN '-' ELSE t.PALLETKEY END pallet_no,stk.on_stock on_stock_ctn,'{item.receive_type}' event_trigger,r.olderkey,CASE WHEN t.SIID IS NULL THEN 'NO' ELSE t.SIID END SIID
     FROM TXP_CARTONDETAILS t
     LEFT JOIN (
@@ -155,10 +152,6 @@ async def create_item(item: Item):
         "emp_id": i[19],
     }
 
-    Oracon.close()
-    # token = spl.login()
-    # spl.serial_no_tracking(token, doc)
-    # spl.logout(token)
     spl.serial_no_tracking(token, doc)
     log(name='API', subject='GET request', status='Success',
         message=f'Get Data {doc["serial_no"]}')
