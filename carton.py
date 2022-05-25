@@ -29,11 +29,11 @@ ORA_PASSWORD = os.environ.get('ORAC_DB_PASSWORD')
 
 # Initail Data
 
-# pool = cx_Oracle.SessionPool(user=ORA_PASSWORD, password=ORA_USERNAME,
-#                              dsn=ORA_DNS, min=2, max=100, increment=1, encoding="UTF-8")
-# # Acquire a connection from the pool
-# Oracon = pool.acquire()
-Oracon = cx_Oracle.connect(user=ORA_PASSWORD, password=ORA_USERNAME,dsn=ORA_DNS)
+pool = cx_Oracle.SessionPool(user=ORA_PASSWORD, password=ORA_USERNAME,
+                             dsn=ORA_DNS, min=2, max=100, increment=1, encoding="UTF-8")
+# Acquire a connection from the pool
+Oracon = pool.acquire()
+# Oracon = cx_Oracle.connect(user=ORA_PASSWORD, password=ORA_USERNAME,dsn=ORA_DNS)
 Oracur = Oracon.cursor()
 
 
@@ -94,10 +94,10 @@ async def main():
                 'Content-Type': 'application/json'
             }
             async with session.post(url, headers=headers, data=payload) as res:
-                s = await res.json()
+                # s = await res.json()
                 # print(s)
                 print(
-                    f"{i} :==> {receive_no} part: {part_no} serial: {serial_no} qty: {qty} ctn: {ctn} res: {len(s)}")
+                    f"{i} :==> {receive_no} part: {part_no} serial: {serial_no} qty: {qty} ctn: {ctn}")
                 
         Oracur.execute( f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{serial_no}'")
         i += 1
@@ -111,5 +111,6 @@ if __name__ == '__main__':
         pass
     
     Oracon.commit()
-    Oracon.close()
+    pool.release(Oracon)
+    pool.close()
     sys.exit(0)
