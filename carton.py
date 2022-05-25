@@ -72,7 +72,9 @@ async def main():
         if qty > 0:
             ctn = 1
 
-        serial_no_tracking(obj={
+        async with aiohttp.ClientSession() as session:
+            url = f"{SPL_API_HOST}/trigger/carton"
+            payload = json.dumps({
             "whs": "CK-2",
             "factory": "INJ",
             "invoice_no": receive_no,
@@ -86,9 +88,16 @@ async def main():
             "shelve": shelve,
             "pallet_no": pallet_key
         })
-        print(f"{i} :==> {receive_no} part: {part_no} serial: {serial_no} qty: {qty} ctn: {ctn}")
-        Oracur.execute(f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{serial_no}'")
-        Oracon.commit()
+            headers = {
+                'Content-Type': 'application/json'
+            }
+            async with session.post(url, headers=headers, data=payload) as res:
+                s = await res.json()
+                print(s)
+                
+            print(f"{i} :==> {receive_no} part: {part_no} serial: {serial_no} qty: {qty} ctn: {ctn}")
+            Oracur.execute(f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{serial_no}'")
+            Oracon.commit()
         i += 1
 
 
