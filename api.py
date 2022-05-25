@@ -1,5 +1,7 @@
+import asyncio
 from lib2to3.pgen2 import token
 import os
+import aiohttp
 import cx_Oracle
 from typing import Union
 import pika
@@ -117,9 +119,22 @@ async def get_receive_factory(factory):
         "data": doc
     }
 
+async def serial_no_tracking(token=None, obj=[]):
+    async with aiohttp.ClientSession() as session:
+        url = f"{SPL_API_HOST}/trigger/store"
+        payload = json.dumps(obj)
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        async with session.post(url, headers=headers, data=payload) as res:
+            s = await res.json()
+            session.close()
+        # requests.request("POST", url, headers=headers, data=payload)
+    
+    return True
 
 @app.post("/")
-async def create_item(item: Item):
+def create_item(item: Item):
     token = None
     sql = f"""SELECT '{item.whs}' whs,CASE WHEN substr(t.INVOICENO, 1, 2) = 'TI' THEN 'INJ' ELSE 'AW' END factory,TO_CHAR(TO_DATE(SUBSTR(t.INVOICENO, 3,6), 'YYMMDD'), 'YYYY-MM-DD')  rec_date,t.INVOICENO  invoice_no,t.RVMANAGINGNO,CASE WHEN substr(t.PARTNO, 1, 2) = '71' THEN 'PLATE' ELSE 'PART' END part_type,t.PARTNO part_no,'BOX' unit,t.RUNNINGNO serial_no,t.LOTNO lot_no,t.CASEID case_id,CASE WHEN t.CASENO IS NULL THEN 0 ELSE t.CASENO END case_no,t.RECEIVINGQUANTITY std_pack_qty,t.RECEIVINGQUANTITY qty,t.SHELVE shelve,CASE WHEN t.PALLETKEY IS NULL THEN '-' ELSE t.PALLETKEY END pallet_no,0 on_stock, 0 on_stock_ctn,'R' event_trigger,'-' olderkey,CASE WHEN t.SIID IS NULL THEN 'NO' ELSE t.SIID END SIID
             FROM TXP_CARTONDETAILS t
@@ -133,10 +148,8 @@ async def create_item(item: Item):
         "factory": i[1],
         "rec_date": i[2],
         "invoice_no": i[3],
-        "rvmanagingno": i[4],
-        "part_type": i[5],
+        "rvn_no": i[4],
         "part_no": i[6],
-        "unit": i[7],
         "serial_no": i[8],
         "lot_no": i[9],
         "case_id": i[10],
@@ -153,9 +166,8 @@ async def create_item(item: Item):
     }
     
     # print(doc)
-    spl.serial_no_tracking(token, doc)
-    # log(name='API', subject='GET request', status='Success',
-    #     message=f'Get Data {doc["serial_no"]}')
+    # spl.serial_no_tracking(token, doc)
+    asyncio.run(serial_no_tracking(token, doc))
     return doc
 
 @app.post('/receive/trigger')
