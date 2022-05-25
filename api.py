@@ -119,7 +119,7 @@ async def get_receive_factory(factory):
         "data": doc
     }
 
-async def serial_no_tracking(token=None, obj=[]):
+async def serial_no_tracking(obj=[]):
     async with aiohttp.ClientSession() as session:
         url = f"{SPL_API_HOST}/trigger/store"
         payload = json.dumps(obj)
@@ -167,7 +167,7 @@ def create_item(item: Item):
     
     # print(doc)
     # spl.serial_no_tracking(token, doc)
-    asyncio.run(serial_no_tracking(token, doc))
+    asyncio.run(serial_no_tracking(doc))
     return doc
 
 @app.post('/receive/trigger')
