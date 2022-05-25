@@ -29,10 +29,11 @@ ORA_PASSWORD = os.environ.get('ORAC_DB_PASSWORD')
 
 # Initail Data
 
-pool = cx_Oracle.SessionPool(user=ORA_PASSWORD, password=ORA_USERNAME,
-                             dsn=ORA_DNS, min=2, max=100, increment=1, encoding="UTF-8")
-# Acquire a connection from the pool
-Oracon = pool.acquire()
+# pool = cx_Oracle.SessionPool(user=ORA_PASSWORD, password=ORA_USERNAME,
+#                              dsn=ORA_DNS, min=2, max=100, increment=1, encoding="UTF-8")
+# # Acquire a connection from the pool
+# Oracon = pool.acquire()
+Oracon = cx_Oracle.connect(user=ORA_PASSWORD, password=ORA_USERNAME,dsn=ORA_DNS)
 Oracur = Oracon.cursor()
 
 
@@ -94,18 +95,21 @@ async def main():
             }
             async with session.post(url, headers=headers, data=payload) as res:
                 s = await res.json()
-                time.sleep(0.5)
                 # print(s)
                 print(
-                    f"{i} :==> {receive_no} part: {part_no} serial: {serial_no} qty: {qty} ctn: {ctn}")
-                Oracur.execute(
-                    f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{serial_no}'")
-                Oracon.commit()
+                    f"{i} :==> {receive_no} part: {part_no} serial: {serial_no} qty: {qty} ctn: {ctn} res: {len(s)}")
+                
+        Oracur.execute( f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{serial_no}'")
         i += 1
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
-    pool.release(Oracon)
-    pool.close()
+    try:
+        asyncio.run(main())
+    except Exception as ex:
+        print(ex)
+        pass
+    
+    Oracon.commit()
+    Oracon.close()
     sys.exit(0)
