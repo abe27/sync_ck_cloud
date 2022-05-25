@@ -13,8 +13,8 @@ from shareplum.site import Version
 class LogActivity:
     def __init__(self, name='CK', subject=None, status='Active', message=None):
         d = datetime.now().strftime('%Y%m%d')
-        path = "LOGS"
-        if os.path.exists(path) is False:os.mkdir(path)
+        path = f"LOGS/{d}"
+        if os.path.exists(path) is False:os.makedirs(path)
         filename = f"{path}/{name}-{d}.log"
         f = open(filename, 'a+')
         txt = f"{str(datetime.now().strftime('%Y%m%d %H:%M:%S')).ljust(25)}SUBJECT: {str(subject).ljust(20)}STATUS: {str(status).ljust(10)}MESSAGE: {str(message).ljust(50)}"
@@ -747,7 +747,7 @@ class SplApi:
         data = response.json()
         return data['data']
     
-    async def serial_no_tracking(self, token=None, obj=[]):
+    def serial_no_tracking(self, token=None, obj=[]):
         try:
             url = f"{self.host}/trigger/store"
             payload = json.dumps({

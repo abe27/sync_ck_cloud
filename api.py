@@ -43,11 +43,15 @@ spl = SplApi(SPL_API_HOST, SPL_API_USERNAME, SPL_API_PASSWORD)
 app = FastAPI()
 
 ### Start Up
-Oracon = cx_Oracle.connect(user=ORA_PASSWORD, password=ORA_USERNAME, dsn=ORA_DNS)
+pool = cx_Oracle.SessionPool(user=ORA_PASSWORD, password=ORA_USERNAME, dsn=ORA_DNS, min=2, max=100, increment=1, encoding="UTF-8")
+# Acquire a connection from the pool
+Oracon = pool.acquire()
 Oracur = Oracon.cursor()
 
 @app.on_event("shutdown")
 async def shut_down():
+    print(f"api shutdown")
+    pool.release()
     Oracon.close()
 
 @app.get('/')
@@ -117,20 +121,11 @@ async def get_receive_factory(factory):
 @app.post("/")
 async def create_item(item: Item):
     token = None
-    sql = f"""SELECT '{item.whs}' whs,r.factory,r.rec_date,CASE WHEN bb.RECEIVINGKEY IS NULL THEN t.INVOICENO ELSE bb.RECEIVINGKEY END invoice_no,t.RVMANAGINGNO,CASE WHEN substr(t.PARTNO, 1, 2) = '71' THEN 'PLATE' ELSE 'PART' END part_type,t.PARTNO part_no,'BOX' unit,t.RUNNINGNO serial_no,t.LOTNO lot_no,t.CASEID case_id,CASE WHEN t.CASENO IS NULL THEN 0 ELSE t.CASENO END case_no,t.RECEIVINGQUANTITY std_pack_qty,t.RECEIVINGQUANTITY qty,t.SHELVE shelve,CASE WHEN t.PALLETKEY IS NULL THEN '-' ELSE t.PALLETKEY END pallet_no,stk.on_stock on_stock_ctn,'{item.receive_type}' event_trigger,r.olderkey,CASE WHEN t.SIID IS NULL THEN 'NO' ELSE t.SIID END SIID
-    FROM TXP_CARTONDETAILS t
-    LEFT JOIN (
-        SELECT c.partno, count(c.partno) on_stock FROM TXP_CARTONDETAILS c WHERE c.shelve NOT IN ('S-PLOUT') GROUP BY c.partno
-    ) stk ON t.PARTNO=stk.partno 
-    LEFT JOIN (
-        SELECT b.MERGEID,b.PARTNO,b.PLNCTN,b.RECEIVINGKEY,b.RUNNINGNO  FROM TMP_RECTRANSBODY b
-    ) bb ON t.INVOICENO = bb.MERGEID AND t.PARTNO=bb.PARTNO AND t.RVMANAGINGNO=bb.RUNNINGNO
-    LEFT JOIN (
-        SELECT e.VENDOR factory,to_char(e.RECEIVINGDTE, 'YYYY-MM-DD') rec_date,b.RECEIVINGKEY,b.PARTNO,b.RVMANAGINGNO,b.whs,b.olderkey FROM TXP_RECTRANSBODY b 
-        INNER JOIN TXP_RECTRANSENT e ON b.RECEIVINGKEY = e.RECEIVINGKEY 
-        GROUP BY b.PARTNO,b.RECEIVINGKEY,b.RVMANAGINGNO,b.whs,b.olderkey,e.RECEIVINGDTE,e.VENDOR
-    ) r ON t.INVOICENO = r.RECEIVINGKEY AND t.RVMANAGINGNO=r.RVMANAGINGNO AND t.PARTNO=r.PARTNO
-    WHERE t.PARTNO='{item.part_no}' AND t.RUNNINGNO='{item.serial_no}'"""
+    sql = f"""SELECT '{item.whs}' whs,CASE WHEN substr(t.INVOICENO, 1, 2) = 'TI' THEN 'INJ' ELSE 'AW' END factory,TO_DATE(SUBSTR(t.INVOICENO, 3,6), 'YYMMDD')  rec_date,t.INVOICENO  invoice_no,t.RVMANAGINGNO,CASE WHEN substr(t.PARTNO, 1, 2) = '71' THEN 'PLATE' ELSE 'PART' END part_type,t.PARTNO part_no,'BOX' unit,t.RUNNINGNO serial_no,t.LOTNO lot_no,t.CASEID case_id,CASE WHEN t.CASENO IS NULL THEN 0 ELSE t.CASENO END case_no,t.RECEIVINGQUANTITY std_pack_qty,t.RECEIVINGQUANTITY qty,t.SHELVE shelve,CASE WHEN t.PALLETKEY IS NULL THEN '-' ELSE t.PALLETKEY END pallet_no,0 on_stock, 0 on_stock_ctn,'R' event_trigger,'-' olderkey,CASE WHEN t.SIID IS NULL THEN 'NO' ELSE t.SIID END SIID
+            FROM TXP_CARTONDETAILS t
+            WHERE t.PARTNO='{item.part_no}' AND t.RUNNINGNO='{item.serial_no}'"""
+    print(sql)
+    log(name='API_QUERY', subject='GET', status='Success', message=f'PART: {item.part_no} SERIAL: {item.serial_no}')
     obj = Oracur.execute(sql)
     i = obj.fetchone()
     doc = {
