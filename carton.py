@@ -35,6 +35,7 @@ pool = cx_Oracle.SessionPool(user=ORA_PASSWORD, password=ORA_USERNAME,
 Oracon = pool.acquire()
 Oracur = Oracon.cursor()
 
+
 async def serial_no_tracking(obj=[]):
     async with aiohttp.ClientSession() as session:
         url = f"{SPL_API_HOST}/trigger/carton"
@@ -47,7 +48,7 @@ async def serial_no_tracking(obj=[]):
             print(s)
             session.close()
         # requests.request("POST", url, headers=headers, data=payload)
-    
+
     return True
 
 
@@ -67,7 +68,7 @@ async def main():
         case_id = str(r[8])
         transfer_out = str(r[9])
         stdpack = float(r[10])
-        
+
         ctn = 0
         if qty > 0:
             ctn = 1
@@ -75,30 +76,32 @@ async def main():
         async with aiohttp.ClientSession() as session:
             url = f"{SPL_API_HOST}/trigger/carton"
             payload = json.dumps({
-            "whs": "CK-2",
-            "factory": "INJ",
-            "invoice_no": receive_no,
-            "part_no": part_no,
-            "serial_no": serial_no,
-            "lot_no": lot_no,
-            "case_id": case_id,
-            "stdpack": stdpack,
-            "qty": qty,
-            "ctn": ctn,
-            "shelve": shelve,
-            "pallet_no": pallet_key
-        })
+                "whs": "CK-2",
+                "factory": "INJ",
+                "invoice_no": receive_no,
+                "part_no": part_no,
+                "serial_no": serial_no,
+                "lot_no": lot_no,
+                "case_id": case_id,
+                "stdpack": stdpack,
+                "qty": qty,
+                "ctn": ctn,
+                "shelve": shelve,
+                "pallet_no": pallet_key
+            })
             headers = {
                 'Content-Type': 'application/json'
             }
             async with session.post(url, headers=headers, data=payload) as res:
                 s = await res.json()
+                time.sleep(0.5)
                 # print(s)
-                print(f"{i} :==> {receive_no} part: {part_no} serial: {serial_no} qty: {qty} ctn: {ctn}")
-                Oracur.execute(f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{serial_no}'")
+                print(
+                    f"{i} :==> {receive_no} part: {part_no} serial: {serial_no} qty: {qty} ctn: {ctn}")
+                Oracur.execute(
+                    f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{serial_no}'")
                 Oracon.commit()
         i += 1
-
 
 
 if __name__ == '__main__':
