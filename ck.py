@@ -412,9 +412,9 @@ def merge_receive():
                     receive_no.append(str(k[0])[10:])
             
             #### new receive key    
-            sql_key = f"SELECT TO_CHAR(count(*) + 1, '00009')  FROM TXP_RECTRANSENT t WHERE t.RECEIVINGKEY LIKE 'SI{datetime.now().strftime('%y%m%d')}%'"
+            sql_key = f"SELECT TO_CHAR(count(*) + 1, '09')  FROM TXP_RECTRANSENT t WHERE t.RECEIVINGKEY LIKE 'SI{datetime.now().strftime('%y%m%d')}%'"
             key = Oracur.execute(sql_key)
-            key_no = (f"SI{datetime.now().strftime('%y%m%d')}{(key.fetchone())[0]}").replace(" ", "")
+            key_no = str((f"SI{datetime.now().strftime('%y%m%d')}{(key.fetchone())[0]}").replace(" ", "")).strip()
             receive_key = ",".join(receive_no)
             sql = f"""SELECT '{key_no}' RECEIVINGKEY,0 SEQ, PARTNO,sum(PLNQTY) PLNQTY,sum(PLNCTN) plnctn,0 RECQTY,0 RECCTN,TAGRP, UNIT, CD, WHS, DESCRI, '' RVMNO,sysdate UPDDTE, sysdate SYSDTE, 'SKTSYS' CREATEDBY,'SKTSYS' MODIFIEDBY,'{receive_key}' OLDERKEY  FROM TXP_RECTRANSBODY WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')}) GROUP BY PARTNO,TAGRP, UNIT, CD, WHS, DESCRI ORDER BY PARTNO"""
             # print(sql)
@@ -578,13 +578,13 @@ def orderplans():
         d = datetime.now()
         _rnd = f"{(rnd - 1):,}"
         msg = f"""ซิงค์ข้อมูล OrderPlan\nจำนวน: {_rnd} รายการ\nวดป.: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
-        if _rnd > 0:
+        if (rnd - 1) > 0:
             spl.line_notification(msg)
             
         print(msg)
         
     except Exception as ex:
-        log(name='SPL', subject="ORDERPLAN", status="Error", message=str(ex))
+        log(name='ORDERPLAN', subject="ORDERPLAN", status="Error", message=str(ex))
         pass
     
     Oracon.close()
