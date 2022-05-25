@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 import json
 import shutil
@@ -50,7 +51,7 @@ async def serial_no_tracking(obj=[]):
     return True
 
 
-def main():
+async def main():
     sql = f"SELECT INVOICENO,PARTNO,LOTNO,RUNNINGNO,RVMANAGINGNO,STOCKQUANTITY,SHELVE,CASE WHEN PALLETKEY IS NULL THEN '-' ELSE PALLETKEY END PALLETKEY,CASE WHEN CASEID IS NULL THEN '-' ELSE CASEID END CASE_ID,PALLETNO transfer_out,RECEIVINGQUANTITY  FROM TXP_CARTONDETAILS WHERE IS_CHECK=0 ORDER BY PARTNO,RUNNINGNO"
     obj = Oracur.execute(sql)
     i = 1
@@ -71,7 +72,7 @@ def main():
         if qty > 0:
             ctn = 1
 
-        aiohttp.run(serial_no_tracking(obj={
+        serial_no_tracking(obj={
             "whs": "CK-2",
             "factory": "INJ",
             "invoice_no": receive_no,
@@ -84,7 +85,7 @@ def main():
             "ctn": ctn,
             "shelve": shelve,
             "pallet_no": pallet_key
-        }))
+        })
         print(f"{i} :==> {receive_no} part: {part_no} serial: {serial_no} qty: {qty} ctn: {ctn}")
         Oracur.execute(f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{serial_no}'")
         Oracon.commit()
@@ -93,7 +94,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
     pool.release(Oracon)
     pool.close()
     sys.exit(0)
