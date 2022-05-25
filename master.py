@@ -20,6 +20,11 @@ ORA_DNS=f"{os.environ.get('ORAC_DB_HOST')}/{os.environ.get('ORAC_DB_SERVICE')}"
 ORA_USERNAME=os.environ.get('ORAC_DB_USERNAME')
 ORA_PASSWORD=os.environ.get('ORAC_DB_PASSWORD')
 
+pool = cx_Oracle.SessionPool(user=ORA_PASSWORD, password=ORA_USERNAME, dsn=ORA_DNS, min=2, max=100, increment=1, encoding="UTF-8")
+# Acquire a connection from the pool
+Oracon = pool.acquire()
+Oracur = Oracon.cursor()
+
 def update_die():
     mydb = pgsql.connect(
         host=DB_HOSTNAME,
@@ -29,8 +34,8 @@ def update_die():
         database=DB_NAME,
     )
     
-    Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
-    Oracur = Oracon.cursor()
+    #  Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
+    # Oracur = Oracon.cursor()
         
     try:
         log(name='MASTER', subject="Start", status="Success", message=f"Sync Shelve")    
@@ -59,7 +64,7 @@ def update_die():
         pass
     
     # Oracon.commit()
-    Oracon.close()
+    #  Oracon.close()
     mydb.close()
 
 def update_master_location():
@@ -71,8 +76,8 @@ def update_master_location():
         database=DB_NAME,
     )
     mycursor = mydb.cursor()
-    Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
-    Oracur = Oracon.cursor()
+    #  Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
+    # Oracur = Oracon.cursor()
     
     try:
         sql = f"SELECT SHELVE  FROM TXP_CARTONDETAILS GROUP BY SHELVE ORDER BY SHELVE"
@@ -92,7 +97,7 @@ def update_master_location():
         pass
     
     # Oracon.commit()
-    Oracon.close()
+    #  Oracon.close()
     mydb.close()
     
 def update_carton():
@@ -104,8 +109,8 @@ def update_carton():
         database=DB_NAME,
     )
     mycursor = mydb.cursor()
-    Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
-    Oracur = Oracon.cursor()
+    #  Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
+    # Oracur = Oracon.cursor()
     log(name='MASTER', subject="UPDATE STOCK", status="Success", message=f"Start Service")
     try:
         mycursor.execute(f"""select c.id,d.ledger_id,c.serial_no,d.managing_no,c.qty  from tbt_cartons c inner join tbt_receive_details d on c.receive_detail_id=d.id order by c.lot_no,c.serial_no""")
@@ -157,7 +162,7 @@ def update_carton():
         pass
     
     # Oracon.commit()
-    Oracon.close()
+    #  Oracon.close()
     mydb.close()
     log(name='MASTER', subject="UPDATE STOCK", status="Success", message=f"End Service")
     
@@ -170,8 +175,8 @@ def update_stock():
         database=DB_NAME,
     )
     mycursor = mydb.cursor()
-    Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
-    Oracur = Oracon.cursor()
+    #  Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
+    # Oracur = Oracon.cursor()
     log(name='MASTER', subject="UPDATE STOCK", status="Success", message=f"Start Service")
     try:
         sql_get_stock = f"SELECT PARTNO,sum(1) on_stock, RECEIVINGQUANTITY  FROM TXP_CARTONDETAILS GROUP BY PARTNO,RECEIVINGQUANTITY ORDER BY PARTNO"
@@ -254,7 +259,7 @@ def update_stock():
         pass
     
     # Oracon.commit()
-    Oracon.close()
+    #  Oracon.close()
     mydb.close()
     log(name='MASTER', subject="UPDATE STOCK", status="Success", message=f"End Service")
     
@@ -266,4 +271,6 @@ if __name__ == '__main__':
     update_die()
     time.sleep(0.1)
     update_carton()
+    Oracon.close()
+    pool.release()
     sys.exit(0)
