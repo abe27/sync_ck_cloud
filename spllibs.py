@@ -748,40 +748,68 @@ class SplApi:
         return data['data']
     
     def serial_no_tracking(self, token=None, obj=[]):
-        try:
-            url = f"{self.host}/trigger/store"
-            payload = json.dumps({
-                "whs": obj["whs"],
-                "factory": obj["factory"],
-                "rec_date": obj["rec_date"],
-                "invoice_no": obj["invoice_no"],
-                "part_no": obj["part_no"],
-                "rvn_no": obj["rvmanagingno"],
-                "serial_no": obj["serial_no"],
-                "lot_no": obj["lot_no"],
-                "case_id": obj["case_id"],
-                "case_no": obj["case_no"],
-                "std_pack_qty": obj["std_pack_qty"],
-                "qty": obj["qty"],
-                "shelve": obj["shelve"],
-                "pallet_no": obj["pallet_no"],
-                "on_stock": obj["on_stock"],
-                "on_stock_ctn": obj["on_stock_ctn"],
-                "event_trigger": obj["event_trigger"],
-                "emp_id": obj["emp_id"]
-            })
+        # try:
+        #     url = f"{self.host}/trigger/store"
+        #     payload = json.dumps({
+        #         "whs": obj["whs"],
+        #         "factory": obj["factory"],
+        #         "rec_date": obj["rec_date"],
+        #         "invoice_no": obj["invoice_no"],
+        #         "part_no": obj["part_no"],
+        #         "rvn_no": obj["rvmanagingno"],
+        #         "serial_no": obj["serial_no"],
+        #         "lot_no": obj["lot_no"],
+        #         "case_id": obj["case_id"],
+        #         "case_no": obj["case_no"],
+        #         "std_pack_qty": obj["std_pack_qty"],
+        #         "qty": obj["qty"],
+        #         "shelve": obj["shelve"],
+        #         "pallet_no": obj["pallet_no"],
+        #         "on_stock": obj["on_stock"],
+        #         "on_stock_ctn": obj["on_stock_ctn"],
+        #         "event_trigger": obj["event_trigger"],
+        #         "emp_id": obj["emp_id"]
+        #     })
             
-            print(obj)
+        #     # print(obj)
             
-            headers = {
-                'Content-Type': 'application/json'
-            }
-            res = requests.request("POST", url, headers=headers, data=payload)
-            print(res)
+        #     headers = {
+        #         'Content-Type': 'application/json'
+        #     }
+        #     requests.request("POST", url, headers=headers, data=payload)
+        #     # print(res)
             
-        except Exception as ex:
-            LogActivity(name='SPL', subject="SERIAL TRACKING", status='Error',message=str(ex))
-            pass
+        # except Exception as ex:
+        #     LogActivity(name='SPL', subject="SERIAL TRACKING", status='Error',message=str(ex))
+        #     pass
+        url = f"{self.host}/trigger/store"
+        payload = json.dumps({
+            "whs": obj["whs"],
+            "factory": obj["factory"],
+            "rec_date": obj["rec_date"],
+            "invoice_no": obj["invoice_no"],
+            "part_no": obj["part_no"],
+            "rvn_no": obj["rvmanagingno"],
+            "serial_no": obj["serial_no"],
+            "lot_no": obj["lot_no"],
+            "case_id": obj["case_id"],
+            "case_no": obj["case_no"],
+            "std_pack_qty": obj["std_pack_qty"],
+            "qty": obj["qty"],
+            "shelve": obj["shelve"],
+            "pallet_no": obj["pallet_no"],
+            "on_stock": obj["on_stock"],
+            "on_stock_ctn": obj["on_stock_ctn"],
+            "event_trigger": obj["event_trigger"],
+            "emp_id": obj["emp_id"]
+        })
+        
+        # print(obj)
+        
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        requests.request("POST", url, headers=headers, data=payload)
         
         return True
     

@@ -125,7 +125,7 @@ async def create_item(item: Item):
             FROM TXP_CARTONDETAILS t
             WHERE t.PARTNO='{item.part_no}' AND t.RUNNINGNO='{item.serial_no}'"""
     # print(sql)
-    log(name='API_QUERY', subject='GET', status='Success', message=f'PART: {item.part_no} SERIAL: {item.serial_no}')
+    # log(name='API_QUERY', subject='GET', status='Success', message=f'PART: {item.part_no} SERIAL: {item.serial_no}')
     obj = Oracur.execute(sql)
     i = obj.fetchone()
     doc = {
@@ -154,8 +154,8 @@ async def create_item(item: Item):
     
     # print(doc)
     spl.serial_no_tracking(token, doc)
-    log(name='API', subject='GET request', status='Success',
-        message=f'Get Data {doc["serial_no"]}')
+    # log(name='API', subject='GET request', status='Success',
+    #     message=f'Get Data {doc["serial_no"]}')
     return doc
 
 @app.post('/receive/trigger')
