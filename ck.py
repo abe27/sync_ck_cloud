@@ -39,11 +39,6 @@ yk = Yazaki(SERVICE_TYPE,YAZAKI_HOST, YAZAKI_USER, YAZAKI_PASSWORD)
 spl = SplApi(SPL_API_HOST, SPL_API_USERNAME, SPL_API_PASSWORD)
 share_file = SplSharePoint(SHAREPOINT_SITE_URL, SHAREPOINT_SITE_NAME, SHAREPOINT_USERNAME, SHAREPOINT_PASSWORD)
 
-### Start Up
-pool = cx_Oracle.SessionPool(user=ORA_PASSWORD, password=ORA_USERNAME, dsn=ORA_DNS, min=2, max=100, increment=1, encoding="UTF-8")
-# Acquire a connection from the pool
-Oracon = pool.acquire()
-
 def main():
     msg = f"Starting Sync CK on {YAZAKI_HOST}"
     log(subject="START", status='Active',message=msg)
@@ -276,7 +271,7 @@ def download():
 def get_receive():
     log(name='SPL', subject="START SYNC RECEIVE", status="Success", message=f"Get Receive Start Success")
     try:
-        # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
+        Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
         Oracur = Oracon.cursor()
         token = spl.login()
         data = spl.get_receive(token)
@@ -389,7 +384,7 @@ def get_receive():
                     log(name='SPL', subject="SYNC RECEIVE", status="Success", message=f"Sync Receive({r})")
                 x += 1
         
-        # Oracon.close()
+        Oracon.close()
         
         
     except Exception as ex:
@@ -398,7 +393,7 @@ def get_receive():
     
 def merge_receive():
     try:
-        # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
+        Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
         Oracur = Oracon.cursor()
         ### GEDI BATCHID
         obj = Oracur.execute(f"SELECT GEDI_FILE,ctn  FROM (SELECT GEDI_FILE,count(GEDI_FILE) ctn FROM TXP_RECTRANSENT WHERE VENDOR='INJ'  GROUP BY GEDI_FILE ORDER BY GEDI_FILE) WHERE CTN > 1")
@@ -419,7 +414,7 @@ def merge_receive():
             #### new receive key    
             sql_key = f"SELECT TO_CHAR(count(*) + 1, '09')  FROM TXP_RECTRANSENT t WHERE t.RECEIVINGKEY LIKE 'SI{datetime.now().strftime('%y%m%d')}%'"
             key = Oracur.execute(sql_key)
-            key_no = str((f"SI{datetime.now().strftime('%y%m%d')}{(key.fetchone())[0]}").replace(" ", "")).strip()
+            key_no = (f"SI{datetime.now().strftime('%y%m%d')}{(key.fetchone())[0]}").replace(" ", "")
             receive_key = ",".join(receive_no)
             sql = f"""SELECT '{key_no}' RECEIVINGKEY,0 SEQ, PARTNO,sum(PLNQTY) PLNQTY,sum(PLNCTN) plnctn,0 RECQTY,0 RECCTN,TAGRP, UNIT, CD, WHS, DESCRI, '' RVMNO,sysdate UPDDTE, sysdate SYSDTE, 'SKTSYS' CREATEDBY,'SKTSYS' MODIFIEDBY,'{receive_key}' OLDERKEY  FROM TXP_RECTRANSBODY WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')}) GROUP BY PARTNO,TAGRP, UNIT, CD, WHS, DESCRI ORDER BY PARTNO"""
             # print(sql)
@@ -451,13 +446,13 @@ def merge_receive():
             log(name='SPL', subject="MRGE RECEIVE", status="Success", message=f"Merge Receive({key_no}) with {receive_key}")
             
         Oracon.commit()
-        # Oracon.close()
+        Oracon.close()
     except Exception as ex:
         log(name='SPL', subject="MERGE", status="Error", message=str(ex))
         pass
     
 def update_receive_ctn():
-    # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
+    Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
     Oracur = Oracon.cursor()
     sql = f"""SELECT t.RECEIVINGKEY,count(t.RECEIVINGKEY) seq, e.RECPLNCTN  ctn,CASE WHEN cc.rec_ctn IS NULL THEN 0 ELSE cc.rec_ctn END rec_ctn  FROM TXP_RECTRANSBODY t 
                 INNER JOIN TXP_RECTRANSENT e ON t.RECEIVINGKEY = e.RECEIVINGKEY
@@ -475,18 +470,18 @@ def update_receive_ctn():
     ### commit the transaction
     Oracon.commit()
     Oracur.close()
-    # Oracon.close()
+    Oracon.close()
     
 def orderplans():
     token = spl.login()
     try:
         ### (f"start sync order plans")
-        # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
+        Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
         Oracur = Oracon.cursor()
         data = spl.get_order_plan(token, 2000, 0, 1)
         obj = data['data']
         if len(obj) == 0:
-            # Oracon.close()
+            Oracon.close()
             return spl.logout(token)
         
         order_id = []
@@ -583,16 +578,16 @@ def orderplans():
         d = datetime.now()
         _rnd = f"{(rnd - 1):,}"
         msg = f"""ซิงค์ข้อมูล OrderPlan\nจำนวน: {_rnd} รายการ\nวดป.: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
-        if (rnd - 1) > 0:
+        if _rnd > 0:
             spl.line_notification(msg)
             
         print(msg)
         
     except Exception as ex:
-        log(name='ORDERPLAN', subject="ORDERPLAN", status="Error", message=str(ex))
+        log(name='SPL', subject="ORDERPLAN", status="Error", message=str(ex))
         pass
     
-    # Oracon.close()
+    Oracon.close()
     spl.logout(token)
     
     
@@ -608,6 +603,4 @@ if __name__ == '__main__':
     update_receive_ctn()
     time.sleep(0.1)
     orderplans()
-    Oracon.close()
-    pool.release()
     sys.exit(0)
