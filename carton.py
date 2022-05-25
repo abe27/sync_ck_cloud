@@ -4,6 +4,7 @@ import shutil
 import sys
 import os
 import time
+import aiohttp
 import psycopg2 as pgsql
 import cx_Oracle
 from nanoid import generate
@@ -33,6 +34,21 @@ pool = cx_Oracle.SessionPool(user=ORA_PASSWORD, password=ORA_USERNAME,
 Oracon = pool.acquire()
 Oracur = Oracon.cursor()
 
+async def serial_no_tracking(obj=[]):
+    async with aiohttp.ClientSession() as session:
+        url = f"{SPL_API_HOST}/trigger/carton"
+        payload = json.dumps(obj)
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        async with session.post(url, headers=headers, data=payload) as res:
+            s = await res.json()
+            print(s)
+            session.close()
+        # requests.request("POST", url, headers=headers, data=payload)
+    
+    return True
+
 
 def main():
     sql = f"SELECT INVOICENO,PARTNO,LOTNO,RUNNINGNO,RVMANAGINGNO,STOCKQUANTITY,SHELVE,CASE WHEN PALLETKEY IS NULL THEN '-' ELSE PALLETKEY END PALLETKEY,CASE WHEN CASEID IS NULL THEN '-' ELSE CASEID END CASE_ID,PALLETNO transfer_out,RECEIVINGQUANTITY  FROM TXP_CARTONDETAILS WHERE IS_CHECK=0 ORDER BY PARTNO,RUNNINGNO"
@@ -55,11 +71,7 @@ def main():
         if qty > 0:
             ctn = 1
 
-        print(
-            f"{i} :==> {receive_no} part: {part_no} serial: {serial_no} qty: {qty} ctn: {ctn}")
-
-        url = f"{SPL_API_HOST}/trigger/carton"
-        payload = json.dumps({
+        aiohttp.run(serial_no_tracking(obj={
             "whs": "CK-2",
             "factory": "INJ",
             "invoice_no": receive_no,
@@ -72,13 +84,8 @@ def main():
             "ctn": ctn,
             "shelve": shelve,
             "pallet_no": pallet_key
-        })
-        headers = {
-            'Content-Type': 'application/json'
-        }
-        res = requests.request("POST", url, headers=headers, data=payload)
-        print(res.status_code)
-
+        }))
+        print(f"{i} :==> {receive_no} part: {part_no} serial: {serial_no} qty: {qty} ctn: {ctn}")
         Oracur.execute(f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{serial_no}'")
         Oracon.commit()
         i += 1
