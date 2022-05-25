@@ -271,6 +271,6 @@ if __name__ == '__main__':
     update_die()
     time.sleep(0.1)
     update_carton()
-    Oracon.close()
-    pool.release()
+    pool.release(Oracon)
+    pool.close()
     sys.exit(0)

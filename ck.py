@@ -608,6 +608,6 @@ if __name__ == '__main__':
     update_receive_ctn()
     time.sleep(0.1)
     orderplans()
-    Oracon.close()
-    pool.release()
+    pool.release(Oracon)
+    pool.close()
     sys.exit(0)
