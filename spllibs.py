@@ -765,15 +765,19 @@ class SplApi:
                 "qty": obj["qty"],
                 "shelve": obj["shelve"],
                 "pallet_no": obj["pallet_no"],
+                "on_stock": obj["on_stock"],
                 "on_stock_ctn": obj["on_stock_ctn"],
                 "event_trigger": obj["event_trigger"],
-                "emp_id": obj["event_trigger"]
+                "emp_id": obj["emp_id"]
             })
+            
+            print(obj)
             
             headers = {
                 'Content-Type': 'application/json'
             }
-            requests.request("POST", url, headers=headers, data=payload)
+            res = requests.request("POST", url, headers=headers, data=payload)
+            print(res)
             
         except Exception as ex:
             LogActivity(name='SPL', subject="SERIAL TRACKING", status='Error',message=str(ex))

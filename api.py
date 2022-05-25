@@ -121,10 +121,10 @@ async def get_receive_factory(factory):
 @app.post("/")
 async def create_item(item: Item):
     token = None
-    sql = f"""SELECT '{item.whs}' whs,CASE WHEN substr(t.INVOICENO, 1, 2) = 'TI' THEN 'INJ' ELSE 'AW' END factory,TO_DATE(SUBSTR(t.INVOICENO, 3,6), 'YYMMDD')  rec_date,t.INVOICENO  invoice_no,t.RVMANAGINGNO,CASE WHEN substr(t.PARTNO, 1, 2) = '71' THEN 'PLATE' ELSE 'PART' END part_type,t.PARTNO part_no,'BOX' unit,t.RUNNINGNO serial_no,t.LOTNO lot_no,t.CASEID case_id,CASE WHEN t.CASENO IS NULL THEN 0 ELSE t.CASENO END case_no,t.RECEIVINGQUANTITY std_pack_qty,t.RECEIVINGQUANTITY qty,t.SHELVE shelve,CASE WHEN t.PALLETKEY IS NULL THEN '-' ELSE t.PALLETKEY END pallet_no,0 on_stock, 0 on_stock_ctn,'R' event_trigger,'-' olderkey,CASE WHEN t.SIID IS NULL THEN 'NO' ELSE t.SIID END SIID
+    sql = f"""SELECT '{item.whs}' whs,CASE WHEN substr(t.INVOICENO, 1, 2) = 'TI' THEN 'INJ' ELSE 'AW' END factory,TO_CHAR(TO_DATE(SUBSTR(t.INVOICENO, 3,6), 'YYMMDD'), 'YYYY-MM-DD')  rec_date,t.INVOICENO  invoice_no,t.RVMANAGINGNO,CASE WHEN substr(t.PARTNO, 1, 2) = '71' THEN 'PLATE' ELSE 'PART' END part_type,t.PARTNO part_no,'BOX' unit,t.RUNNINGNO serial_no,t.LOTNO lot_no,t.CASEID case_id,CASE WHEN t.CASENO IS NULL THEN 0 ELSE t.CASENO END case_no,t.RECEIVINGQUANTITY std_pack_qty,t.RECEIVINGQUANTITY qty,t.SHELVE shelve,CASE WHEN t.PALLETKEY IS NULL THEN '-' ELSE t.PALLETKEY END pallet_no,0 on_stock, 0 on_stock_ctn,'R' event_trigger,'-' olderkey,CASE WHEN t.SIID IS NULL THEN 'NO' ELSE t.SIID END SIID
             FROM TXP_CARTONDETAILS t
             WHERE t.PARTNO='{item.part_no}' AND t.RUNNINGNO='{item.serial_no}'"""
-    print(sql)
+    # print(sql)
     log(name='API_QUERY', subject='GET', status='Success', message=f'PART: {item.part_no} SERIAL: {item.serial_no}')
     obj = Oracur.execute(sql)
     i = obj.fetchone()
@@ -145,12 +145,14 @@ async def create_item(item: Item):
         "qty": float(i[13]),
         "shelve": i[14],
         "pallet_no": i[15],
-        "on_stock_ctn": float(i[16]),
-        "event_trigger": i[17],
-        "olderkey": i[18],
-        "emp_id": i[19],
+        "on_stock": float(i[16]),
+        "on_stock_ctn": float(i[17]),
+        "event_trigger": i[18],
+        "olderkey": i[19],
+        "emp_id": i[20],
     }
-
+    
+    # print(doc)
     spl.serial_no_tracking(token, doc)
     log(name='API', subject='GET request', status='Success',
         message=f'Get Data {doc["serial_no"]}')
