@@ -93,11 +93,10 @@ async def main():
             }
             async with session.post(url, headers=headers, data=payload) as res:
                 s = await res.json()
-                print(s)
-                
-            print(f"{i} :==> {receive_no} part: {part_no} serial: {serial_no} qty: {qty} ctn: {ctn}")
-            Oracur.execute(f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{serial_no}'")
-            Oracon.commit()
+                # print(s)
+                print(f"{i} :==> {receive_no} part: {part_no} serial: {serial_no} qty: {qty} ctn: {ctn}")
+                Oracur.execute(f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{serial_no}'")
+                Oracon.commit()
         i += 1
 
 
