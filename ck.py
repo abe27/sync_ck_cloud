@@ -39,6 +39,11 @@ yk = Yazaki(SERVICE_TYPE,YAZAKI_HOST, YAZAKI_USER, YAZAKI_PASSWORD)
 spl = SplApi(SPL_API_HOST, SPL_API_USERNAME, SPL_API_PASSWORD)
 share_file = SplSharePoint(SHAREPOINT_SITE_URL, SHAREPOINT_SITE_NAME, SHAREPOINT_USERNAME, SHAREPOINT_PASSWORD)
 
+pool = cx_Oracle.SessionPool(user=ORA_PASSWORD, password=ORA_USERNAME, dsn=ORA_DNS, min=2, max=100, increment=1, encoding="UTF-8")
+# Acquire a connection from the pool
+Oracon = pool.acquire()
+Oracur = Oracon.cursor()
+
 def main():
     msg = f"Starting Sync CK on {YAZAKI_HOST}"
     log(subject="START", status='Active',message=msg)
@@ -271,8 +276,8 @@ def download():
 def get_receive():
     log(name='SPL', subject="START SYNC RECEIVE", status="Success", message=f"Get Receive Start Success")
     try:
-        Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
-        Oracur = Oracon.cursor()
+        # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
+        #  Oracur = Oracon.cursor()
         token = spl.login()
         data = spl.get_receive(token)
         obj = data['data']
@@ -384,7 +389,7 @@ def get_receive():
                     log(name='SPL', subject="SYNC RECEIVE", status="Success", message=f"Sync Receive({r})")
                 x += 1
         
-        Oracon.close()
+        #  Oracon.close()
         
         
     except Exception as ex:
@@ -393,8 +398,8 @@ def get_receive():
     
 def merge_receive():
     try:
-        Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
-        Oracur = Oracon.cursor()
+        # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
+        #  Oracur = Oracon.cursor()
         ### GEDI BATCHID
         obj = Oracur.execute(f"SELECT GEDI_FILE,ctn  FROM (SELECT GEDI_FILE,count(GEDI_FILE) ctn FROM TXP_RECTRANSENT WHERE VENDOR='INJ'  GROUP BY GEDI_FILE ORDER BY GEDI_FILE) WHERE CTN > 1")
         for r in obj.fetchall():
@@ -446,14 +451,14 @@ def merge_receive():
             log(name='SPL', subject="MRGE RECEIVE", status="Success", message=f"Merge Receive({key_no}) with {receive_key}")
             
         Oracon.commit()
-        Oracon.close()
+        #  Oracon.close()
     except Exception as ex:
         log(name='SPL', subject="MERGE", status="Error", message=str(ex))
         pass
     
 def update_receive_ctn():
-    Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
-    Oracur = Oracon.cursor()
+    # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
+    #  Oracur = Oracon.cursor()
     sql = f"""SELECT t.RECEIVINGKEY,count(t.RECEIVINGKEY) seq, e.RECPLNCTN  ctn,CASE WHEN cc.rec_ctn IS NULL THEN 0 ELSE cc.rec_ctn END rec_ctn  FROM TXP_RECTRANSBODY t 
                 INNER JOIN TXP_RECTRANSENT e ON t.RECEIVINGKEY = e.RECEIVINGKEY
                 LEFT JOIN (
@@ -470,18 +475,18 @@ def update_receive_ctn():
     ### commit the transaction
     Oracon.commit()
     Oracur.close()
-    Oracon.close()
+    #  Oracon.close()
     
 def orderplans():
     token = spl.login()
     try:
         ### (f"start sync order plans")
-        Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
-        Oracur = Oracon.cursor()
+        # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
+        #  Oracur = Oracon.cursor()
         data = spl.get_order_plan(token, 2000, 0, 1)
         obj = data['data']
         if len(obj) == 0:
-            Oracon.close()
+            #  Oracon.close()
             return spl.logout(token)
         
         order_id = []
@@ -587,7 +592,7 @@ def orderplans():
         log(name='SPL', subject="ORDERPLAN", status="Error", message=str(ex))
         pass
     
-    Oracon.close()
+    #  Oracon.close()
     spl.logout(token)
     
     
@@ -603,4 +608,6 @@ if __name__ == '__main__':
     update_receive_ctn()
     time.sleep(0.1)
     orderplans()
+    Oracon.close()
+    pool.release()
     sys.exit(0)
