@@ -55,7 +55,6 @@ def main():
     # print(sql)
     obj = Ora.execute(sql)
     
-    part_stk = None
     i = 1
     for r in obj.fetchall():
         whs = str(r[0]).strip()
@@ -106,16 +105,12 @@ def main():
             sql_shelve = f"update tbt_locations set updated_at=current_timestamp where id='{shelve_id}'"
             
         pg_cursor.execute(sql_shelve)
-
-        ### check stock
-        if part_stk is None: part_stk = part_no
-        if (part_no == part_stk) is False:part_stk = part_no
         
         ### check part
-        pg_cursor.execute(f"select id from tbt_parts where no='{part_stk}'")
+        pg_cursor.execute(f"select id from tbt_parts where no='{part_no}'")
         part = pg_cursor.fetchone()
         part_id = generate(size=36)
-        sql_part = "insert into tbt_parts(id, no,name, is_active,created_at,updated_at)values('{part_id}','{part_stk}','{part_name}',true,current_timestamp,current_timestamp)"
+        sql_part = "insert into tbt_parts(id, no,name, is_active,created_at,updated_at)values('{part_id}','{part_no}','{part_name}',true,current_timestamp,current_timestamp)"
         if part:
             part_id = part[0]
             sql_part = "update tbt_parts set updated_at=current_timestamp where id = '{part_id}'"
@@ -154,8 +149,10 @@ def main():
         pg_cursor.execute(sql_shelve)
         
         ### check stock
-        ctn = 1
-        if qty == 0:ctn = 1
+        stk_carton = Ora.execute(f"SELECT count(PARTNO) FROM TXP_CARTONDETAILS WHERE PARTNO='{part_no}' AND SHELVE NOT IN ('S-PLOUT', 'S-XXX', 'S-CK1')")
+        ctn = stk_carton.fetchone()[0]
+        
+        ### stock form pg
         pg_cursor.execute(f"select id from tbt_stocks where ledger_id='{ledger_id}'")
         stock = pg_cursor.fetchone()
         stock_id = generate(size=36)
