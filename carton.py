@@ -36,22 +36,21 @@ Conn = pool.acquire()
 # Oracon = cx_Oracle.connect(user=ORA_PASSWORD, password=ORA_USERNAME,dsn=ORA_DNS)
 Ora = Conn.cursor()
 
-def main():
-    ### Initail PostgreSQL Server
-    pgdb = pgsql.connect(
-        host=DB_HOSTNAME,
-        port=DB_PORT,
-        user=DB_USERNAME,
-        password=DB_PASSWORD,
-        database=DB_NAME,
-    )
-    pg_cursor = pgdb.cursor()
+### Initail PostgreSQL Server
+pgdb = pgsql.connect(
+    host=DB_HOSTNAME,
+    port=DB_PORT,
+    user=DB_USERNAME,
+    password=DB_PASSWORD,
+    database=DB_NAME,
+)
+pg_cursor = pgdb.cursor()
+
+def sync_carton(serial_no):
     sql = f"""SELECT 'CK-2' whs,CASE WHEN substr(t.PARTNO, 1, 1) = '1' THEN 'AW' ELSE 'INJ' END factory,to_char(t.SYSDTE, 'YYYY-MM-DD')  rec_date,t.INVOICENO  invoice_no,t.RVMANAGINGNO,CASE WHEN p.TYPE IS NULL THEN '-' ELSE CASE WHEN p.TYPE = 'PRESS' THEN 'PLATE' ELSE p.TYPE END END  part_type,t.PARTNO part_no,p.PARTNAME,'BOX' unit,t.RUNNINGNO serial_no,t.LOTNO lot_no,t.CASEID case_id,CASE WHEN t.CASENO IS NULL THEN 0 ELSE t.CASENO END case_no,t.RECEIVINGQUANTITY std_pack_qty,t.RECEIVINGQUANTITY qty,t.SHELVE shelve,CASE WHEN t.PALLETKEY IS NULL THEN '-' ELSE t.PALLETKEY END pallet_no,0 on_stock, 0 on_stock_ctn,'R' event_trigger,'-' olderkey,CASE WHEN t.SIID IS NULL THEN 'NO' ELSE t.SIID END SIID
             FROM TXP_CARTONDETAILS t
             INNER JOIN TXP_PART p ON t.PARTNO=p.PARTNO  
-            WHERE t.IS_CHECK=0
-            ORDER BY t.PARTNO,t.LOTNO,t.RUNNINGNO 
-            FETCH FIRST 5000 ROWS ONLY"""
+            WHERE t.RUNNINGNO='{serial_no}'"""
     # print(sql)
     obj = Ora.execute(sql)
     
@@ -165,9 +164,17 @@ def main():
         Ora.execute(f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{serial_no}'")
         print(f"{i} ==> part: {part_no} serial no: {serial_no} qty: {qty} ctn: {ctn}")
         i += 1
+    
+    return True
         
-    pgdb.commit()
-    pgdb.close()
+def main():
+    sql = f"SELECT SERIALNO,rowid FROM TMP_RECEIVELOG ORDER BY LASTUPDATE"
+    obj = Ora.execute(sql)
+    for r in obj.fetchall():
+        sync_carton(r[0])
+        Ora.execute(f"UPDATE TMP_RECEIVELOG SET SYNC=1 WHERE SERIALNO='{r[0]}' AND rowid='{str(r[1])}'")
+        
+    Ora.execute(f"DELETE FROM TMP_RECEIVELOG WHERE SYNC=1")
 
 if __name__ == '__main__':
     try:
@@ -178,6 +185,8 @@ if __name__ == '__main__':
         pass
     
     Conn.commit()
+    pgdb.commit()
+    pgdb.close()
     pool.release(Conn)
     pool.close()
     sys.exit(0)
