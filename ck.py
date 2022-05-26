@@ -583,7 +583,7 @@ def orderplans():
         d = datetime.now()
         _rnd = f"{(rnd - 1):,}"
         msg = f"""ซิงค์ข้อมูล OrderPlan\nจำนวน: {_rnd} รายการ\nวดป.: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
-        if int(_rnd) > 0:
+        if int(rnd) > 0:
             spl.line_notification(msg)
             
         print(msg)
@@ -597,16 +597,16 @@ def orderplans():
     
     
 if __name__ == '__main__':
-    main()
-    time.sleep(0.1)
-    download()
-    time.sleep(0.1)
-    get_receive()
-    time.sleep(0.1)
-    merge_receive()
-    time.sleep(0.1)
-    update_receive_ctn()
-    time.sleep(0.1)
+    # main()
+    # time.sleep(0.1)
+    # download()
+    # time.sleep(0.1)
+    # get_receive()
+    # time.sleep(0.1)
+    # merge_receive()
+    # time.sleep(0.1)
+    # update_receive_ctn()
+    # time.sleep(0.1)
     orderplans()
     pool.release(Oracon)
     pool.close()
