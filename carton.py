@@ -159,7 +159,7 @@ def main():
         sql_stock = f"""insert into tbt_stocks(id, ledger_id, per_qty, ctn, is_active, created_at, updated_at)values('{stock_id}', '{ledger_id}', {std_pack_qty}, {ctn}, true, current_timestamp, current_timestamp)"""
         if stock:
             stock_id = stock[0]
-            sql_stock = f"""update tbt_stocks set ctn=ctn+{ctn},is_active=true,updated_at=current_timestamp where id='{stock_id}'"""
+            sql_stock = f"""update tbt_stocks set ctn={ctn},is_active=true,updated_at=current_timestamp where id='{stock_id}'"""
         pg_cursor.execute(sql_stock)
         
         Ora.execute(f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{serial_no}'")
