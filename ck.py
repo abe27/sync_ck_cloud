@@ -589,7 +589,7 @@ def orderplans():
         print(msg)
         
     except Exception as ex:
-        log(name='SPL', subject="ORDERPLAN", status="Error", message=str(ex))
+        log(name='ORDERPLAN', subject="ORDERPLAN", status="Error", message=str(ex))
         pass
     
     #  Oracon.close()
