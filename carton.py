@@ -51,7 +51,7 @@ def main():
             INNER JOIN TXP_PART p ON t.PARTNO=p.PARTNO  
             WHERE t.IS_CHECK=0
             ORDER BY t.PARTNO,t.LOTNO,t.RUNNINGNO 
-            FETCH FIRST 1000 ROWS ONLY"""
+            FETCH FIRST 10000 ROWS ONLY"""
     # print(sql)
     obj = Ora.execute(sql)
     
@@ -134,7 +134,7 @@ def main():
         pg_cursor.execute(sql_ledger)
         
         ### check carton
-        pg_cursor.execute(f"select id from tbt_cartons where ledger_id='{ledger_id}'")
+        pg_cursor.execute(f"select id from tbt_cartons where ledger_id='{ledger_id}' and serial_no='{serial_no}")
         carton = pg_cursor.fetchone()
         carton_id = generate(size=36)
         sql_carton = f"""insert into tbt_cartons(id,ledger_id,lot_no,serial_no,die_no,revision_no,qty,is_active,created_at,updated_at)values('{carton_id}','{ledger_id}','{lot_no}','{serial_no}','{case_id}','{case_no}','{qty}',true,current_timestamp,current_timestamp)"""
@@ -142,6 +142,16 @@ def main():
             carton_id = carton[0]
             sql_carton = f"""update tbt_cartons set ledger_id='{ledger_id}',lot_no='{lot_no}',serial_no='{serial_no}',die_no='{case_id}',revision_no='{case_no}',qty='{qty}',is_active=true,updated_at=current_timestamp where id='{carton_id}'"""
         pg_cursor.execute(sql_carton)
+        
+        ### check carton on shelve
+        pg_cursor.execute(f"select id from tbt_shelves where carton_id='{carton_id}' and location_id='{shelve_id}'")
+        carton_shelve = pg_cursor.fetchone()
+        carton_shelve_id = generate(size=36)
+        sql_shelve = f"insert into tbt_shelves(id, carton_id, location_id, pallet_no, is_printed, is_active, created_at, updated_at)values('{carton_shelve_id}', '{carton_id}', '{shelve_id}', '{pallet_no}', false, true, current_timestamp, current_timestamp)"
+        if carton_shelve:
+            carton_shelve_id = carton_shelve[0]
+            sql_shelve = f"update tbt_shelves set location_id='{shelve_id}',pallet_no='{pallet_no}',is_printed=true,is_active=true,updated_at=current_timestamp where id='{carton_shelve_id}'"
+        pg_cursor.execute(sql_shelve)
         
         ### check stock
         ctn = 1
