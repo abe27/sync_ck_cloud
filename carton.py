@@ -80,13 +80,16 @@ def main():
         event_trigger = str(r[19])
         older_key = str(r[20])
         siid = str(r[21])
+        
+        ### Get Master Data
+        
 
         ### check stock
         if part_stk is None: part_stk = part_no
         if (part_no == part_stk) is False:part_stk = part_no
         
         ### check part
-        pg_cursor.execute(f"select id from tbt_parts where no='{part_stk}-'")
+        pg_cursor.execute(f"select id from tbt_parts where no='{part_stk}'")
         part = pg_cursor.fetchone()
         part_id = generate(size=36)
         sql_part = "insert into tbt_parts(id, no,name, is_active,created_at,updated_at)values('{part_id}','{part_stk}','{part_name}',true,current_timestamp,current_timestamp)"
