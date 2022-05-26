@@ -171,8 +171,9 @@ def main():
     sql = f"SELECT SERIALNO,rowid FROM TMP_RECEIVELOG ORDER BY LASTUPDATE"
     obj = Ora.execute(sql)
     for r in obj.fetchall():
-        sync_carton(r[0])
-        Ora.execute(f"UPDATE TMP_RECEIVELOG SET SYNC=1 WHERE SERIALNO='{r[0]}' AND rowid='{str(r[1])}'")
+        serial_no = str(r[0]).strip()
+        sync_carton(serial_no)
+        Ora.execute(f"UPDATE TMP_RECEIVELOG SET SYNC=1 WHERE SERIALNO='{serial_no}'")
         
     Ora.execute(f"DELETE FROM TMP_RECEIVELOG WHERE SYNC=1")
 
