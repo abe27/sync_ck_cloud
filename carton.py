@@ -51,7 +51,7 @@ def main():
             INNER JOIN TXP_PART p ON t.PARTNO=p.PARTNO  
             WHERE t.IS_CHECK=0
             ORDER BY t.PARTNO,t.LOTNO,t.RUNNINGNO 
-            FETCH FIRST 10000 ROWS ONLY"""
+            FETCH FIRST 6000 ROWS ONLY"""
     # print(sql)
     obj = Ora.execute(sql)
     
