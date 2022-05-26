@@ -134,7 +134,7 @@ def main():
         pg_cursor.execute(sql_ledger)
         
         ### check carton
-        pg_cursor.execute(f"select id from tbt_cartons where ledger_id='{ledger_id}' and serial_no='{serial_no}")
+        pg_cursor.execute(f"select id from tbt_cartons where ledger_id='{ledger_id}' and serial_no='{serial_no}'")
         carton = pg_cursor.fetchone()
         carton_id = generate(size=36)
         sql_carton = f"""insert into tbt_cartons(id,ledger_id,lot_no,serial_no,die_no,revision_no,qty,is_active,created_at,updated_at)values('{carton_id}','{ledger_id}','{lot_no}','{serial_no}','{case_id}','{case_no}','{qty}',true,current_timestamp,current_timestamp)"""
