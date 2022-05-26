@@ -110,7 +110,7 @@ def main():
         pg_cursor.execute(f"select id from tbt_parts where no='{part_no}'")
         part = pg_cursor.fetchone()
         part_id = generate(size=36)
-        sql_part = "insert into tbt_parts(id, no,name, is_active,created_at,updated_at)values('{part_id}','{part_no}','{part_name}',true,current_timestamp,current_timestamp)"
+        sql_part = f"insert into tbt_parts(id, no,name, is_active,created_at,updated_at)values('{part_id}','{part_no}','{part_name}',true,current_timestamp,current_timestamp)"
         if part:
             part_id = part[0]
             sql_part = "update tbt_parts set updated_at=current_timestamp where id = '{part_id}'"
