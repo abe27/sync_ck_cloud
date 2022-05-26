@@ -474,7 +474,7 @@ def update_receive_ctn():
     
     ### commit the transaction
     Oracon.commit()
-    Oracur.close()
+    # Oracur.close()
     #  Oracon.close()
     
 def orderplans():
@@ -583,7 +583,7 @@ def orderplans():
         d = datetime.now()
         _rnd = f"{(rnd - 1):,}"
         msg = f"""ซิงค์ข้อมูล OrderPlan\nจำนวน: {_rnd} รายการ\nวดป.: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
-        if _rnd > 0:
+        if int(_rnd) > 0:
             spl.line_notification(msg)
             
         print(msg)
