@@ -483,7 +483,7 @@ def orderplans():
         ### (f"start sync order plans")
         # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
         #  Oracur = Oracon.cursor()
-        data = spl.get_order_plan(token, 2000, 0, 1)
+        data = spl.get_order_plan(token, 5000, 0, 1)
         obj = data['data']
         if len(obj) == 0:
             #  Oracon.close()
@@ -588,6 +588,7 @@ def orderplans():
         
         print(f"---------------------")   
         print(msg)
+        log(name='ORDERPLAN', subject="ORDERPLAN", status="Success", message=str(msg))
         
     except Exception as ex:
         log(name='ORDERPLAN', subject="ORDERPLAN", status="Error", message=str(ex))
