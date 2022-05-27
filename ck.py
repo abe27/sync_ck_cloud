@@ -290,7 +290,7 @@ def get_receive():
             while x < len(body):
                 r = body[x]
                 head = r['receive']
-                batch_id = 'NOTFOUND'
+                batch_id = generate(size=7)
                 try:
                     batch_id = r['receive']['file_gedi']['batch_id']
                 except Exception as ex:
