@@ -199,8 +199,8 @@ class Yazaki:
     def get_link(self, session):
         obj = []
         try:
-            etd = str((datetime.now() - timedelta(days=1)).strftime("%Y%m%d"))
-            # etd = '20220505'
+            # etd = str((datetime.now() - timedelta(days=1)).strftime("%Y%m%d"))
+            etd = '20220530'
             # get cookies after login.
             if session.status_code == 200:
                 # get html page
@@ -228,7 +228,7 @@ class Yazaki:
                         if td.find("a") != None:
                             found = True
 
-                        if found is True:  # False =debug,True=prod.
+                        if found is False:  # False =debug,True=prod.
                             if len(docs) >= 9:
                                 l = ObjectLink(
                                     self.host,
@@ -386,8 +386,8 @@ class SplApi:
             response = requests.request("POST", url, headers=headers, data=payload)
             if response.status_code == 200:
                 obj = response.json()
-                LogActivity(name='SPL',subject="LOGIN", status='Success', message=f"Token is {obj['access_token']}")
-                return obj['access_token']
+                LogActivity(name='SPL',subject="LOGIN", status='Success', message=f"Token is {obj['token']}")
+                return obj['token']
             
         except Exception as ex:
             LogActivity(name='SPL',subject="LOGIN", status='Error', message=str(ex))

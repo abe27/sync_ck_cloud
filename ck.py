@@ -7,7 +7,10 @@ import psycopg2 as pgsql
 import cx_Oracle
 from nanoid import generate
 from spllibs import Yazaki, SplApi, SplSharePoint, LogActivity as log
+from os.path import join, dirname
 from dotenv import load_dotenv
+# dotenv_path = join(dirname(__file__), '.env')
+# load_dotenv(dotenv_path)
 load_dotenv()
 
 SERVICE_TYPE="CK2"
@@ -35,7 +38,7 @@ ORA_USERNAME=os.environ.get('ORAC_DB_USERNAME')
 ORA_PASSWORD=os.environ.get('ORAC_DB_PASSWORD')
 
 ### Initail Data
-yk = Yazaki(SERVICE_TYPE,YAZAKI_HOST, YAZAKI_USER, YAZAKI_PASSWORD)
+yk = Yazaki(SERVICE_TYPE, YAZAKI_HOST, YAZAKI_USER, YAZAKI_PASSWORD)
 spl = SplApi(SPL_API_HOST, SPL_API_USERNAME, SPL_API_PASSWORD)
 share_file = SplSharePoint(SHAREPOINT_SITE_URL, SHAREPOINT_SITE_NAME, SHAREPOINT_USERNAME, SHAREPOINT_PASSWORD)
 
