@@ -199,8 +199,8 @@ class Yazaki:
     def get_link(self, session):
         obj = []
         try:
-            # etd = str((datetime.now() - timedelta(days=1)).strftime("%Y%m%d"))
-            etd = '20220530'
+            etd = str((datetime.now() - timedelta(days=1)).strftime("%Y%m%d"))
+            # etd = '20220526'
             # get cookies after login.
             if session.status_code == 200:
                 # get html page
