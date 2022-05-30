@@ -600,6 +600,68 @@ def orderplans():
     #  Oracon.close()
     spl.logout(token)
     
+
+def update_order_group():
+    mydb = pgsql.connect(
+        host=DB_HOSTNAME,
+        port=DB_PORT,
+        user=DB_USERNAME,
+        password=DB_PASSWORD,
+        database=DB_NAME,
+    )
+    mycursor = mydb.cursor()
+    mycursor.execute(f"""select vendor,bishpc,shiptype,pono,vendor||bioabt zone_name from tbt_order_plans where is_sync=false group by vendor,bishpc,shiptype,pono,bioabt  order by vendor,bishpc,shiptype,pono,bioabt""")
+    for i in mycursor.fetchall():
+        factory = str(i[0]).strip()
+        bishpc = str(i[1]).strip()
+        shiptype = str(i[2]).strip()
+        pono = str(i[3]).strip()
+        bioat = str(i[4]).strip()
+        
+        # mycursor.execute(f"select id from tbt_factory_types where name='{factory}'")
+        # fac_id = mycursor.fetchone()[0]
+        # mycursor.execute(f"select id from tbt_customers where cust_code='{bishpc}'")
+        # bishpc_id = mycursor.fetchone()[0]
+        # mycursor.execute(f"select id from tbt_shippings where prefix_code='{shiptype}'")
+        # shiptype_id = mycursor.fetchone()[0]
+        # mycursor.execute(f"select id from tbt_consignees where factory_id='{fac_id}' and customer_id='{bishpc_id}'")
+        # consignee = mycursor.fetchone()[0]
+        
+        bioat_name = "CK-2"
+        if pono[:1] == "#":bioat_name = "NESC"
+        elif pono[:1] == "@":bioat_name = "ICAM"
+        
+        order_group = "ALL"
+        if bishpc in ["32W2","32CJ", "32AF", "32H2", "32H7"]:
+            # order_list = ["NHW","HMW","LMW","WMW"]
+            order_group = pono[len(pono) - 3:]
+            if pono[:1] == "#" or pono[:1] == "@":
+                order_group = f"{pono[:1]}{pono[len(pono) - 3:]}"
+            
+        elif bishpc == "32N1":
+            # order_list = ["NST","NTT","FBF"]
+            order_group = pono[:3]
+            if pono[:1] == "#" or pono[:1] == "@":
+                order_group = pono[:4]
+                
+        elif bishpc in ["32R4", "32BG", "32R1", "32W6","32W7", "32BF","32H0","32G0","32R8"]:
+            order_group = pono
+        
+        elif bishpc[:3] == "32W":
+            order_group = bishpc[2:]
+            if pono[:1] == "#" or pono[:1] == "@":
+                order_group = f"{pono[:1]}{bishpc[2:]}"
+        else:
+            order_group = "ALL"
+            if pono[:1] == "#" or pono[:1] == "@":
+                order_group = f"{pono[:1]}ALL"
+        
+        sql_order_group = f"update tbt_order_plans set order_group='{order_group}',is_sync=true where vendor='{factory}' and bishpc='{bishpc}' and shiptype='{shiptype}' and pono='{pono}' and vendor||bioabt='{bioat}'"        
+        print(f"SHIP: {shiptype} CUSTOMER: {bishpc} ORDER GROUP: {order_group} ORDERNO.: {pono} ZONE: {bioat_name}")
+        mycursor.execute(sql_order_group)
+        
+    mydb.commit()
+    mydb.close()
     
 if __name__ == '__main__':
     main()
@@ -612,7 +674,9 @@ if __name__ == '__main__':
     time.sleep(0.1)
     update_receive_ctn()
     time.sleep(0.1)
-    orderplans()
+    update_order_group()
+    # time.sleep(0.1)
+    # orderplans()
     pool.release(Oracon)
     pool.close()
     sys.exit(0)
