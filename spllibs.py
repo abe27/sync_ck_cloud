@@ -228,7 +228,7 @@ class Yazaki:
                         if td.find("a") != None:
                             found = True
 
-                        if found is False:  # False =debug,True=prod.
+                        if found is True:  # False =debug,True=prod.
                             if len(docs) >= 9:
                                 l = ObjectLink(
                                     self.host,
