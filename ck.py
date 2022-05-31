@@ -863,7 +863,20 @@ def genearate_order():
             mycursor.execute(ord_detail_insert)
             print(f"{runn} {pono} {part_no} R: {reason_cd} qty: {balqty} stdpack: {bistdp}")
             runn += 1
-            
+        
+        mycursor.execute(f"""update tbt_order_plans set is_generated=true 
+                         where etdtap='' and 
+                         vendor='{etd_date}' and 
+                         bioabt='{bioabt}' and 
+                         biivpx='{biivpx}' and 
+                         biac='{biac}' and 
+                         bishpc='{bishpc}' and 
+                         bicomd='{bicomd}' and 
+                         shiptype='{shiptype}' and 
+                         ordertype='{ordertype}' and 
+                         pc='{pc}' and 
+                         commercial='{commercial}' and 
+                         order_group='{order_group}'""")    
         mydb.commit()
         print(f"{runn_order} ========================================")
         runn_order += 1
