@@ -200,7 +200,7 @@ class Yazaki:
         obj = []
         try:
             etd = str((datetime.now() - timedelta(days=1)).strftime("%Y%m%d"))
-            # etd = '20220526'
+            # etd = '20220501'
             # get cookies after login.
             if session.status_code == 200:
                 # get html page

@@ -6,6 +6,7 @@ import time
 import psycopg2 as pgsql
 import cx_Oracle
 from nanoid import generate
+from sqlalchemy import true
 from spllibs import Yazaki, SplApi, SplSharePoint, LogActivity as log
 from os.path import join, dirname
 from dotenv import load_dotenv
@@ -102,6 +103,7 @@ def main():
                         print(f"Path: {filepath}")
                         ### upload file to SPL Server
                         is_upload = spl.upload("CK-2", x[:1], batchId, filepath, gedi_name, spl_token)
+                        # is_upload = True
                         # ### Upload file to SPL Share Point
                         # share_file.upload(filepath, gedi_name, f'GEDI/{x}/{p}')
                         print(f"STATUS: {is_upload}")
@@ -155,11 +157,12 @@ def download():
                     os.remove(filename)
                     ### Update status
                     spl.update_status(token, str(r['id']), 1)
-                    sql = "INSERT INTO tbt_order_plans(id, file_gedi_id, vendor, cd, unit, whs, tagrp, factory, sortg1, sortg2, sortg3, plantype, pono, biac, shiptype, etdtap, partno, partname, pc, commercial, sampleflg, orderorgi, orderround, firmflg, shippedflg, shippedqty, ordermonth, balqty, bidrfl, deleteflg, ordertype, reasoncd, upddte, updtime, carriercode, bioabt, bicomd, bistdp, binewt, bigrwt, bishpc, biivpx, bisafn, biwidt, bihigh, bileng, lotno, is_active, created_at, updated_at)VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,true, current_timestamp, current_timestamp)"
+                    sql = "INSERT INTO tbt_order_plans(id, file_gedi_id, vendor, cd, unit, whs, tagrp, factory, sortg1, sortg2, sortg3, plantype, pono, biac, shiptype, etdtap, partno, partname, pc, commercial, sampleflg, orderorgi, orderround, firmflg, shippedflg, shippedqty, ordermonth, balqty, bidrfl, deleteflg, ordertype, reasoncd, upddte, updtime, carriercode, bioabt, bicomd, bistdp, binewt, bigrwt, bishpc, biivpx, bisafn, biwidt, bihigh, bileng, lotno, is_active, created_at, updated_at)VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,true, %s, %s)"
                     for a in data:
                         # print(a)
                         id = generate(size=36)
-                        val = (id, r['id'], a['vendor'], a['cd'], a['unit'], a['whs'], a['tagrp'], a['factory'], a['sortg1'], a['sortg2'], a['sortg3'], a['plantype'], a['pono'], a['biac'], a['shiptype'], (a['etdtap']).strftime('%Y-%m-%d %H:%M:%S'), a['partno'], a['partname'], a['pc'], a['commercial'], a['sampleflg'], a['orderorgi'], a['orderround'], a['firmflg'], a['shippedflg'], a['shippedqty'], (a['ordermonth']).strftime('%Y-%m-%d %H:%M:%S'), a['balqty'], a['bidrfl'], a['deleteflg'], a['ordertype'], a['reasoncd'], (a['upddte']).strftime('%Y-%m-%d %H:%M:%S'), (a['updtime']).strftime('%Y-%m-%d %H:%M:%S'), a['carriercode'], a['bioabt'], a['bicomd'], a['bistdp'], a['binewt'], a['bigrwt'], a['bishpc'], a['biivpx'], a['bisafn'], a['biwidt'], a['bihigh'], a['bileng'],a['lotno'])
+                        update_date = f"{(a['upddte']).strftime('%Y-%m-%d')} {(a['updtime']).strftime('%H:%M:%S')}"
+                        val = (id, r['id'], a['vendor'], a['cd'], a['unit'], a['whs'], a['tagrp'], a['factory'], a['sortg1'], a['sortg2'], a['sortg3'], a['plantype'], a['pono'], a['biac'], a['shiptype'], (a['etdtap']).strftime('%Y-%m-%d %H:%M:%S'), a['partno'], a['partname'], a['pc'], a['commercial'], a['sampleflg'], a['orderorgi'], a['orderround'], a['firmflg'], a['shippedflg'], a['shippedqty'], (a['ordermonth']).strftime('%Y-%m-%d %H:%M:%S'), a['balqty'], a['bidrfl'], a['deleteflg'], a['ordertype'], a['reasoncd'], (a['upddte']).strftime('%Y-%m-%d %H:%M:%S'), (a['updtime']).strftime('%Y-%m-%d %H:%M:%S'), a['carriercode'], a['bioabt'], a['bicomd'], a['bistdp'], a['binewt'], a['bigrwt'], a['bishpc'], a['biivpx'], a['bisafn'], a['biwidt'], a['bihigh'], a['bileng'],a['lotno'], update_date, update_date)
                         mycursor.execute(sql, val)
                         
                     ### Commit MySQL
@@ -618,46 +621,68 @@ def update_order_group():
         pono = str(i[3]).strip()
         bioat = str(i[4]).strip()
         
-        # mycursor.execute(f"select id from tbt_factory_types where name='{factory}'")
-        # fac_id = mycursor.fetchone()[0]
-        # mycursor.execute(f"select id from tbt_customers where cust_code='{bishpc}'")
-        # bishpc_id = mycursor.fetchone()[0]
-        # mycursor.execute(f"select id from tbt_shippings where prefix_code='{shiptype}'")
-        # shiptype_id = mycursor.fetchone()[0]
-        # mycursor.execute(f"select id from tbt_consignees where factory_id='{fac_id}' and customer_id='{bishpc_id}'")
-        # consignee = mycursor.fetchone()[0]
-        
         bioat_name = "CK-2"
-        if pono[:1] == "#":bioat_name = "NESC"
-        elif pono[:1] == "@":bioat_name = "ICAM"
+        prefix_order = ""
+        if pono[:1] == "#":
+            bioat_name = "NESC"
+            prefix_order = "#"
+            
+        elif pono[:1] == "@":
+            bioat_name = "ICAM"
+            prefix_order = "@"
         
         order_group = "ALL"
-        if bishpc in ["32W2","32CJ", "32AF", "32H2", "32H7"]:
-            # order_list = ["NHW","HMW","LMW","WMW"]
-            order_group = pono[len(pono) - 3:]
-            if pono[:1] == "#" or pono[:1] == "@":
-                order_group = f"{pono[:1]}{pono[len(pono) - 3:]}"
-            
-        elif bishpc == "32N1":
-            # order_list = ["NST","NTT","FBF"]
-            order_group = pono[:3]
-            if pono[:1] == "#" or pono[:1] == "@":
-                order_group = pono[:4]
+        if bishpc == "32W2":
+            order_group = prefix_order+order_group
+            order_list = ["NHW","HMW","LMW","WMW", " MW"]
+            if (pono[len(pono) - 3:] in order_list):
+                order_group = prefix_order+pono[len(pono) - 3:]
                 
-        elif bishpc in ["32R4", "32BG", "32R1", "32W6","32W7", "32BF","32H0","32G0","32R8"]:
+        elif bishpc == "32H7":
+            order_group = prefix_order+order_group
+            order_list = ["DMW","TMW","CMW", " MW"]
+            if (pono[len(pono) - 3:] in order_list):
+                order_group = prefix_order+pono[len(pono) - 3:]       
+                
+        elif bishpc == "32CJ":
+            order_list = ["JQN","JTK"]
+            if (pono[:3] in order_list):
+                order_group = pono[:3]
+                if pono[:1] == "#" or pono[:1] == "@":
+                    order_group = pono[:4]  
+                    
+        elif bishpc == "32N1":
+            order_list = ["NST","NTT","FBF"]
+            if (pono[:3] in order_list):
+                order_group = pono[:3]
+                if pono[:1] == "#" or pono[:1] == "@":
+                    order_group = pono[:4]
+                    
+        elif bishpc == "32AF":
+            order_list = ["JTB","TIK"]
+            if (pono[:3] in order_list):
+                order_group = pono[:3]
+                if pono[:1] == "#" or pono[:1] == "@":
+                    order_group = pono[:4]
+        
+        elif bishpc == "32H2":
+            order_list = ["TIJ","JQK"]
+            if (pono[:3] in order_list):
+                order_group = pono[:3]
+                if pono[:1] == "#" or pono[:1] == "@":
+                    order_group = pono[:4]
+                    
+        elif bishpc in ["32BF","32H0","32G0","32R8","32W6","32W7","32BG","32R1","32R4"]:
             order_group = pono
         
         elif bishpc[:3] == "32W":
-            order_group = bishpc[2:]
-            if pono[:1] == "#" or pono[:1] == "@":
-                order_group = f"{pono[:1]}{bishpc[2:]}"
+            order_group = f"{prefix_order}{bishpc[2:]}"
+            
         else:
-            order_group = "ALL"
-            if pono[:1] == "#" or pono[:1] == "@":
-                order_group = f"{pono[:1]}ALL"
+            order_group = prefix_order+"ALL"
         
-        sql_order_group = f"update tbt_order_plans set order_group='{order_group}',is_sync=true where vendor='{factory}' and bishpc='{bishpc}' and shiptype='{shiptype}' and pono='{pono}' and vendor||bioabt='{bioat}'"        
-        print(f"SHIP: {shiptype} CUSTOMER: {bishpc} ORDER GROUP: {order_group} ORDERNO.: {pono} ZONE: {bioat_name}")
+        sql_order_group = f"update tbt_order_plans set order_group='{str(order_group).strip()}',is_sync=true where vendor='{factory}' and bishpc='{bishpc}' and shiptype='{shiptype}' and pono='{pono}' and vendor||bioabt='{bioat}'"        
+        print(f"SHIP: {shiptype} CUSTOMER: {bishpc} ORDER GROUP: {str(order_group).strip()} ORDERNO.: {pono} ZONE: {bioat_name}")
         mycursor.execute(sql_order_group)
         
     mydb.commit()
