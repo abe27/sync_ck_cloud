@@ -230,8 +230,8 @@ class Yazaki:
 
                         if found is True:  # False =debug,True=prod.
                             if len(docs) >= 9:
-                                if str(docs[3])[: len("OES.VCBI")] == "OES.VCBI":
-                                    print(docs[3])
+                                # if str(docs[3])[: len("OES.VCBI.32T5")] == "OES.VCBI.32T5":
+                                #     print(docs[3])
                                     
                                 l = ObjectLink(
                                     self.host,
