@@ -865,15 +865,15 @@ def genearate_order():
             runn += 1
         
         mycursor.execute(f"""update tbt_order_plans set is_generated=true 
-                         where etdtap='' and 
-                         vendor='{etd_date}' and 
+                         where etdtap='{etd_date}' and 
+                         vendor='{vendor}' and 
                          bioabt='{bioabt}' and 
                          biivpx='{biivpx}' and 
                          biac='{biac}' and 
                          bishpc='{bishpc}' and 
                          bicomd='{bicomd}' and 
                          shiptype='{shiptype}' and 
-                         ordertype='{ordertype}' and 
+                         ordertype='{order_type}' and 
                          pc='{pc}' and 
                          commercial='{commercial}' and 
                          order_group='{order_group}'""")    
