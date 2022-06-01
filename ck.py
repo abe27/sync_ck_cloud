@@ -613,11 +613,7 @@ def update_order_group():
         database=DB_NAME,
     )
     mycursor = mydb.cursor()
-    mycursor.execute(f"""select 
-                     vendor,bishpc,shiptype,pono,vendor||bioabt zone_name,
-                     case when substring(pono, 1, 1)='#' then 'NESC' else case when substring(pono,1,1) = '@' then 'ICAM' else 'CK-2' end end zhs,
-                     case when substring(pono, 1, 1)='#' then '#' else case when substring(pono,1,1) = '@' then '@' else '' end end prefix_code
-                     from tbt_order_plans where order_group is null group by vendor,bishpc,shiptype,pono,bioabt  order by vendor,bishpc,shiptype,pono,bioabt""")
+    mycursor.execute(f"""select vendor,bishpc,shiptype,pono,vendor||bioabt zone_name,case when substring(pono, 1, 1)='#' then 'NESC' else case when substring(pono,1,1) = '@' then 'ICAM' else 'CK-2' end end zhs,case when substring(pono, 1, 1)='#' then '#' else case when substring(pono,1,1) = '@' then '@' else '' end end prefix_code,bioabt from tbt_order_plans where order_group is null group by vendor,bishpc,shiptype,pono,bioabt order by vendor,bishpc,shiptype,pono,bioabt""")
     for i in mycursor.fetchall():
         factory = str(i[0]).strip()
         bishpc = str(i[1]).strip()
@@ -626,6 +622,22 @@ def update_order_group():
         bioat = str(i[4]).strip()
         bioat_name = str(i[5]).strip()
         prefix_order = str(i[6]).strip()
+        bioabt_code = str(i[7]).strip()
+        
+        mycursor.execute(f"select id from tbt_factory_types where name='{factory}'")
+        fac_id = mycursor.fetchone()[0]
+        
+        zname_id = generate(size=36)
+        mycursor.execute(f"select id from tbt_order_zones where factory_id='{fac_id}' and bioat='{bioabt_code}'")
+        zname = mycursor.fetchone()
+        sql_zone = f"""insert into tbt_order_zones(id,factory_id,bioat,zone,description,is_active,created_at,updated_at)values('{zname_id}','{fac_id}','{bioabt_code}','{bioat_name}','-',true,current_timestamp,current_timestamp)"""
+        if zname:
+            zname_id = zname[0]
+            sql_zone = f"""update tbt_order_zones set factory_id='{fac_id}',bioat='{bioabt_code}',zone='{bioat_name}',updated_at=current_timestamp where id='{zname_id}'"""
+            
+        mycursor.execute(sql_zone)
+            
+        # print(f"factory: {factory} bioabt: {bioabt_code} zhs: {bioat_name}")
         
         order_group = "ALL"
         if bishpc == "32W2":
@@ -641,31 +653,31 @@ def update_order_group():
                 order_group = prefix_order+pono[len(pono) - 3:]       
                 
         elif bishpc == "32CJ":
-            order_list = ["JQN","JTK"]
+            order_list = ["JQN","JTK","#JQ","#JT", "@JQ","@JT"]
             if (pono[:3] in order_list):
                 order_group = pono[:3]
-                if prefix_order in ["#" ,"@"]:
+                if (prefix_order in ["#" ,"@"]):
                     order_group = pono[:4]  
                     
         elif bishpc == "32N1":
-            order_list = ["NST","NTT","FBF"]
+            order_list = ["NST","NTT","FBF", "#NS","#NT","#FB","@NS","@NT","@FB"]
             if (pono[:3] in order_list):
                 order_group = pono[:3]
-                if prefix_order in ["#" ,"@"]:
+                if (prefix_order in ["#" ,"@"]):
                     order_group = pono[:4]
                     
         elif bishpc == "32AF":
-            order_list = ["JTB","TIK"]
+            order_list = ["JTB","TIK", "#JT","#TI","@JT","@TI"]
             if (pono[:3] in order_list):
                 order_group = pono[:3]
-                if prefix_order in ["#" ,"@"]:
+                if (prefix_order in ["#" ,"@"]):
                     order_group = pono[:4]
         
         elif bishpc == "32H2":
-            order_list = ["TIJ","JQK"]
+            order_list = ["TIJ","JQK","#TI","#JQ","@TI","@JQ"]
             if (pono[:3] in order_list):
                 order_group = pono[:3]
-                if prefix_order in ["#" ,"@"]:
+                if (prefix_order in ["#" ,"@"]):
                     order_group = pono[:4]
                     
         elif bishpc in ["32BF","32H0","32G0","32R8","32W6","32W7","32BG","32R1","32R4"]:
@@ -681,7 +693,7 @@ def update_order_group():
         mycursor.execute(sql_order_group)
         print(f"SHIP: {shiptype} CUSTOMER: {bishpc} ORDER GROUP: {str(order_group).strip()} ORDERNO.: {pono} ZONE: {bioat_name}")
         
-    mydb.commit()
+        mydb.commit()
     mydb.close()
     
 def genearate_order():
@@ -699,11 +711,10 @@ def genearate_order():
     select a.* from (
         select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn    
         from tbt_order_plans
-        where is_generated=false
+        where is_generated=false and  etdtap between date_trunc('week', current_date) and date_trunc('week', (current_date + 6))
         group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active
         order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active
     ) a
-    where a.ctn > 0
     """
     runn_order = 1
     mycursor.execute(sql)
@@ -725,13 +736,16 @@ def genearate_order():
         items = str(i[14])
         ctn = str(i[15])
         
-        # order_whs = "CK-2"
-        # if order_group[:1] =="#":order_whs = "NESC"
-        # elif order_group[:1] =="@":order_whs = "ICAM"
+        order_whs = "CK-2"
+        if order_group[:1] =="#":order_whs = "NESC"
+        elif order_group[:1] =="@":order_whs = "ICAM"
         
         
         mycursor.execute(f"select id from tbt_factory_types where name='{vendor}'")
         factory_id = mycursor.fetchone()[0]
+        
+        mycursor.execute(f"select id from tbt_order_zones where factory_id='{factory_id}' and bioat='{bioabt}'")
+        zname_id = mycursor.fetchone()[0]
         
         mycursor.execute(f"select id from tbt_affiliates where aff_code='{biac}'")
         aff = mycursor.fetchone()
@@ -771,11 +785,12 @@ def genearate_order():
         mycursor.execute(f"select id from tbt_orders where consignee_id='{consignee_id}' and shipping_id='{shipping_id}' and etd_date='{etd_date}' and order_group='{order_group}' and pc='{pc}' and commercial='{commercial}' and order_type='{order_type}' and bioabt='{bioabt}' and bicomd='{bicomd}'")
         orders = mycursor.fetchone()
         
-        sql_insert_order = f"""insert into tbt_orders(id,consignee_id,shipping_id,etd_date,order_group,pc,commercial,order_type,bioabt,bicomd,sync,is_active,created_at,updated_at)
-        values('{order_id}','{consignee_id}','{shipping_id}','{etd_date}','{order_group}','{pc}','{commercial}','{order_type}','{bioabt}','{bicomd}',false,false,current_timestamp,current_timestamp)"""
+        sql_insert_order = f"""insert into tbt_orders(id,consignee_id,shipping_id,etd_date,order_group,pc,commercial,order_type,bioabt,bicomd,order_whs_id,sync,is_active,created_at,updated_at)
+        values('{order_id}','{consignee_id}','{shipping_id}','{etd_date}','{order_group}','{pc}','{commercial}','{order_type}','{bioabt}','{bicomd}','{zname_id}',false,false,current_timestamp,current_timestamp)"""
         if orders:
             order_id = orders[0]
-            sql_insert_order = f"update tbt_orders set sync=false,updated_at=current_timestamp where id='{order_id}'"
+            sql_insert_order = f"update tbt_orders set order_whs_id='{zname_id}',sync=false,updated_at=current_timestamp where id='{order_id}'"
+            
         mycursor.execute(sql_insert_order)
         
         sql_body = f"""select '{order_id}' order_id,id order_plan_id,case when length(reasoncd) > 0 then reasoncd else '-' end revise_id,partno ledger_id,pono,lotno,ordermonth,orderorgi,orderround,balqty,bistdp,shippedflg,shippedqty,sampleflg,carriercode,bidrfl,deleteflg  delete_flg,firmflg  firm_flg,'' poupd_flg,unit,partname from tbt_order_plans where etdtap='{etd_date}' and vendor='{vendor}' and bioabt='{bioabt}' and biivpx='{biivpx}' and biac='{biac}' and bishpc='{bishpc}' and bicomd='{bicomd}' and shiptype='{shiptype}' and ordertype='{order_type}' and pc='{pc}' and commercial='{commercial}' and order_group='{order_group}' and is_active=true order by created_at"""
@@ -783,6 +798,7 @@ def genearate_order():
         db = mycursor.fetchall()
         
         runn = 1
+        print(f"START =================={runn_order}======================")
         for r in db:
             order_plan_id = str(r[1])
             reason_cd = str(r[2])
@@ -874,7 +890,7 @@ def genearate_order():
                          commercial='{commercial}' and 
                          order_group='{order_group}'""")    
         mydb.commit()
-        print(f"{runn_order} ========================================")
+        print(f"END =================={runn_order}======================")
         runn_order += 1
         
     mydb.close()
@@ -887,7 +903,7 @@ if __name__ == '__main__':
     update_receive_ctn()
     update_order_group()
     # orderplans()
-    # genearate_order()
+    genearate_order()
     pool.release(Oracon)
     pool.close()
     sys.exit(0)
