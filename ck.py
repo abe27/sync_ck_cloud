@@ -786,10 +786,10 @@ def genearate_order():
         orders = mycursor.fetchone()
         
         sql_insert_order = f"""insert into tbt_orders(id,consignee_id,shipping_id,etd_date,order_group,pc,commercial,order_type,bioabt,bicomd,order_whs_id,sync,is_active,created_at,updated_at)
-        values('{order_id}','{consignee_id}','{shipping_id}','{etd_date}','{order_group}','{pc}','{commercial}','{order_type}','{bioabt}','{bicomd}','{zname_id}',false,false,current_timestamp,current_timestamp)"""
+        values('{order_id}','{consignee_id}','{shipping_id}','{etd_date}','{order_group}','{pc}','{commercial}','{order_type}','{bioabt}','{bicomd}','{zname_id}',false,true,current_timestamp,current_timestamp)"""
         if orders:
             order_id = orders[0]
-            sql_insert_order = f"update tbt_orders set order_whs_id='{zname_id}',sync=false,updated_at=current_timestamp where id='{order_id}'"
+            sql_insert_order = f"update tbt_orders set order_whs_id='{zname_id}',sync=false,is_active=true,updated_at=current_timestamp where id='{order_id}'"
             
         mycursor.execute(sql_insert_order)
         
