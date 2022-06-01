@@ -613,34 +613,30 @@ def update_order_group():
         database=DB_NAME,
     )
     mycursor = mydb.cursor()
-    mycursor.execute(f"""select vendor,bishpc,shiptype,pono,vendor||bioabt zone_name from tbt_order_plans where is_sync=false group by vendor,bishpc,shiptype,pono,bioabt  order by vendor,bishpc,shiptype,pono,bioabt""")
+    mycursor.execute(f"""select 
+                     vendor,bishpc,shiptype,pono,vendor||bioabt zone_name,
+                     case when substring(pono, 1, 1)='#' then 'NESC' else case when substring(pono,1,1) = '@' then 'ICAM' else 'CK-2' end end zhs,
+                     case when substring(pono, 1, 1)='#' then '#' else case when substring(pono,1,1) = '@' then '@' else '' end end prefix_code
+                     from tbt_order_plans where order_group is null group by vendor,bishpc,shiptype,pono,bioabt  order by vendor,bishpc,shiptype,pono,bioabt""")
     for i in mycursor.fetchall():
         factory = str(i[0]).strip()
         bishpc = str(i[1]).strip()
         shiptype = str(i[2]).strip()
         pono = str(i[3]).strip()
         bioat = str(i[4]).strip()
-        
-        bioat_name = "CK-2"
-        prefix_order = ""
-        if pono[:1] == "#":
-            bioat_name = "NESC"
-            prefix_order = "#"
-            
-        elif pono[:1] == "@":
-            bioat_name = "ICAM"
-            prefix_order = "@"
+        bioat_name = str(i[5]).strip()
+        prefix_order = str(i[6]).strip()
         
         order_group = "ALL"
         if bishpc == "32W2":
             order_group = prefix_order+order_group
-            order_list = ["NHW","HMW","LMW","WMW", " MW"]
+            order_list = ["NHW","HMW","LMW","WMW"]
             if (pono[len(pono) - 3:] in order_list):
                 order_group = prefix_order+pono[len(pono) - 3:]
                 
         elif bishpc == "32H7":
             order_group = prefix_order+order_group
-            order_list = ["DMW","TMW","CMW", " MW"]
+            order_list = ["DMW","TMW","CMW"]
             if (pono[len(pono) - 3:] in order_list):
                 order_group = prefix_order+pono[len(pono) - 3:]       
                 
@@ -648,28 +644,28 @@ def update_order_group():
             order_list = ["JQN","JTK"]
             if (pono[:3] in order_list):
                 order_group = pono[:3]
-                if pono[:1] == "#" or pono[:1] == "@":
+                if prefix_order in ["#" ,"@"]:
                     order_group = pono[:4]  
                     
         elif bishpc == "32N1":
             order_list = ["NST","NTT","FBF"]
             if (pono[:3] in order_list):
                 order_group = pono[:3]
-                if pono[:1] == "#" or pono[:1] == "@":
+                if prefix_order in ["#" ,"@"]:
                     order_group = pono[:4]
                     
         elif bishpc == "32AF":
             order_list = ["JTB","TIK"]
             if (pono[:3] in order_list):
                 order_group = pono[:3]
-                if pono[:1] == "#" or pono[:1] == "@":
+                if prefix_order in ["#" ,"@"]:
                     order_group = pono[:4]
         
         elif bishpc == "32H2":
             order_list = ["TIJ","JQK"]
             if (pono[:3] in order_list):
                 order_group = pono[:3]
-                if pono[:1] == "#" or pono[:1] == "@":
+                if prefix_order in ["#" ,"@"]:
                     order_group = pono[:4]
                     
         elif bishpc in ["32BF","32H0","32G0","32R8","32W6","32W7","32BG","32R1","32R4"]:
@@ -682,8 +678,8 @@ def update_order_group():
             order_group = prefix_order+"ALL"
         
         sql_order_group = f"update tbt_order_plans set order_group='{str(order_group).strip()}',is_sync=true where vendor='{factory}' and bishpc='{bishpc}' and shiptype='{shiptype}' and pono='{pono}' and vendor||bioabt='{bioat}'"        
-        print(f"SHIP: {shiptype} CUSTOMER: {bishpc} ORDER GROUP: {str(order_group).strip()} ORDERNO.: {pono} ZONE: {bioat_name}")
         mycursor.execute(sql_order_group)
+        print(f"SHIP: {shiptype} CUSTOMER: {bishpc} ORDER GROUP: {str(order_group).strip()} ORDERNO.: {pono} ZONE: {bioat_name}")
         
     mydb.commit()
     mydb.close()
@@ -891,7 +887,7 @@ if __name__ == '__main__':
     update_receive_ctn()
     update_order_group()
     # orderplans()
-    genearate_order()
+    # genearate_order()
     pool.release(Oracon)
     pool.close()
     sys.exit(0)
