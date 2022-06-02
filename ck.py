@@ -615,6 +615,7 @@ def update_order_group():
     )
     mycursor = mydb.cursor()
     mycursor.execute(f"""select vendor,bishpc,shiptype,pono,vendor||bioabt zone_name,case when substring(pono, 1, 1)='#' then 'NESC' else case when substring(pono,1,1) = '@' then 'ICAM' else 'CK-2' end end zhs,case when substring(pono, 1, 1)='#' then '#' else case when substring(pono,1,1) = '@' then '@' else '' end end prefix_code,bioabt from tbt_order_plans where order_group is null group by vendor,bishpc,shiptype,pono,bioabt order by vendor,bishpc,shiptype,pono,bioabt""")
+    runn = 1
     for i in mycursor.fetchall():
         factory = str(i[0]).strip()
         bishpc = str(i[1]).strip()
@@ -692,7 +693,8 @@ def update_order_group():
         
         sql_order_group = f"update tbt_order_plans set order_group='{str(order_group).strip()}',is_sync=true where vendor='{factory}' and bishpc='{bishpc}' and shiptype='{shiptype}' and pono='{pono}' and vendor||bioabt='{bioat}'"        
         mycursor.execute(sql_order_group)
-        print(f"SHIP: {shiptype} CUSTOMER: {bishpc} ORDER GROUP: {str(order_group).strip()} ORDERNO.: {pono} ZONE: {bioat_name}")
+        print(f"{runn} SHIP: {shiptype} CUSTOMER: {bishpc} ORDER GROUP: {str(order_group).strip()} ORDERNO.: {pono} ZONE: {bioat_name}")
+        runn += 1
         
     mydb.commit()
     mydb.close()
