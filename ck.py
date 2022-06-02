@@ -605,7 +605,6 @@ def orderplans():
     #  Oracon.close()
     spl.logout(token)
     
-
 def update_order_group():
     mydb = pgsql.connect(
         host=DB_HOSTNAME,
@@ -921,7 +920,7 @@ if __name__ == '__main__':
     get_receive()
     merge_receive()
     update_receive_ctn()
-    # update_order_group()
+    update_order_group()
     #orderplans()
     # genearate_order()
     pool.release(Oracon)
