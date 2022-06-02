@@ -744,7 +744,7 @@ def genearate_order():
         mycursor.execute(f"select id from tbt_factory_types where name='{vendor}'")
         factory_id = mycursor.fetchone()[0]
         
-        mycursor.execute(f"select id from tbt_order_zones where factory_id='{factory_id}' and bioat='{bioabt}'")
+        mycursor.execute(f"select id from tbt_order_zones where factory_id='{factory_id}' and bioat='{bioabt}' and zone='{order_whs}'")
         zname_id = mycursor.fetchone()[0]
         
         mycursor.execute(f"select id from tbt_affiliates where aff_code='{biac}'")
