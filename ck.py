@@ -916,11 +916,11 @@ def genearate_order():
     mydb.close()
     
 if __name__ == '__main__':
-    # main()
+    main()
     download()
-    # get_receive()
-    # merge_receive()
-    # update_receive_ctn()
+    get_receive()
+    merge_receive()
+    update_receive_ctn()
     # update_order_group()
     #orderplans()
     # genearate_order()
