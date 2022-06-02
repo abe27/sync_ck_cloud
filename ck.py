@@ -814,7 +814,7 @@ def genearate_order():
         mycursor.execute(sql_insert_order)
         
         sql_body = f"""select '{order_id}' order_id,id order_plan_id,case when length(reasoncd) > 0 then reasoncd else '-' end revise_id,partno ledger_id,pono,lotno,ordermonth,orderorgi,orderround,balqty,bistdp,shippedflg,shippedqty,sampleflg,carriercode,bidrfl,deleteflg  delete_flg,firmflg  firm_flg,'' poupd_flg,unit,partname from tbt_order_plans where etdtap='{etd_date}' and vendor='{vendor}' and bioabt='{bioabt}' and biivpx='{biivpx}' and biac='{biac}' and bishpc='{bishpc}' and bicomd='{bicomd}' and shiptype='{shiptype}' and ordertype='{order_type}' and pc='{pc}' and commercial='{commercial}' and order_group='{order_group}' and is_active=true order by created_at,sequence"""
-        print(sql_body)
+        # print(sql_body)
         mycursor.execute(sql_body)
         db = mycursor.fetchall()
         
@@ -884,7 +884,7 @@ def genearate_order():
             
             ### check order detail
             sql_order_detail = f"select id from tbt_order_details where order_id='{order_id}' and ledger_id='{ledger_id}' and pono='{pono}'"
-            print(sql_order_detail)
+            # print(sql_order_detail)
             order_detail_id = generate(size=36)
             mycursor.execute(sql_order_detail)
             ord_detail = mycursor.fetchone()
