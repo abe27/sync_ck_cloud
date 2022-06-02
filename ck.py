@@ -614,7 +614,7 @@ def update_order_group():
         database=DB_NAME,
     )
     mycursor = mydb.cursor()
-    mycursor.execute(f"""select vendor,bishpc,shiptype,pono,vendor||bioabt zone_name,case when substring(pono, 1, 1)='#' then 'NESC' else case when substring(pono,1,1) = '@' then 'ICAM' else 'CK-2' end end zhs,case when substring(pono, 1, 1)='#' then '#' else case when substring(pono,1,1) = '@' then '@' else '' end end prefix_code,bioabt from tbt_order_plans where order_group is null group by vendor,bishpc,shiptype,pono,bioabt order by vendor,bishpc,shiptype,pono,bioabt""")
+    mycursor.execute(f"""select vendor,bishpc,shiptype,pono,vendor||bioabt zone_name,case when substring(pono, 1, 1)='#' then 'NESC' else case when substring(pono,1,1) = '@' then 'ICAM' else 'CK-2' end end zhs,case when substring(pono, 1, 1)='#' then '#' else case when substring(pono,1,1) = '@' then '@' else '' end end prefix_code,bioabt from tbt_order_plans where order_group is null group by vendor,bishpc,shiptype,pono,bioabt order by vendor,bishpc,shiptype,pono,bioabt limit 100""")
     runn = 1
     for i in mycursor.fetchall():
         factory = str(i[0]).strip()
