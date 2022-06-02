@@ -710,24 +710,24 @@ def genearate_order():
     )
     
     mycursor = mydb.cursor()
-    # sql =f"""
-    # select a.* from (
-    #     select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn    
-    #     from tbt_order_plans
-    #     where is_generated=false
-    #     group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active
-    #     order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active
-    # ) a
-    # limit 100
-    # """
-    
-    sql = f"""select a.* from (
+    sql =f"""
+    select a.* from (
         select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn    
         from tbt_order_plans
+        where is_generated=false
         group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active
         order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active
     ) a
-    where etdtap='2022-06-02' and vendor='INJ' and bioabt='1' and biivpx='HJ' and biac='32W4' and bishpc='32W4D4' and bicomd='N' and shiptype='B' and ordertype='E' and pc='C' and commercial='C' and order_group='W4D4'"""
+    limit 100
+    """
+    
+    # sql = f"""select a.* from (
+    #     select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn    
+    #     from tbt_order_plans
+    #     group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active
+    #     order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active
+    # ) a
+    # where etdtap='2022-06-02' and vendor='INJ' and bioabt='1' and biivpx='HJ' and biac='32W4' and bishpc='32W4D4' and bicomd='N' and shiptype='B' and ordertype='E' and pc='C' and commercial='C' and order_group='W4D4'"""
     runn_order = 1
     mycursor.execute(sql)
     for i in mycursor.fetchall():
@@ -813,7 +813,7 @@ def genearate_order():
             
         mycursor.execute(sql_insert_order)
         
-        sql_body = f"""select '{order_id}' order_id,id order_plan_id,case when length(reasoncd) > 0 then reasoncd else '-' end revise_id,partno ledger_id,pono,lotno,ordermonth,orderorgi,orderround,balqty,bistdp,shippedflg,shippedqty,sampleflg,carriercode,bidrfl,deleteflg  delete_flg,firmflg  firm_flg,'' poupd_flg,unit,partname from tbt_order_plans where etdtap='{etd_date}' and vendor='{vendor}' and bioabt='{bioabt}' and biivpx='{biivpx}' and biac='{biac}' and bishpc='{bishpc}' and bicomd='{bicomd}' and shiptype='{shiptype}' and ordertype='{order_type}' and pc='{pc}' and commercial='{commercial}' and order_group='{order_group}' and is_active=true order by created_at"""
+        sql_body = f"""select '{order_id}' order_id,id order_plan_id,case when length(reasoncd) > 0 then reasoncd else '-' end revise_id,partno ledger_id,pono,lotno,ordermonth,orderorgi,orderround,balqty,bistdp,shippedflg,shippedqty,sampleflg,carriercode,bidrfl,deleteflg  delete_flg,firmflg  firm_flg,'' poupd_flg,unit,partname from tbt_order_plans where etdtap='{etd_date}' and vendor='{vendor}' and bioabt='{bioabt}' and biivpx='{biivpx}' and biac='{biac}' and bishpc='{bishpc}' and bicomd='{bicomd}' and shiptype='{shiptype}' and ordertype='{order_type}' and pc='{pc}' and commercial='{commercial}' and order_group='{order_group}' and is_active=true order by created_at,sequence"""
         print(sql_body)
         mycursor.execute(sql_body)
         db = mycursor.fetchall()
