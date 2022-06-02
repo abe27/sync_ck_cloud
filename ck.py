@@ -880,7 +880,7 @@ def genearate_order():
                 order_detail_id = ord_detail[0]
                 ord_detail_insert = f"update tbt_order_details set revise_id='{revise_id}',order_plan_id='{order_plan_id}',order_balqty='{balqty}',order_month='{order_month}',reason_code='{reason_cd}',updated_at=current_timestamp where id='{order_detail_id}'"
             mycursor.execute(ord_detail_insert)
-            print(f"{runn} {pono} {part_no} R: {reason_cd} qty: {balqty} stdpack: {bistdp}")
+            print(f"{runn} etd: {etd_date} order: {pono} part: {part_no} R: {reason_cd} qty: {balqty} stdpack: {bistdp}")
             runn += 1
         
         mycursor.execute(f"""update tbt_order_plans set is_generated=true 
