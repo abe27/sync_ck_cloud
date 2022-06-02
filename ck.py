@@ -745,7 +745,14 @@ def genearate_order():
         factory_id = mycursor.fetchone()[0]
         
         mycursor.execute(f"select id from tbt_order_zones where factory_id='{factory_id}' and bioat='{bioabt}' and zone='{order_whs}'")
-        zname_id = mycursor.fetchone()[0]
+        zname = mycursor.fetchone()
+        zname_id = generate(size=36)
+        sql_zname = f"""insert into tbt_order_zones(id,factory_id,bioat,zone,description,is_active,created_at,updated_at)values('{zname_id}','{factory_id}','{bioabt}','{order_whs}','-',true,current_timestamp,current_timestamp)"""
+        if zname:
+            zname_id = zname[0]
+            sql_zname = f"""update tbt_order_zones set factory_id='{factory_id}',bioat='{bioabt}',zone='{order_whs}',updated_at=current_timestamp where id='{zname_id}'"""
+            
+        mycursor.execute(sql_zname)
         
         mycursor.execute(f"select id from tbt_affiliates where aff_code='{biac}'")
         aff = mycursor.fetchone()
