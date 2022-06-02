@@ -694,7 +694,7 @@ def update_order_group():
         mycursor.execute(sql_order_group)
         print(f"SHIP: {shiptype} CUSTOMER: {bishpc} ORDER GROUP: {str(order_group).strip()} ORDERNO.: {pono} ZONE: {bioat_name}")
         
-        mydb.commit()
+    mydb.commit()
     mydb.close()
     
 def genearate_order():
