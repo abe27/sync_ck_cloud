@@ -718,7 +718,7 @@ def genearate_order():
         group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active
         order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active
     ) a
-    limit 2000
+    limit 20000
     """
     
     # sql = f"""select a.* from (
