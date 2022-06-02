@@ -152,10 +152,6 @@ def download():
                         b = spl.read_orderplan(head, doc)
                         data.append(b)
                     f.close()
-                    ### remove temp files after load data.
-                    os.remove(filename)
-                    ### Update status
-                    spl.update_status(token, str(r['id']), 1)
                     sql = "INSERT INTO tbt_order_plans(id, file_gedi_id, vendor, cd, unit, whs, tagrp, factory, sortg1, sortg2, sortg3, plantype, pono, biac, shiptype, etdtap, partno, partname, pc, commercial, sampleflg, orderorgi, orderround, firmflg, shippedflg, shippedqty, ordermonth, balqty, bidrfl, deleteflg, ordertype, reasoncd, upddte, updtime, carriercode, bioabt, bicomd, bistdp, binewt, bigrwt, bishpc, biivpx, bisafn, biwidt, bihigh, bileng, lotno, is_active, created_at, updated_at,sequence)VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,true, %s, %s, %s)"
                     runn = 1
                     for a in data:
@@ -164,11 +160,15 @@ def download():
                         update_date = f"{(a['upddte']).strftime('%Y-%m-%d')} {(a['updtime']).strftime('%H:%M:%S')}"
                         val = (id, r['id'], a['vendor'], a['cd'], a['unit'], a['whs'], a['tagrp'], a['factory'], a['sortg1'], a['sortg2'], a['sortg3'], a['plantype'], a['pono'], a['biac'], a['shiptype'], (a['etdtap']).strftime('%Y-%m-%d %H:%M:%S'), a['partno'], a['partname'], a['pc'], a['commercial'], a['sampleflg'], a['orderorgi'], a['orderround'], a['firmflg'], a['shippedflg'], a['shippedqty'], (a['ordermonth']).strftime('%Y-%m-%d %H:%M:%S'), a['balqty'], a['bidrfl'], a['deleteflg'], a['ordertype'], a['reasoncd'], (a['upddte']).strftime('%Y-%m-%d %H:%M:%S'), (a['updtime']).strftime('%Y-%m-%d %H:%M:%S'), a['carriercode'], a['bioabt'], a['bicomd'], a['bistdp'], a['binewt'], a['bigrwt'], a['bishpc'], a['biivpx'], a['bisafn'], a['biwidt'], a['bihigh'], a['bileng'],a['lotno'], update_date, update_date, runn)
                         mycursor.execute(sql, val)
-                        print(f"{runn} ==> {id}")
+                        print(f"{runn} ==> {id} on : {str(r['file_name'])}")
                         runn += 1
                         
                     ### Commit MySQL
                     mydb.commit()
+                    ### remove temp files after load data.
+                    os.remove(filename)
+                    ### Update status
+                    spl.update_status(token, str(r['id']), 1)
                     
                     ### Log
                     log(name='SPL', subject="INSERT", status="Success", message=f"Insert Data Order Plan({len(data)})")
@@ -916,11 +916,11 @@ def genearate_order():
     mydb.close()
     
 if __name__ == '__main__':
-    main()
+    # main()
     download()
-    get_receive()
-    merge_receive()
-    update_receive_ctn()
+    # get_receive()
+    # merge_receive()
+    # update_receive_ctn()
     # update_order_group()
     #orderplans()
     # genearate_order()
