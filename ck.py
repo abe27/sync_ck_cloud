@@ -113,15 +113,14 @@ def main():
             
             is_success = spl.logout(spl_token)
             print(f'logout is {is_success}')
-
-        log(name='SPL', subject="STOP", status='Active',message=f"Stop SPL Service")
+            ### Delete EXPORT Folder
+            if os.path.exists(root_pathname):
+                shutil.rmtree(root_pathname)
+                # if os.path.exists("BACKUP") is False:os.makedirs("BACKUP")
+                # shutil.copy(root_pathname, "BACKUP") 
+                log(name='SPL', subject="DELETE", status='Active',message=f"Delete EXPORT Folder")
         
-    ### Delete EXPORT Folder
-    if os.path.exists(root_pathname):
-        shutil.rmtree(root_pathname)
-        # if os.path.exists("BACKUP") is False:os.makedirs("BACKUP")
-        # shutil.move(root_pathname, "BACKUP") 
-        log(name='SPL', subject="DELETE", status='Active',message=f"Delete EXPORT Folder")
+        log(name='SPL', subject="STOP", status='Active',message=f"Stop SPL Service")
     
 def download():
     ### Initail Mysql Server
@@ -157,13 +156,16 @@ def download():
                     os.remove(filename)
                     ### Update status
                     spl.update_status(token, str(r['id']), 1)
-                    sql = "INSERT INTO tbt_order_plans(id, file_gedi_id, vendor, cd, unit, whs, tagrp, factory, sortg1, sortg2, sortg3, plantype, pono, biac, shiptype, etdtap, partno, partname, pc, commercial, sampleflg, orderorgi, orderround, firmflg, shippedflg, shippedqty, ordermonth, balqty, bidrfl, deleteflg, ordertype, reasoncd, upddte, updtime, carriercode, bioabt, bicomd, bistdp, binewt, bigrwt, bishpc, biivpx, bisafn, biwidt, bihigh, bileng, lotno, is_active, created_at, updated_at)VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,true, %s, %s)"
+                    sql = "INSERT INTO tbt_order_plans(id, file_gedi_id, vendor, cd, unit, whs, tagrp, factory, sortg1, sortg2, sortg3, plantype, pono, biac, shiptype, etdtap, partno, partname, pc, commercial, sampleflg, orderorgi, orderround, firmflg, shippedflg, shippedqty, ordermonth, balqty, bidrfl, deleteflg, ordertype, reasoncd, upddte, updtime, carriercode, bioabt, bicomd, bistdp, binewt, bigrwt, bishpc, biivpx, bisafn, biwidt, bihigh, bileng, lotno, is_active, created_at, updated_at,sequence)VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,true, %s, %s, %s)"
+                    runn = 1
                     for a in data:
                         # print(a)
                         id = generate(size=36)
                         update_date = f"{(a['upddte']).strftime('%Y-%m-%d')} {(a['updtime']).strftime('%H:%M:%S')}"
-                        val = (id, r['id'], a['vendor'], a['cd'], a['unit'], a['whs'], a['tagrp'], a['factory'], a['sortg1'], a['sortg2'], a['sortg3'], a['plantype'], a['pono'], a['biac'], a['shiptype'], (a['etdtap']).strftime('%Y-%m-%d %H:%M:%S'), a['partno'], a['partname'], a['pc'], a['commercial'], a['sampleflg'], a['orderorgi'], a['orderround'], a['firmflg'], a['shippedflg'], a['shippedqty'], (a['ordermonth']).strftime('%Y-%m-%d %H:%M:%S'), a['balqty'], a['bidrfl'], a['deleteflg'], a['ordertype'], a['reasoncd'], (a['upddte']).strftime('%Y-%m-%d %H:%M:%S'), (a['updtime']).strftime('%Y-%m-%d %H:%M:%S'), a['carriercode'], a['bioabt'], a['bicomd'], a['bistdp'], a['binewt'], a['bigrwt'], a['bishpc'], a['biivpx'], a['bisafn'], a['biwidt'], a['bihigh'], a['bileng'],a['lotno'], update_date, update_date)
+                        val = (id, r['id'], a['vendor'], a['cd'], a['unit'], a['whs'], a['tagrp'], a['factory'], a['sortg1'], a['sortg2'], a['sortg3'], a['plantype'], a['pono'], a['biac'], a['shiptype'], (a['etdtap']).strftime('%Y-%m-%d %H:%M:%S'), a['partno'], a['partname'], a['pc'], a['commercial'], a['sampleflg'], a['orderorgi'], a['orderround'], a['firmflg'], a['shippedflg'], a['shippedqty'], (a['ordermonth']).strftime('%Y-%m-%d %H:%M:%S'), a['balqty'], a['bidrfl'], a['deleteflg'], a['ordertype'], a['reasoncd'], (a['upddte']).strftime('%Y-%m-%d %H:%M:%S'), (a['updtime']).strftime('%Y-%m-%d %H:%M:%S'), a['carriercode'], a['bioabt'], a['bicomd'], a['bistdp'], a['binewt'], a['bigrwt'], a['bishpc'], a['biivpx'], a['bisafn'], a['biwidt'], a['bihigh'], a['bileng'],a['lotno'], update_date, update_date, runn)
                         mycursor.execute(sql, val)
+                        print(f"{runn} ==> {id}")
+                        runn += 1
                         
                     ### Commit MySQL
                     mydb.commit()
@@ -707,16 +709,24 @@ def genearate_order():
     )
     
     mycursor = mydb.cursor()
-    sql =f"""
-    select a.* from (
+    # sql =f"""
+    # select a.* from (
+    #     select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn    
+    #     from tbt_order_plans
+    #     where is_generated=false
+    #     group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active
+    #     order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active
+    # ) a
+    # limit 100
+    # """
+    
+    sql = f"""select a.* from (
         select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn    
         from tbt_order_plans
-        where is_generated=false
         group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active
         order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active
     ) a
-    limit 100
-    """
+    where etdtap='2022-06-02' and vendor='INJ' and bioabt='1' and biivpx='HJ' and biac='32W4' and bishpc='32W4D4' and bicomd='N' and shiptype='B' and ordertype='E' and pc='C' and commercial='C' and order_group='W4D4'"""
     runn_order = 1
     mycursor.execute(sql)
     for i in mycursor.fetchall():
@@ -790,7 +800,8 @@ def genearate_order():
         mycursor.execute(sql_consignee)
         #### check order
         order_id = generate(size=36)
-        mycursor.execute(f"select id from tbt_orders where consignee_id='{consignee_id}' and shipping_id='{shipping_id}' and etd_date='{etd_date}' and order_group='{order_group}' and pc='{pc}' and commercial='{commercial}' and order_type='{order_type}' and bioabt='{bioabt}' and bicomd='{bicomd}'")
+        sql_order = f"select id from tbt_orders where consignee_id='{consignee_id}' and shipping_id='{shipping_id}' and etd_date='{etd_date}' and order_group='{order_group}' and pc='{pc}' and commercial='{commercial}' and order_type='{order_type}' and bioabt='{bioabt}' and bicomd='{bicomd}'"
+        mycursor.execute(sql_order)
         orders = mycursor.fetchone()
         
         sql_insert_order = f"""insert into tbt_orders(id,consignee_id,shipping_id,etd_date,order_group,pc,commercial,order_type,bioabt,bicomd,order_whs_id,sync,is_active,created_at,updated_at)
@@ -802,6 +813,7 @@ def genearate_order():
         mycursor.execute(sql_insert_order)
         
         sql_body = f"""select '{order_id}' order_id,id order_plan_id,case when length(reasoncd) > 0 then reasoncd else '-' end revise_id,partno ledger_id,pono,lotno,ordermonth,orderorgi,orderround,balqty,bistdp,shippedflg,shippedqty,sampleflg,carriercode,bidrfl,deleteflg  delete_flg,firmflg  firm_flg,'' poupd_flg,unit,partname from tbt_order_plans where etdtap='{etd_date}' and vendor='{vendor}' and bioabt='{bioabt}' and biivpx='{biivpx}' and biac='{biac}' and bishpc='{bishpc}' and bicomd='{bicomd}' and shiptype='{shiptype}' and ordertype='{order_type}' and pc='{pc}' and commercial='{commercial}' and order_group='{order_group}' and is_active=true order by created_at"""
+        print(sql_body)
         mycursor.execute(sql_body)
         db = mycursor.fetchall()
         
@@ -871,7 +883,7 @@ def genearate_order():
             
             ### check order detail
             sql_order_detail = f"select id from tbt_order_details where order_id='{order_id}' and ledger_id='{ledger_id}' and pono='{pono}'"
-            # print(sql_order_detail)
+            print(sql_order_detail)
             order_detail_id = generate(size=36)
             mycursor.execute(sql_order_detail)
             ord_detail = mycursor.fetchone()
@@ -909,9 +921,9 @@ if __name__ == '__main__':
     get_receive()
     merge_receive()
     update_receive_ctn()
-    update_order_group()
-    # orderplans()
-    genearate_order()
+    # update_order_group()
+    #orderplans()
+    # genearate_order()
     pool.release(Oracon)
     pool.close()
     sys.exit(0)
