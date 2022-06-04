@@ -721,16 +721,16 @@ def genearate_order():
     # limit 20000
     # """
     
-    sql =f"""
-    select a.* from (
-        select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,'-' ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn    
-        from tbt_order_plans
-        where is_generated=false and order_group is not null
-        group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active
-        order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active
-    ) a
-    limit 20000
-    """
+    # sql =f"""
+    # select a.* from (
+    #     select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,'-' ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn    
+    #     from tbt_order_plans
+    #     where is_generated=false and order_group is not null and etdtap >= current_date
+    #     group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active
+    #     order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active
+    # ) a
+    # limit 20000
+    # """
     
     # sql = f"""select a.* from (
     #     select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn    
@@ -739,6 +739,17 @@ def genearate_order():
     #     order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active
     # ) a
     # where etdtap='2022-06-02' and vendor='INJ' and bioabt='1' and biivpx='HJ' and biac='32W4' and bishpc='32W4D4' and bicomd='N' and shiptype='B' and ordertype='E' and pc='C' and commercial='C' and order_group='W4D4'"""
+    
+    sql = f"""
+    select a.* from (
+        select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,'-' ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn,case when length(trim(substr(reasoncd, 1, 1))) = 0 then '-' else trim(substr(reasoncd, 1, 1)) end rcd
+        from tbt_order_plans
+        where is_generated=false and order_group is not null and etdtap between current_date - 7 and (current_date + 14)
+        group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
+        order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
+    ) a
+    limit 20000"""
+    
     runn_order = 1
     mycursor.execute(sql)
     for i in mycursor.fetchall():
@@ -750,15 +761,18 @@ def genearate_order():
         bishpc = str(i[5])
         bisafn = str(i[6])
         shiptype = str(i[7])
-        order_type = str(i[8])
+        # order_type = str(i[8])
         pc = str(i[9])
         commercial = str(i[10])
         order_group = str(i[11])
         # is_active = str(i[12])
         # items = str(i[13])
         # ctn = str(i[14])
-        
-        order_whs = "CK-2"
+        order_type = str(i[15])
+        if order_type != "M":order_type='-'
+
+        order_whs = "CK-1"
+        if (bioabt+vendor) == "1INJ":order_whs = "CK-2"
         if order_group[:1] =="#":order_whs = "NESC"
         elif order_group[:1] =="@":order_whs = "ICAM"
         
@@ -823,8 +837,10 @@ def genearate_order():
             
         mycursor.execute(sql_insert_order)
         
-        sql_body = f"""select '{order_id}' order_id,id order_plan_id,case when length(reasoncd) > 0 then reasoncd else '-' end revise_id,partno ledger_id,pono,lotno,ordermonth,orderorgi,orderround,balqty,bistdp,shippedflg,shippedqty,sampleflg,carriercode,bidrfl,deleteflg  delete_flg,firmflg  firm_flg,'' poupd_flg,unit,partname from tbt_order_plans where etdtap='{etd_date}' and vendor='{vendor}' and bioabt='{bioabt}' and biivpx='{biivpx}' and biac='{biac}' and bishpc='{bishpc}' and shiptype='{shiptype}' and pc='{pc}' and commercial='{commercial}' and order_group='{order_group}' and is_active=true order by created_at,sequence"""
-        # print(sql_body)
+        sql_reason = "and substring(reasoncd, 1, 1) <> 'M'"
+        if order_type == 'M':sql_reason = "and substring(reasoncd, 1, 1)='M'"
+        sql_body = f"""select '{order_id}' order_id,id order_plan_id,case when length(reasoncd) > 0 then reasoncd else '-' end revise_id,partno ledger_id,pono,lotno,ordermonth,orderorgi,orderround,balqty,bistdp,shippedflg,shippedqty,sampleflg,carriercode,bidrfl,deleteflg  delete_flg,firmflg  firm_flg,'' poupd_flg,unit,partname from tbt_order_plans where etdtap='{etd_date}' and vendor='{vendor}' and bioabt='{bioabt}' and biivpx='{biivpx}' and biac='{biac}' and bishpc='{bishpc}' and shiptype='{shiptype}' and pc='{pc}' and commercial='{commercial}' and order_group='{order_group}' {sql_reason} and is_active=true order by created_at,sequence"""
+        print(sql_body)
         mycursor.execute(sql_body)
         db = mycursor.fetchall()
         
@@ -906,7 +922,7 @@ def genearate_order():
                 order_detail_id = ord_detail[0]
                 ord_detail_insert = f"update tbt_order_details set revise_id='{revise_id}',order_plan_id='{order_plan_id}',order_balqty='{balqty}',order_month='{order_month}',reason_code='{reason_cd}',updated_at=current_timestamp where id='{order_detail_id}'"
             mycursor.execute(ord_detail_insert)
-            print(f"{runn} etd: {etd_date} order: {pono} part: {part_no} R: {reason_cd} qty: {balqty} stdpack: {bistdp}")
+            print(f"{runn} etd: {etd_date} ship: {shiptype} order: {pono} part: {part_no} R: {reason_cd} qty: {balqty} stdpack: {bistdp}")
             runn += 1
         
         mycursor.execute(f"""update tbt_order_plans set is_generated=true where etdtap='{etd_date}' and vendor='{vendor}' and bioabt='{bioabt}' and biivpx='{biivpx}' and biac='{biac}' and bishpc='{bishpc}' and shiptype='{shiptype}' and pc='{pc}' and commercial='{commercial}' and order_group='{order_group}'""")    
