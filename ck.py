@@ -795,7 +795,8 @@ def genearate_order():
             consignee_id = consignee[0]
             sql_consignee = f"""update tbt_consignees set updated_at=current_timestamp where id='{consignee_id}'"""
         mycursor.execute(sql_consignee)
-        print(filter_by_reason)
+        if filter_by_reason == "S":
+            print(filter_by_reason)
         #### check order
         order_id = generate(size=36)
         sql_order = f"""select id from tbt_orders 
@@ -821,7 +822,7 @@ def genearate_order():
         sql_reason = "and substring(reasoncd, 1, 1) not in ('M', '0')"
         if order_type == 'M':sql_reason = "and substring(reasoncd, 1, 1) in ('M', '0')"
         sql_body = f"""select '{order_id}' order_id,id order_plan_id,case when length(reasoncd) > 0 then reasoncd else '-' end revise_id,partno ledger_id,pono,lotno,ordermonth,orderorgi,orderround,balqty,bistdp,shippedflg,shippedqty,sampleflg,carriercode,bidrfl,deleteflg  delete_flg,firmflg  firm_flg,'' poupd_flg,unit,partname from tbt_order_plans where etdtap='{etd_date}' and vendor='{vendor}' and bioabt='{bioabt}' and biivpx='{biivpx}' and biac='{biac}' and bishpc='{bishpc}' and shiptype='{shiptype}' and pc='{pc}' and commercial='{commercial}' and order_group='{order_group}' {sql_reason} and is_active=true order by created_at,sequence"""
-        print(sql_body)
+        # print(sql_body)
         mycursor.execute(sql_body)
         db = mycursor.fetchall()
         
@@ -914,13 +915,13 @@ def genearate_order():
     mydb.close()
     
 if __name__ == '__main__':
-    # main()
-    # download()
-    # get_receive()
-    # merge_receive()
-    # update_receive_ctn()
-    # update_order_group()
-    # ##orderplans()
+    main()
+    download()
+    get_receive()
+    merge_receive()
+    update_receive_ctn()
+    update_order_group()
+    ##orderplans()
     genearate_order()
     pool.release(Oracon)
     pool.close()
