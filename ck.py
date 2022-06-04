@@ -712,11 +712,11 @@ def genearate_order():
     mycursor = mydb.cursor()
     sql =f"""
     select a.* from (
-        select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn    
+        select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn    
         from tbt_order_plans
         where is_generated=false and order_group is not null and etdtap >= (current_date - 7)
-        group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active
-        order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,bicomd,shiptype,ordertype,pc,commercial,order_group,is_active
+        group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,ordertype,pc,commercial,order_group,is_active
+        order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,ordertype,pc,commercial,order_group,is_active
     ) a
     limit 20000
     """
@@ -738,15 +738,14 @@ def genearate_order():
         biac = str(i[4])
         bishpc = str(i[5])
         bisafn = str(i[6])
-        bicomd = str(i[7])
-        shiptype = str(i[8])
-        order_type = str(i[9])
-        pc = str(i[10])
-        commercial = str(i[11])
-        order_group = str(i[12])
-        is_active = str(i[13])
-        items = str(i[14])
-        ctn = str(i[15])
+        shiptype = str(i[7])
+        order_type = str(i[8])
+        pc = str(i[9])
+        commercial = str(i[10])
+        order_group = str(i[11])
+        # is_active = str(i[12])
+        # items = str(i[13])
+        # ctn = str(i[14])
         
         order_whs = "CK-2"
         if order_group[:1] =="#":order_whs = "NESC"
@@ -801,19 +800,19 @@ def genearate_order():
         mycursor.execute(sql_consignee)
         #### check order
         order_id = generate(size=36)
-        sql_order = f"select id from tbt_orders where consignee_id='{consignee_id}' and shipping_id='{shipping_id}' and etd_date='{etd_date}' and order_group='{order_group}' and pc='{pc}' and commercial='{commercial}' and order_type='{order_type}' and bioabt='{bioabt}' and bicomd='{bicomd}'"
+        sql_order = f"select id from tbt_orders where consignee_id='{consignee_id}' and shipping_id='{shipping_id}' and etd_date='{etd_date}' and order_group='{order_group}' and pc='{pc}' and commercial='{commercial}' and order_type='{order_type}' and bioabt='{bioabt}'"
         mycursor.execute(sql_order)
         orders = mycursor.fetchone()
         
-        sql_insert_order = f"""insert into tbt_orders(id,consignee_id,shipping_id,etd_date,order_group,pc,commercial,order_type,bioabt,bicomd,order_whs_id,sync,is_active,created_at,updated_at)
-        values('{order_id}','{consignee_id}','{shipping_id}','{etd_date}','{order_group}','{pc}','{commercial}','{order_type}','{bioabt}','{bicomd}','{zname_id}',false,true,current_timestamp,current_timestamp)"""
+        sql_insert_order = f"""insert into tbt_orders(id,consignee_id,shipping_id,etd_date,order_group,pc,commercial,order_type,bioabt,order_whs_id,sync,is_active,created_at,updated_at)
+        values('{order_id}','{consignee_id}','{shipping_id}','{etd_date}','{order_group}','{pc}','{commercial}','{order_type}','{bioabt}','{zname_id}',false,true,current_timestamp,current_timestamp)"""
         if orders:
             order_id = orders[0]
             sql_insert_order = f"update tbt_orders set order_whs_id='{zname_id}',sync=false,is_active=true,updated_at=current_timestamp where id='{order_id}'"
             
         mycursor.execute(sql_insert_order)
         
-        sql_body = f"""select '{order_id}' order_id,id order_plan_id,case when length(reasoncd) > 0 then reasoncd else '-' end revise_id,partno ledger_id,pono,lotno,ordermonth,orderorgi,orderround,balqty,bistdp,shippedflg,shippedqty,sampleflg,carriercode,bidrfl,deleteflg  delete_flg,firmflg  firm_flg,'' poupd_flg,unit,partname from tbt_order_plans where etdtap='{etd_date}' and vendor='{vendor}' and bioabt='{bioabt}' and biivpx='{biivpx}' and biac='{biac}' and bishpc='{bishpc}' and bicomd='{bicomd}' and shiptype='{shiptype}' and ordertype='{order_type}' and pc='{pc}' and commercial='{commercial}' and order_group='{order_group}' and is_active=true order by created_at,sequence"""
+        sql_body = f"""select '{order_id}' order_id,id order_plan_id,case when length(reasoncd) > 0 then reasoncd else '-' end revise_id,partno ledger_id,pono,lotno,ordermonth,orderorgi,orderround,balqty,bistdp,shippedflg,shippedqty,sampleflg,carriercode,bidrfl,deleteflg  delete_flg,firmflg  firm_flg,'' poupd_flg,unit,partname from tbt_order_plans where etdtap='{etd_date}' and vendor='{vendor}' and bioabt='{bioabt}' and biivpx='{biivpx}' and biac='{biac}' and bishpc='{bishpc}' and shiptype='{shiptype}' and ordertype='{order_type}' and pc='{pc}' and commercial='{commercial}' and order_group='{order_group}' and is_active=true order by created_at,sequence"""
         # print(sql_body)
         mycursor.execute(sql_body)
         db = mycursor.fetchall()
@@ -897,19 +896,7 @@ def genearate_order():
             print(f"{runn} etd: {etd_date} order: {pono} part: {part_no} R: {reason_cd} qty: {balqty} stdpack: {bistdp}")
             runn += 1
         
-        mycursor.execute(f"""update tbt_order_plans set is_generated=true 
-                         where etdtap='{etd_date}' and 
-                         vendor='{vendor}' and 
-                         bioabt='{bioabt}' and 
-                         biivpx='{biivpx}' and 
-                         biac='{biac}' and 
-                         bishpc='{bishpc}' and 
-                         bicomd='{bicomd}' and 
-                         shiptype='{shiptype}' and 
-                         ordertype='{order_type}' and 
-                         pc='{pc}' and 
-                         commercial='{commercial}' and 
-                         order_group='{order_group}'""")    
+        mycursor.execute(f"""update tbt_order_plans set is_generated=true where etdtap='{etd_date}' and vendor='{vendor}' and bioabt='{bioabt}' and biivpx='{biivpx}' and biac='{biac}' and bishpc='{bishpc}' and shiptype='{shiptype}' and ordertype='{order_type}' and pc='{pc}' and commercial='{commercial}' and order_group='{order_group}'""")    
         mydb.commit()
         print(f"END =================={runn_order}======================")
         runn_order += 1
