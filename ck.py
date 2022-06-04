@@ -710,11 +710,21 @@ def genearate_order():
     )
     
     mycursor = mydb.cursor()
+    # sql = f"""
+    # select a.* from (
+    #     select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,'-' ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn,case when length(trim(substr(reasoncd, 1, 1))) = 0 then '-' else trim(substr(reasoncd, 1, 1)) end rcd
+    #     from tbt_order_plans
+    #     where is_generated=false and order_group is not null and etdtap between date_trunc('week', current_date)::date and (current_date + 14)
+    #     group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
+    #     order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
+    # ) a
+    # limit 20000"""
+    
     sql = f"""
     select a.* from (
         select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,'-' ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn,case when length(trim(substr(reasoncd, 1, 1))) = 0 then '-' else trim(substr(reasoncd, 1, 1)) end rcd
         from tbt_order_plans
-        where is_generated=false and order_group is not null and etdtap between date_trunc('week', current_date)::date and (current_date + 14)
+        where etdtap between date_trunc('week', current_date)::date and (current_date + 14)
         group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
         order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
     ) a
@@ -795,19 +805,16 @@ def genearate_order():
             consignee_id = consignee[0]
             sql_consignee = f"""update tbt_consignees set updated_at=current_timestamp where id='{consignee_id}'"""
         mycursor.execute(sql_consignee)
+        sql_order = f"""select id from tbt_orders where consignee_id='{consignee_id}' and shipping_id='{shipping_id}' and etd_date='{etd_date}' and order_group='{order_group}' and pc='{pc}' and commercial='{commercial}' and order_type='{order_type}' and bioabt='{bioabt}' and order_whs_id='{zname_id}' and is_invoice=false"""
         if filter_by_reason == "S":
-            print(filter_by_reason)
+            sql_order = f"""select id from tbt_orders where consignee_id='{consignee_id}' and etd_date='{etd_date}' and order_group='{order_group}' and pc='{pc}' and commercial='{commercial}' and order_type='{order_type}' and bioabt='{bioabt}' and order_whs_id='{zname_id}' and is_invoice=false"""
+        
+        elif filter_by_reason == "D":
+            sql_order = f"""select id from tbt_orders where consignee_id='{consignee_id}' and shipping_id='{shipping_id}' and order_group='{order_group}' and pc='{pc}' and commercial='{commercial}' and order_type='{order_type}' and bioabt='{bioabt}' and order_whs_id='{zname_id}' and is_invoice=false"""
+        
         #### check order
         order_id = generate(size=36)
-        sql_order = f"""select id from tbt_orders 
-        where consignee_id='{consignee_id}' and 
-        shipping_id='{shipping_id}' and 
-        etd_date='{etd_date}' and 
-        order_group='{order_group}' and 
-        pc='{pc}' and 
-        commercial='{commercial}' and 
-        order_type='{order_type}' and 
-        bioabt='{bioabt}'"""
+        print(sql_order)
         mycursor.execute(sql_order)
         orders = mycursor.fetchone()
         
@@ -815,7 +822,11 @@ def genearate_order():
         values('{order_id}','{consignee_id}','{shipping_id}','{etd_date}','{order_group}','{pc}','{commercial}','{order_type}','{bioabt}','{zname_id}',false,true,current_timestamp,current_timestamp)"""
         if orders:
             order_id = orders[0]
-            sql_insert_order = f"update tbt_orders set order_whs_id='{zname_id}',sync=false,is_active=true,updated_at=current_timestamp where id='{order_id}'"
+            if filter_by_reason == "S":
+                sql_insert_order = f"update tbt_orders set shipping_id='{shipping_id}',order_whs_id='{zname_id}',sync=false,is_active=true,updated_at=current_timestamp where id='{order_id}'"
+                
+            elif filter_by_reason == "D":
+                sql_insert_order = f"update tbt_orders set etd_date='{etd_date}',order_whs_id='{zname_id}',sync=false,is_active=true,updated_at=current_timestamp where id='{order_id}'"
             
         mycursor.execute(sql_insert_order)
         
@@ -915,13 +926,13 @@ def genearate_order():
     mydb.close()
     
 if __name__ == '__main__':
-    main()
-    download()
-    get_receive()
-    merge_receive()
-    update_receive_ctn()
-    update_order_group()
-    ##orderplans()
+    # main()
+    # download()
+    # get_receive()
+    # merge_receive()
+    # update_receive_ctn()
+    # update_order_group()
+    # ##orderplans()
     genearate_order()
     pool.release(Oracon)
     pool.close()
