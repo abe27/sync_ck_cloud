@@ -744,7 +744,7 @@ def genearate_order():
     select a.* from (
         select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,'-' ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn,case when length(trim(substr(reasoncd, 1, 1))) = 0 then '-' else trim(substr(reasoncd, 1, 1)) end rcd
         from tbt_order_plans
-        where is_generated=false and order_group is not null and etdtap between current_date - 7 and (current_date + 14)
+        where is_generated=false and order_group is not null and etdtap between date_trunc('week', current_date)::date and (current_date + 14)
         group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
         order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
     ) a
@@ -933,13 +933,13 @@ def genearate_order():
     mydb.close()
     
 if __name__ == '__main__':
-    main()
-    download()
-    get_receive()
-    merge_receive()
-    update_receive_ctn()
-    update_order_group()
-    ##orderplans()
+    # main()
+    # download()
+    # get_receive()
+    # merge_receive()
+    # update_receive_ctn()
+    # update_order_group()
+    # ##orderplans()
     genearate_order()
     pool.release(Oracon)
     pool.close()
