@@ -888,10 +888,11 @@ def genearate_order():
             ledger_id = generate(size=36)
             sql_ledger = f"""insert into tbt_ledgers(id,part_type_id,tagrp_id,factory_id,whs_id,part_id,unit_id,is_active,created_at,updated_at)values('{ledger_id}','{part_type_id}','{tagrp_id}','{factory_id}','{whs_id}','{part_id}','{unit_id}',true,current_timestamp,current_timestamp)"""
             ledger = mycursor.fetchone()
-            if ledger:
+            if ledger is None:
+                mycursor.execute(sql_ledger)
+                
+            else:
                 ledger_id = ledger[0]
-                sql_ledger = f"""update tbt_ledgers set is_active=true,updated_at=current_timestamp where id='{ledger_id}'"""
-            mycursor.execute(sql_ledger)
             
             ### check order detail
             sql_order_detail = f"select id from tbt_order_details where order_id='{order_id}' and ledger_id='{ledger_id}' and pono='{pono}'"
