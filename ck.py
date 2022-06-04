@@ -854,12 +854,13 @@ def genearate_order():
             
             revise_id = generate(size=36)
             mycursor.execute(f"select id from tbt_order_revises where value='{reason_cd}'")
-            revise_insert = f"insert into tbt_order_revises(id,name,value,description,new_or_revise,is_active,created_at,updated_at)values('{revise_id}','{reason_cd}','{reason_cd}','-',false,true,current_timestamp,current_timestamp)"
             revise = mycursor.fetchone()
-            if revise:
+            if revise is None:
+                revise_insert = f"insert into tbt_order_revises(id,name,value,description,new_or_revise,is_active,created_at,updated_at)values('{revise_id}','{reason_cd}','{reason_cd}','-',false,true,current_timestamp,current_timestamp)"
+                mycursor.execute(revise_insert)
+                
+            else:
                 revise_id = revise[0]
-                revise_insert = f"update tbt_order_revises set name='{reason_cd}',updated_at=current_timestamp where id='{revise_id}'"
-            mycursor.execute(revise_insert)
             
             p = "PART"
             if part_no[:1] == '1':p = "WIRE"
