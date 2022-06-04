@@ -806,11 +806,11 @@ def genearate_order():
             sql_consignee = f"""update tbt_consignees set updated_at=current_timestamp where id='{consignee_id}'"""
         mycursor.execute(sql_consignee)
         sql_order = f"""select id from tbt_orders where consignee_id='{consignee_id}' and shipping_id='{shipping_id}' and etd_date='{etd_date}' and order_group='{order_group}' and pc='{pc}' and commercial='{commercial}' and order_type='{order_type}' and bioabt='{bioabt}' and order_whs_id='{zname_id}' and is_invoice=false"""
-        if filter_by_reason == "S":
-            sql_order = f"""select id from tbt_orders where consignee_id='{consignee_id}' and etd_date='{etd_date}' and order_group='{order_group}' and pc='{pc}' and commercial='{commercial}' and order_type='{order_type}' and bioabt='{bioabt}' and order_whs_id='{zname_id}' and is_invoice=false"""
+        # if filter_by_reason == "S":
+        #     sql_order = f"""select id from tbt_orders where consignee_id='{consignee_id}' and etd_date='{etd_date}' and order_group='{order_group}' and pc='{pc}' and commercial='{commercial}' and order_type='{order_type}' and bioabt='{bioabt}' and order_whs_id='{zname_id}' and is_invoice=false"""
         
-        elif filter_by_reason == "D":
-            sql_order = f"""select id from tbt_orders where consignee_id='{consignee_id}' and shipping_id='{shipping_id}' and order_group='{order_group}' and pc='{pc}' and commercial='{commercial}' and order_type='{order_type}' and bioabt='{bioabt}' and order_whs_id='{zname_id}' and is_invoice=false"""
+        # elif filter_by_reason == "D":
+        #     sql_order = f"""select id from tbt_orders where consignee_id='{consignee_id}' and shipping_id='{shipping_id}' and order_group='{order_group}' and pc='{pc}' and commercial='{commercial}' and order_type='{order_type}' and bioabt='{bioabt}' and order_whs_id='{zname_id}' and is_invoice=false"""
         
         #### check order
         order_id = generate(size=36)
