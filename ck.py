@@ -997,7 +997,7 @@ if __name__ == '__main__':
     update_order_group()
     ##orderplans()
     genearate_order()
-    generate_invoice()
+    # generate_invoice()
     pool.release(Oracon)
     pool.close()
     sys.exit(0)
