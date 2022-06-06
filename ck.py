@@ -925,6 +925,65 @@ def genearate_order():
         
     mydb.close()
     
+def generate_invoice():
+    ### Initail Mysql Server
+    mydb = pgsql.connect(
+        host=DB_HOSTNAME,
+        port=DB_PORT,
+        user=DB_USERNAME,
+        password=DB_PASSWORD,
+        database=DB_NAME,
+    )
+    
+    mycursor = mydb.cursor()
+    sql = f"""select d.id,tc.factory_id,d.consignee_id,tc.prefix_code,tc.last_running_no,d.etd_date,toz.zone order_whs_id,tit.id title_id from tbt_orders d
+        inner join tbt_consignees tc on d.consignee_id=tc.id 
+        inner join tbt_shippings ts on d.shipping_id=ts.id
+        inner join tbt_factory_types tft on tc.factory_id=tft.id
+        inner join tbt_order_zones toz on d.order_whs_id=toz.id
+        inner join tbt_invoice_titles tit on tit.title='000'
+        where d.is_invoice=false
+        order by d.etd_date,d.created_at"""
+    
+    mycursor.execute(sql)
+    db = mycursor.fetchall()
+    for i in db:
+        order_id = str(i[0])
+        factory_id = str(i[1])
+        consignee_id = str(i[2])
+        prefix_code = str(i[3])
+        last_running_no = int(str(i[4])) + 1
+        etd_date = datetime.strptime(str(i[5]), '%Y-%m-%d')
+        order_whs_id = str(i[6])
+        title_id = str(i[7])
+        
+        zone_code = f"{str(etd_date.strftime('%Y%m%d'))[2:]}{prefix_code}{'{:02d}'.format(last_running_no)}"
+        
+        mycursor.execute(f"select id from tbt_whs where name='{order_whs_id}'")
+        whs_id = mycursor.fetchone()[0]
+        
+        #### create invoice
+        sql_check_order = f"select id from tbt_invoices where order_id='{order_id}'"
+        mycursor.execute(sql_check_order)
+        inv = mycursor.fetchone()
+        if inv is None:
+            inv_id = generate(size=36)
+            sql_insert_invoice = f"""insert into tbt_invoices(id, order_id, inv_prefix, running_seq, ship_date, ship_from_id, ship_via, ship_der, title_id, loading_area, privilege, zone_code, invoice_status, is_active, created_at, updated_at)
+            values('{inv_id}', '{order_id}', '{prefix_code}', {last_running_no}, '{etd_date}', '{whs_id}', '-', 'LCL', '{title_id}', 'CK-2', 'DOMESTIC', '{zone_code}' ,'N', false, current_timestamp, current_timestamp)"""
+            mycursor.execute(sql_insert_invoice)
+            
+        else:inv_id=inv[0]
+        
+        
+        ### after new invoice update last_running_no
+        sql_update_last_running_no = f"update tbt_consignees set last_running_no={last_running_no} where factory_id='{factory_id}' and prefix_code='{prefix_code}'"
+        mycursor.execute(sql_update_last_running_no)
+        mycursor.execute(f"update tbt_orders set sync=false,is_invoice=true,updated_at=current_timestamp where id='{order_id}'")
+        print(f"update data {order_id}")
+        mydb.commit()
+        
+    mydb.close()
+    
 if __name__ == '__main__':
     main()
     download()
@@ -934,6 +993,7 @@ if __name__ == '__main__':
     update_order_group()
     ##orderplans()
     genearate_order()
+    generate_invoice()
     pool.release(Oracon)
     pool.close()
     sys.exit(0)
