@@ -987,16 +987,76 @@ def generate_invoice():
         
     mydb.close()
     
+
+def sync_invoice():
+    ### Initail Mysql Server
+    mydb = pgsql.connect(
+        host=DB_HOSTNAME,
+        port=DB_PORT,
+        user=DB_USERNAME,
+        password=DB_PASSWORD,
+        database=DB_NAME,
+    )
+    mycursor = mydb.cursor()
+    sql = f"""select 
+        tft.factory_prefix||tc.prefix_code||to_char(td.etd_date, 'y') prefix_issuingkey,ti.running_seq,0 issuingstatus,td.etd_date etddte,tft.name factory,ta.aff_code affcode,tcc.cust_code bishpc,tcc.cust_name custname,td.commercial comercial,td.bioabt zoneid,ts.prefix_code shiptype,case when td.order_type = '-' then 'E' else td.order_type end combinv,td.pc pc,ti.zone_code zonecode,ti.ship_via note1,ti.privilege note2,ti.id uuid,'SKTSYS' createdby,'SKTSYS' modifiedby,ti.ship_der containertype,0 issuingmax
+    from tbt_orders td
+    inner join tbt_consignees tc on td.consignee_id = tc.id 
+    inner join tbt_factory_types tft on tc.factory_id = tft.id
+    inner join tbt_affiliates ta on tc.aff_id = ta.id 
+    inner join tbt_customers tcc on tc.customer_id=tc.customer_id
+    inner join tbt_shippings ts on td.shipping_id = ts.id
+    inner join tbt_invoices ti on ti.order_id = td.id
+    where td.sync=false
+    order by td.etd_date,ti.running_seq"""
+    mycursor.execute(sql)
+    db = mycursor.fetchall()
+    for i in db:
+        prefix_issuingkey = str(i[0])
+        running_seq = int(str(i[1]))
+        issuingstatus = str(i[2])
+        etddte = str(i[3])
+        factory = str(i[4])
+        affcode = str(i[5])
+        bishpc = str(i[6])
+        custname = str(i[7])
+        comercial = str(i[8])
+        zoneid = str(i[9])
+        shiptype = str(i[10])
+        combinv = str(i[11])
+        pc = str(i[12])
+        zonecode = str(i[13])
+        note1 = str(i[14])
+        note2 = str(i[15])
+        uid = str(i[16])
+        createdby = str(i[17])
+        modifiedby = str(i[18])
+        containertype = str(i[19])
+        issuingmax = str(i[20])
+        
+        invoiceno = f"{prefix_issuingkey}{'{:04d}'.format(running_seq)}{shiptype}"
+        inv = Oracur.execute(f"SELECT ISSUINGKEY FROM TXP_ISSTRANSENT WHERE ISSUINGKEY='{invoiceno}'")
+        sql_insert_header = f"""INSERT INTO TXP_ISSTRANSENT(ISSUINGKEY, ETDDTE, FACTORY, AFFCODE, BISHPC, CUSTNAME, COMERCIAL, ZONEID, SHIPTYPE, COMBINV, SHIPDTE, PC, SHIPFROM, ZONECODE, NOTE1, NOTE2, NOTE3, VESSEL, CONTAINERNO, ISSUINGMAX, ISSUINGSTATUS, RECISSTYPE, CONTAINERTYPE, SHIPLABELDTE, DIMMENTSIONDTE, SHREPORTDTE, PREPAREFLAG, WRAPPINGFLAG, LOADINGFLAG, SHCONFIRM, FINALINVDTE, CONTAINERDTE, ISSUEDTE, DRAFINVID, SHIPLABELID, FINALINVID, DIMID, CONFIRMSHID, ISSUEID, UPDDTE, SYSDTE, UUID, CREATEDBY, MODIFIEDBY, SENDFLAG, REFINVOICE)
+        VALUES('ISSUINGKEY', 'ETDDTE', 'FACTORY', 'AFFCODE', 'BISHPC', 'CUSTNAME', 'COMERCIAL', 'ZONEID', 'SHIPTYPE', 'COMBINV', 'SHIPDTE', 'PC', 'SHIPFROM', 'ZONECODE', 'NOTE1', 'NOTE2', 'NOTE3', 'VESSEL', 'CONTAINERNO', 'ISSUINGMAX', 'ISSUINGSTATUS', 'RECISSTYPE', 'CONTAINERTYPE', 'SHIPLABELDTE', 'DIMMENTSIONDTE', 'SHREPORTDTE', 'PREPAREFLAG', 'WRAPPINGFLAG', 'LOADINGFLAG', 'SHCONFIRM', 'FINALINVDTE', 'CONTAINERDTE', 'ISSUEDTE', 'DRAFINVID', 'SHIPLABELID', FINALINVID, DIMID, CONFIRMSHID, ISSUEID, UPDDTE, SYSDTE, UUID, CREATEDBY, MODIFIEDBY, SENDFLAG, REFINVOICE)"""
+        if inv:
+            print(f"update")
+        
+        
+        
+    mydb.commit()
+    mydb.close()
+    
 if __name__ == '__main__':
-    main()
-    download()
-    get_receive()
-    merge_receive()
-    update_receive_ctn()
-    update_order_group()
-    ##orderplans()
-    genearate_order()
-    generate_invoice()
+    # main()
+    # download()
+    # get_receive()
+    # merge_receive()
+    # update_receive_ctn()
+    # update_order_group()
+    # ##orderplans()
+    # genearate_order()
+    # generate_invoice()
+    sync_invoice()
     pool.release(Oracon)
     pool.close()
     sys.exit(0)
