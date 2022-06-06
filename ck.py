@@ -947,18 +947,18 @@ def generate_invoice():
     
     mycursor.execute(sql)
     db = mycursor.fetchall()
-    last_running_no = 0
     for i in db:
         order_id = str(i[0])
         factory_id = str(i[1])
         consignee_id = str(i[2])
         prefix_code = str(i[3])
-        if last_running_no == 0:
-            last_running_no = int(str(i[4])) + 1
-            
         etd_date = datetime.strptime(str(i[5]), '%Y-%m-%d')
         order_whs_id = str(i[6])
         title_id = str(i[7])
+        
+        mycursor.execute(f"select last_running_no from tbt_consignees where prefix_code ='{prefix_code}' and factory_id='{factory_id}' group by last_running_no")
+        runn = mycursor.fetchone()
+        last_running_no = int(str(runn[0])) + 1
         
         zone_code = f"{str(etd_date.strftime('%Y%m%d'))[2:]}{prefix_code}{'{:02d}'.format(last_running_no)}"
         
@@ -984,7 +984,6 @@ def generate_invoice():
         mycursor.execute(f"update tbt_orders set sync=false,is_invoice=true,updated_at=current_timestamp where id='{order_id}'")
         print(f"update data {order_id}")
         mydb.commit()
-        last_running_no += 1
         
     mydb.close()
     
@@ -997,7 +996,7 @@ if __name__ == '__main__':
     update_order_group()
     ##orderplans()
     genearate_order()
-    # generate_invoice()
+    generate_invoice()
     pool.release(Oracon)
     pool.close()
     sys.exit(0)
