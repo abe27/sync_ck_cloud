@@ -936,7 +936,7 @@ def generate_invoice():
     )
     
     mycursor = mydb.cursor()
-    sql = f"""select d.id,tc.factory_id,d.consignee_id,tc.prefix_code,tc.last_running_no,d.etd_date,toz.zone order_whs_id,tit.id title_id from tbt_orders d
+    sql = f"""select d.id,tc.factory_id,d.consignee_id,tc.prefix_code,tc.last_running_no,d.etd_date,toz.zone order_whs_id,tit.id title_id,ts.prefix_code from tbt_orders d
         inner join tbt_consignees tc on d.consignee_id=tc.id 
         inner join tbt_shippings ts on d.shipping_id=ts.id
         inner join tbt_factory_types tft on tc.factory_id=tft.id
@@ -955,11 +955,22 @@ def generate_invoice():
         etd_date = datetime.strptime(str(i[5]), '%Y-%m-%d')
         order_whs_id = str(i[6])
         title_id = str(i[7])
+        shiptype = str(i[8]).strip()
         
         mycursor.execute(f"select last_running_no + 1 from tbt_consignees where prefix_code ='{prefix_code}' and factory_id='{factory_id}' group by last_running_no")
         last_running_no = int(str(mycursor.fetchone()[0]))
         
-        zone_code = f"{str(etd_date.strftime('%Y%m%d'))[2:]}{prefix_code}{'{:02d}'.format(last_running_no)}"
+        end_zname = shiptype
+        if order_whs_id == "CK-2":
+            end_zname = "C"
+            
+        elif order_whs_id == "NESC":
+            end_zname = "N"
+            
+        elif order_whs_id == "ICAM":
+            end_zname = "I"
+            
+        zone_code = f"{str(etd_date.strftime('%Y%m%d'))[3:]}{end_zname}{'{:03d}'.format(last_running_no)}"
         
         mycursor.execute(f"select id from tbt_whs where name='{order_whs_id}'")
         whs_id = mycursor.fetchone()[0]
