@@ -971,7 +971,7 @@ def generate_invoice():
         inv = mycursor.fetchone()
         inv_id = generate(size=36)
         sql_insert_invoice = f"""insert into tbt_invoices(id, order_id, inv_prefix, running_seq, ship_date, ship_from_id, ship_via, ship_der, title_id, loading_area, privilege, zone_code, invoice_status, is_active, created_at, updated_at)
-        values('{inv_id}', '{order_id}', '{prefix_code}', {last_running_no}, '{etd_date}', '{whs_id}', '-', 'LCL', '{title_id}', 'CK-2', 'DOMESTIC', '{zone_code}' ,'N', false, current_timestamp, current_timestamp)"""
+        values('{inv_id}', '{order_id}', '{prefix_code}', {last_running_no}, '{etd_date}', '{whs_id}', '-', 'LCL', '{title_id}', 'CK-2', 'DOMESTIC', '{zone_code}' ,'N', true, current_timestamp, current_timestamp)"""
         if inv:
             inv_id=inv[0]
             sql_insert_invoice = f"update tbt_invoices set order_id='{order_id}' where id='{inv_id}'"
