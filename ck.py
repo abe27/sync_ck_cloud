@@ -950,7 +950,7 @@ def generate_invoice():
         order_whs_id = str(i[6])
         title_id = str(i[7])
         shiptype = str(i[8]).strip()
-        privilege = "DOMESTIC"
+        privilege = "EXPORT"
         
         mycursor.execute(f"select last_running_no + 1 from tbt_consignees where prefix_code ='{prefix_code}' and factory_id='{factory_id}' group by last_running_no")
         last_running_no = int(str(mycursor.fetchone()[0]))
@@ -960,10 +960,10 @@ def generate_invoice():
         if shiptype == "T":
             end_zname = "I"
             loading_area = "CK-1"
-        
+            # privilege = "DOMESTIC"
+            
         if order_whs_id == "CK-2":
             end_zname = "C"
-            privilege = "EXPORT"
                 
         elif order_whs_id == "NESC":
             end_zname = "N"
