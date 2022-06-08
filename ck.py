@@ -822,6 +822,7 @@ def genearate_order():
         values('{order_id}','{consignee_id}','{shipping_id}','{etd_date}','{order_group}','{pc}','{commercial}','{order_type}','{bioabt}','{zname_id}',false,true,current_timestamp,current_timestamp)"""
         if orders:
             order_id = orders[0]
+            sql_insert_order = f"update tbt_orders set shipping_id='{shipping_id}',etd_date='{etd_date}',order_whs_id='{zname_id}',sync=false,is_active=true,updated_at=current_timestamp where id='{order_id}'"
             if filter_by_reason == "S":
                 sql_insert_order = f"update tbt_orders set shipping_id='{shipping_id}',order_whs_id='{zname_id}',sync=false,is_active=true,updated_at=current_timestamp where id='{order_id}'"
                 
