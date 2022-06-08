@@ -950,19 +950,28 @@ def generate_invoice():
         order_whs_id = str(i[6])
         title_id = str(i[7])
         shiptype = str(i[8]).strip()
+        privilege = "DOMESTIC"
         
         mycursor.execute(f"select last_running_no + 1 from tbt_consignees where prefix_code ='{prefix_code}' and factory_id='{factory_id}' group by last_running_no")
         last_running_no = int(str(mycursor.fetchone()[0]))
         
+        loading_area = "CK-2"
         end_zname = shiptype
+        if shiptype == "T":
+            end_zname = "I"
+            loading_area = "CK-1"
+        
         if order_whs_id == "CK-2":
             end_zname = "C"
-            
+            privilege = "EXPORT"
+                
         elif order_whs_id == "NESC":
             end_zname = "N"
+            loading_area = "CK-1"
             
-        elif order_whs_id == "ICAM" or shiptype == "T":
+        elif order_whs_id == "ICAM":
             end_zname = "I"
+            loading_area = "CK-1"
             
         zone_code_last = f"{str(etd_date.strftime('%Y%m%d'))[3:]}{end_zname}"
         mycursor.execute(f"select count(*) + 1 from tbt_invoices where zone_code like '{zone_code_last}%'")
@@ -972,23 +981,22 @@ def generate_invoice():
         mycursor.execute(f"select id from tbt_whs where name='{order_whs_id}'")
         whs_id = mycursor.fetchone()[0]
         
-        #### create invoice
-        sql_check_order = f"select id from tbt_invoices where order_id='{order_id}'"
-        mycursor.execute(sql_check_order)
-        
         #### get references_id
         mycursor.execute(f"select count(*) + 1 from tbt_invoices where references_id like 'S{prefix_code}-{str(etd_date.strftime('%Y%m%d'))}%'")
         last_ref_running = int(str(mycursor.fetchone()[0]))
         references_no = f"S{prefix_code}-{str(etd_date.strftime('%Y%m%d'))}-{'{:04d}'.format(last_ref_running)}"
         
+        #### create invoice
+        sql_check_order = f"select id from tbt_invoices where order_id='{order_id}'"
+        mycursor.execute(sql_check_order)
         inv = mycursor.fetchone()
-        ship_der = "."
+        ship_der = "LCL"
         if shiptype == "T":ship_der="TRUCK"
         elif shiptype == "A":ship_der="AIR"
         
         inv_id = generate(size=36)
         sql_insert_invoice = f"""insert into tbt_invoices(id, order_id, inv_prefix, running_seq, ship_date, ship_from_id, ship_via, ship_der, title_id, loading_area, privilege, zone_code,references_id, invoice_status, is_active, created_at, updated_at)
-        values('{inv_id}', '{order_id}', '{prefix_code}', {last_running_no}, '{etd_date}', '{whs_id}', '-', '{ship_der}', '{title_id}', 'CK-2', 'DOMESTIC', '{zone_code}','{references_no}','N', true, current_timestamp, current_timestamp)"""
+        values('{inv_id}', '{order_id}', '{prefix_code}', {last_running_no}, '{etd_date}', '{whs_id}', '-', '{ship_der}', '{title_id}', '{loading_area}', '{privilege}', '{zone_code}','{references_no}','N', true, current_timestamp, current_timestamp)"""
         if inv:
             inv_id=inv[0]
             sql_insert_invoice = f"update tbt_invoices set order_id='{order_id}',ship_der='{ship_der}' where id='{inv_id}'"
@@ -996,8 +1004,10 @@ def generate_invoice():
         mycursor.execute(sql_insert_invoice)
         
         ### after new invoice update last_running_no
-        sql_update_last_running_no = f"update tbt_consignees set last_running_no={last_running_no} where factory_id='{factory_id}' and prefix_code='{prefix_code}'"
-        mycursor.execute(sql_update_last_running_no)
+        if inv is None:
+            sql_update_last_running_no = f"update tbt_consignees set last_running_no={last_running_no} where factory_id='{factory_id}' and prefix_code='{prefix_code}'"
+            mycursor.execute(sql_update_last_running_no)
+            
         mycursor.execute(f"update tbt_orders set sync=false,is_invoice=true,updated_at=current_timestamp where id='{order_id}'")
         print(f"update data {order_id}")
         mydb.commit()
@@ -1112,16 +1122,16 @@ def sync_invoice():
     mydb.close()
     
 if __name__ == '__main__':
-    main()
-    download()
-    get_receive()
-    merge_receive()
-    update_receive_ctn()
-    update_order_group()
-    ##orderplans()
-    genearate_order()
+    # main()
+    # download()
+    # get_receive()
+    # merge_receive()
+    # update_receive_ctn()
+    # update_order_group()
+    # ##orderplans()
+    # genearate_order()
     generate_invoice()
-    sync_invoice()
+    # sync_invoice()
     pool.release(Oracon)
     pool.close()
     sys.exit(0)
