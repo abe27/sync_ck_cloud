@@ -748,6 +748,10 @@ def genearate_order():
 
         order_whs = "CK-2"
         if (bioabt+vendor) == "1INJ":order_whs = "CK-1"
+        if (bioabt+vendor) == "2INJ":order_whs = "NESC"
+        if (bioabt+vendor) == "3INJ":order_whs = "ICAM"
+        if (bioabt+vendor) == "4INJ":order_whs = "CK-2"
+        
         if order_group[:1] =="#":order_whs = "NESC"
         elif order_group[:1] =="@":order_whs = "ICAM"
         
