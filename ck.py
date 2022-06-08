@@ -285,7 +285,7 @@ def get_receive():
     log(name='SPL', subject="START SYNC RECEIVE", status="Success", message=f"Get Receive Start Success")
     try:
         # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
-        #  Oracur = Oracon.cursor()
+        # Oracur = Oracon.cursor()
         token = spl.login()
         data = spl.get_receive(token)
         obj = data['data']
@@ -336,8 +336,8 @@ def get_receive():
                 Oracur.execute(sql_part_insert)
                 
                 ### check part on ledger
-                print(r['plan_qty'])
-                print(r['plan_ctn'])
+                # print(r['plan_qty'])
+                # print(r['plan_ctn'])
                 outer_qty = float(str(r['plan_qty']))/float(str(r['plan_ctn']))
                 part_ledger_sql = Oracur.execute(f"select partno from TXP_LEDGER where partno='{part}'")
                 ledger_sql = f"""INSERT INTO TXP_LEDGER(PARTNO,TAGRP,MINIMUM,MAXIMUM,WHS,PICSHELFBIN,STKSHELFBIN,OVSSHELFBIN,OUTERPCS,UPDDTE, SYSDTE)VALUES('{part}', 'C',0,0,'{factory_type}','PNON', 'SNON','ONON'0, sysdate, sysdate)"""
@@ -448,7 +448,7 @@ def merge_receive():
             Oracur.execute(sql_rec_ent)   
             Oracur.execute(f"""INSERT INTO TMP_RECTRANSENT SELECT RECEIVINGKEY, RECEIVINGMAX, RECEIVINGDTE, RECSTATUS, RECPLNCTN, RECENDCTN, UPDDTE, '{key_no}' MERGEID, 0 SYNC FROM TXP_RECTRANSENT WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')})""")
             Oracur.execute(f"""INSERT INTO TMP_RECTRANSBODY SELECT RECEIVINGKEY, RECEIVINGSEQ, PARTNO, PLNQTY, RECQTY, PLNCTN, RECCTN, UNIT, RVMANAGINGNO, UPDDTE, '{key_no}' MERGEID, 0 SYNC FROM TXP_RECTRANSBODY WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')})""")
-            ### after insert delete ent
+            ## after insert delete ent
             Oracur.execute(f"DELETE TXP_RECTRANSENT WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')})")
             Oracur.execute(f"DELETE TXP_RECTRANSBODY WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')})")
             
@@ -465,8 +465,6 @@ def merge_receive():
         pass
     
 def update_receive_ctn():
-    # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
-    #  Oracur = Oracon.cursor()
     sql = f"""SELECT t.RECEIVINGKEY,count(t.RECEIVINGKEY) seq, e.RECPLNCTN  ctn,CASE WHEN cc.rec_ctn IS NULL THEN 0 ELSE cc.rec_ctn END rec_ctn  FROM TXP_RECTRANSBODY t 
                 INNER JOIN TXP_RECTRANSENT e ON t.RECEIVINGKEY = e.RECEIVINGKEY
                 LEFT JOIN (
@@ -482,15 +480,10 @@ def update_receive_ctn():
     
     ### commit the transaction
     Oracon.commit()
-    # Oracur.close()
-    #  Oracon.close()
     
 def orderplans():
     token = spl.login()
     try:
-        ### (f"start sync order plans")
-        # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
-        #  Oracur = Oracon.cursor()
         data = spl.get_order_plan(token, 5000, 0, 1)
         obj = data['data']
         if len(obj) == 0:
@@ -968,7 +961,7 @@ def generate_invoice():
         elif order_whs_id == "NESC":
             end_zname = "N"
             
-        elif order_whs_id == "ICAM":
+        elif order_whs_id == "ICAM" or shiptype == "T":
             end_zname = "I"
             
         zone_code_last = f"{str(etd_date.strftime('%Y%m%d'))[3:]}{end_zname}"
@@ -989,12 +982,16 @@ def generate_invoice():
         references_no = f"S{prefix_code}-{str(etd_date.strftime('%Y%m%d'))}-{'{:04d}'.format(last_ref_running)}"
         
         inv = mycursor.fetchone()
+        ship_der = "."
+        if shiptype == "T":ship_der="TRUCK"
+        elif shiptype == "A":ship_der="AIR"
+        
         inv_id = generate(size=36)
         sql_insert_invoice = f"""insert into tbt_invoices(id, order_id, inv_prefix, running_seq, ship_date, ship_from_id, ship_via, ship_der, title_id, loading_area, privilege, zone_code,references_id, invoice_status, is_active, created_at, updated_at)
-        values('{inv_id}', '{order_id}', '{prefix_code}', {last_running_no}, '{etd_date}', '{whs_id}', '-', 'LCL', '{title_id}', 'CK-2', 'DOMESTIC', '{zone_code}','{references_no}','N', true, current_timestamp, current_timestamp)"""
+        values('{inv_id}', '{order_id}', '{prefix_code}', {last_running_no}, '{etd_date}', '{whs_id}', '-', '{ship_der}', '{title_id}', 'CK-2', 'DOMESTIC', '{zone_code}','{references_no}','N', true, current_timestamp, current_timestamp)"""
         if inv:
             inv_id=inv[0]
-            sql_insert_invoice = f"update tbt_invoices set order_id='{order_id}' where id='{inv_id}'"
+            sql_insert_invoice = f"update tbt_invoices set order_id='{order_id}',ship_der='{ship_der}' where id='{inv_id}'"
         
         mycursor.execute(sql_insert_invoice)
         
