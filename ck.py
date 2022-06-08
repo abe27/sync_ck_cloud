@@ -814,7 +814,7 @@ def genearate_order():
         
         #### check order
         order_id = generate(size=36)
-        print(sql_order)
+        # print(sql_order)
         mycursor.execute(sql_order)
         orders = mycursor.fetchone()
         
