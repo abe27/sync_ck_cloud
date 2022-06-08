@@ -714,7 +714,7 @@ def genearate_order():
     # select a.* from (
     #     select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,'-' ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn,case when length(trim(substr(reasoncd, 1, 1))) = 0 then '-' else trim(substr(reasoncd, 1, 1)) end rcd
     #     from tbt_order_plans
-    #     where is_generated=false and order_group is not null and etdtap between date_trunc('week', current_date)::date and (current_date + 14)
+    #     where is_generated=false and order_group is not null and etdtap between date_trunc('week', current_date)::date and date_trunc('week', current_date) + '13 days'
     #     group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
     #     order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
     # ) a
@@ -970,7 +970,10 @@ def generate_invoice():
         elif order_whs_id == "ICAM":
             end_zname = "I"
             
-        zone_code = f"{str(etd_date.strftime('%Y%m%d'))[3:]}{end_zname}{'{:03d}'.format(last_running_no)}"
+        zone_code_last = f"{str(etd_date.strftime('%Y%m%d'))[3:]}{end_zname}"
+        mycursor.execute(f"select count(*) + 1 from tbt_invoices where zone_code like '{zone_code_last}%'")
+        last_zone_running = int(str(mycursor.fetchone()[0]))
+        zone_code = f"{str(etd_date.strftime('%Y%m%d'))[3:]}{end_zname}{'{:03d}'.format(last_zone_running)}"
         
         mycursor.execute(f"select id from tbt_whs where name='{order_whs_id}'")
         whs_id = mycursor.fetchone()[0]
@@ -979,10 +982,15 @@ def generate_invoice():
         sql_check_order = f"select id from tbt_invoices where order_id='{order_id}'"
         mycursor.execute(sql_check_order)
         
+        #### get references_id
+        mycursor.execute(f"select count(*) + 1 from tbt_invoices where references_id like 'S{prefix_code}-{str(etd_date.strftime('%Y%m%d'))}%'")
+        last_ref_running = int(str(mycursor.fetchone()[0]))
+        references_no = f"S{prefix_code}-{str(etd_date.strftime('%Y%m%d'))}-{'{:04d}'.format(last_ref_running)}"
+        
         inv = mycursor.fetchone()
         inv_id = generate(size=36)
-        sql_insert_invoice = f"""insert into tbt_invoices(id, order_id, inv_prefix, running_seq, ship_date, ship_from_id, ship_via, ship_der, title_id, loading_area, privilege, zone_code, invoice_status, is_active, created_at, updated_at)
-        values('{inv_id}', '{order_id}', '{prefix_code}', {last_running_no}, '{etd_date}', '{whs_id}', '-', 'LCL', '{title_id}', 'CK-2', 'DOMESTIC', '{zone_code}' ,'N', true, current_timestamp, current_timestamp)"""
+        sql_insert_invoice = f"""insert into tbt_invoices(id, order_id, inv_prefix, running_seq, ship_date, ship_from_id, ship_via, ship_der, title_id, loading_area, privilege, zone_code,references_id, invoice_status, is_active, created_at, updated_at)
+        values('{inv_id}', '{order_id}', '{prefix_code}', {last_running_no}, '{etd_date}', '{whs_id}', '-', 'LCL', '{title_id}', 'CK-2', 'DOMESTIC', '{zone_code}','{references_no}','N', true, current_timestamp, current_timestamp)"""
         if inv:
             inv_id=inv[0]
             sql_insert_invoice = f"update tbt_invoices set order_id='{order_id}' where id='{inv_id}'"
@@ -1010,7 +1018,7 @@ def sync_invoice():
     )
     mycursor = mydb.cursor()
     sql = f"""select 
-        tft.factory_prefix||tc.prefix_code||to_char(td.etd_date, 'y') prefix_issuingkey,ti.running_seq,0 issuingstatus,td.etd_date etddte,tft.name factory,ta.aff_code affcode,tcc.cust_code bishpc,tcc.cust_name custname,td.commercial comercial,td.bioabt zoneid,ts.prefix_code shiptype,case when td.order_type = '-' then 'E' else td.order_type end combinv,td.pc pc,ti.zone_code zonecode,ti.ship_via note1,ti.privilege note2,td.id uuid,'SKTSYS' createdby,'SKTSYS' modifiedby,ti.ship_der containertype,0 issuingmax
+        tft.factory_prefix||tc.prefix_code||to_char(td.etd_date, 'y') prefix_issuingkey,ti.running_seq,0 issuingstatus,td.etd_date etddte,tft.name factory,ta.aff_code affcode,tcc.cust_code bishpc,tcc.cust_name custname,td.commercial comercial,td.bioabt zoneid,ts.prefix_code shiptype,case when td.order_type = '-' then 'E' else td.order_type end combinv,td.pc pc,ti.zone_code zonecode,ti.ship_via note1,ti.privilege note2,td.id uuid,'SKTSYS' createdby,'SKTSYS' modifiedby,ti.ship_der containertype,0 issuingmax,ti.references_id
     from tbt_orders td
     inner join tbt_consignees tc on td.consignee_id = tc.id 
     inner join tbt_factory_types tft on tc.factory_id = tft.id
@@ -1019,7 +1027,7 @@ def sync_invoice():
     inner join tbt_shippings ts on td.shipping_id = ts.id
     inner join tbt_invoices ti on ti.order_id = td.id
     where td.sync=false
-    order by td.etd_date,ti.running_seq"""
+    order by td.etd_date,tc.prefix_code,ti.running_seq,ti.references_id"""
     mycursor.execute(sql)
     db = mycursor.fetchall()
     for i in db:
@@ -1044,6 +1052,7 @@ def sync_invoice():
         modifiedby = str(i[18])
         containertype = str(i[19])
         issuingmax = str(i[20])
+        references_id = str(i[21]).strip()
         
         invoiceno = f"{prefix_issuingkey}{'{:04d}'.format(running_seq)}{shiptype}"
         
@@ -1056,7 +1065,6 @@ def sync_invoice():
         mycursor.execute(sql_inv_body)
         part = mycursor.fetchall()
         for r in part:
-            issuingkey = str(r[0]).strip()
             seq = int(str(r[1]).strip())
             pono = str(r[2]).strip()
             tagrp = str(r[3]).strip()
@@ -1082,21 +1090,21 @@ def sync_invoice():
             lotno = str(r[26]).strip()
             refinv = str(r[27]).strip()
             
-            inv_body = Oracur.execute(f"SELECT ISSUINGKEY FROM TXP_ISSTRANSBODY WHERE ISSUINGKEY='{invoiceno}' AND PARTNO='{partno}' AND PONO='{pono}'")
+            inv_body = Oracur.execute(f"SELECT ISSUINGKEY FROM TXP_ISSTRANSBODY WHERE ISSUINGKEY='{references_id}' AND PARTNO='{partno}' AND PONO='{pono}'")
             sql_inv_body = f"""INSERT INTO TXP_ISSTRANSBODY(issuingkey,issuingseq,pono,tagrp,partno,stdpack,orderqty,issueokqty,shorderqty,prepareqty,revisedqty,issuedqty,issuingstatus,bwide,bleng,bhight,neweight,gtweight,upddte,sysdte,parttype,partname,shiptype,edtdte,uuid,createdby,modifiedby,ordertype,lotno,refinv)
-            VALUES('{issuingkey}','{seq}','{pono}','{tagrp}','{partno}','{stdpack}','{orderqty}','{issueokqty}','{shorderqty}','{prepareqty}','{revisedqty}','{issuedqty}','{issuingstatus}','{bwide}','{bleng}','{bhight}','{neweight}','{gtweight}',sysdate,sysdate,'{parttype}','{partname}','{shiptype}',to_date('{etdtap[:10]}', 'YYYY-MM-DD'),'{uuid}','{createdby}','{modifiedby}','{ordertype}','{lotno}','{refinv}')"""
+            VALUES('{references_id}','{seq}','{pono}','{tagrp}','{partno}','{stdpack}','{orderqty}','{issueokqty}','{shorderqty}','{prepareqty}','{revisedqty}','{issuedqty}','{issuingstatus}','{bwide}','{bleng}','{bhight}','{neweight}','{gtweight}',sysdate,sysdate,'{parttype}','{partname}','{shiptype}',to_date('{etdtap[:10]}', 'YYYY-MM-DD'),'{uuid}','{createdby}','{modifiedby}','{ordertype}','{lotno}','{refinv}')"""
             if inv_body.fetchone():
-                sql_inv_body = f"""UPDATE TXP_ISSTRANSBODY SET stdpack='{stdpack}',orderqty='{orderqty}' WHERE ISSUINGKEY='{invoiceno}' AND PARTNO='{partno}' AND PONO='{pono}'"""
+                sql_inv_body = f"""UPDATE TXP_ISSTRANSBODY SET stdpack='{stdpack}',orderqty='{orderqty}' WHERE ISSUINGKEY='{references_id}' AND PARTNO='{partno}' AND PONO='{pono}'"""
                 
             Oracur.execute(sql_inv_body)
         
         issuingmax = len(part)
-        inv = Oracur.execute(f"SELECT ISSUINGKEY FROM TXP_ISSTRANSENT WHERE ISSUINGKEY='{invoiceno}'")
+        inv = Oracur.execute(f"SELECT ISSUINGKEY FROM TXP_ISSTRANSENT WHERE ISSUINGKEY='{references_id}'")
         sql_insert_header = f"""INSERT INTO TXP_ISSTRANSENT(ISSUINGKEY, ETDDTE, FACTORY, AFFCODE, BISHPC, CUSTNAME, COMERCIAL, ZONEID, SHIPTYPE, COMBINV, PC,  ZONECODE, NOTE1, NOTE2, NOTE3, ISSUINGMAX, ISSUINGSTATUS,UPDDTE, SYSDTE, UUID, CREATEDBY, MODIFIEDBY,REFINVOICE)
-        VALUES('{invoiceno}', to_date('{etddte[:10]}', 'YYYY-MM-DD'), '{factory}', '{affcode}', '{bishpc}', '{custname}', '{comercial}', '{zoneid}', '{shiptype}', '{combinv}', '{pc}', '{zonecode}', '{note1}', '{note2}', '{containertype}', '{issuingmax}', '0',sysdate, sysdate, '{uid}', '{createdby}', '{modifiedby}', '{invoiceno}')"""
+        VALUES('{references_id}', to_date('{etddte[:10]}', 'YYYY-MM-DD'), '{factory}', '{affcode}', '{bishpc}', '{custname}', '{comercial}', '{zoneid}', '{shiptype}', '{combinv}', '{pc}', '{zonecode}', '{note1}', '{note2}', '{containertype}', '{issuingmax}', '0',sysdate, sysdate, '{uid}', '{createdby}', '{modifiedby}', '{invoiceno}')"""
         txt = "INSERT"
         if inv.fetchone():
-            sql_insert_header = f"update TXP_ISSTRANSENT set ETDDTE=to_date('{etddte[:10]}', 'YYYY-MM-DD'), FACTORY='{factory}', AFFCODE='{affcode}', BISHPC='{bishpc}', CUSTNAME='{custname}', COMERCIAL='{comercial}', ZONEID='{zoneid}', SHIPTYPE='{shiptype}', COMBINV='{combinv}', PC='{pc}',  ZONECODE='{zonecode}', NOTE1='{note1}', NOTE2='{note2}', NOTE3='{containertype}', ISSUINGMAX='{issuingmax}' where ISSUINGKEY='{invoiceno}'"
+            sql_insert_header = f"update TXP_ISSTRANSENT set ETDDTE=to_date('{etddte[:10]}', 'YYYY-MM-DD'), FACTORY='{factory}', AFFCODE='{affcode}', BISHPC='{bishpc}', CUSTNAME='{custname}', COMERCIAL='{comercial}', ZONEID='{zoneid}', SHIPTYPE='{shiptype}', COMBINV='{combinv}', PC='{pc}',  ZONECODE='{zonecode}', NOTE1='{note1}', NOTE2='{note2}', NOTE3='{containertype}', ISSUINGMAX='{issuingmax}' where ISSUINGKEY='{references_id}'"
             txt = "UPDATED"
         Oracur.execute(sql_insert_header)
         Oracon.commit()

@@ -3,3 +3,5 @@ uvicorn api:app --reload --host 0.0.0.0 --port 5000 --workers 4
 /home/seiwa/service/sync_ck_cloud
 C:/tools/Anaconda3/Scripts/activate
 sudo systemctl stop serial.trigger.service&& sudo systemctl start serial.trigger.service
+
+### SELECT SHELVE,PARTNO,RUNNINGNO,LOTNO,RECLOCATE,PALLETKEY,UPDDTE FROM TXP_CARTONDETAILS WHERE SHELVE='SNON' ORDER BY SHELVE,PARTNO,RUNNINGNO,LOTNO,UPDDTE
