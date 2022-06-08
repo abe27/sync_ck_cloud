@@ -703,25 +703,25 @@ def genearate_order():
     )
     
     mycursor = mydb.cursor()
-    # sql = f"""
-    # select a.* from (
-    #     select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,'-' ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn,case when length(trim(substr(reasoncd, 1, 1))) = 0 then '-' else trim(substr(reasoncd, 1, 1)) end rcd
-    #     from tbt_order_plans
-    #     where is_generated=false and order_group is not null and etdtap between date_trunc('week', current_date)::date and date_trunc('week', current_date) + '13 days'
-    #     group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
-    #     order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
-    # ) a
-    # limit 20000"""
     
     sql = f"""
     select a.* from (
         select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,'-' ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn,case when length(trim(substr(reasoncd, 1, 1))) = 0 then '-' else trim(substr(reasoncd, 1, 1)) end rcd
         from tbt_order_plans
-        where is_generated=false and order_group is not null and etdtap between date_trunc('week', '2022-01-01'::date)::date and date_trunc('week', current_date) + '13 days'
+        where is_generated=false and order_group is not null and to_char(etdtap, 'yyyy') = to_char(current_date, 'yyyy') and etdtap between date_trunc('week', '2022-06-01'::date)::date and date_trunc('week', current_date) + '13 days'
         group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
         order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
     ) a
     limit 20000"""
+    # sql = f"""
+    # select a.* from (
+    #     select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,'-' ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn,case when length(trim(substr(reasoncd, 1, 1))) = 0 then '-' else trim(substr(reasoncd, 1, 1)) end rcd
+    #     from tbt_order_plans
+    #     where is_generated=false and order_group is not null and bisafn='SAIBF' and etdtap ='2022-06-09'
+    #     group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
+    #     order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
+    # ) a
+    # limit 20000""" 
     
     runn_order = 1
     mycursor.execute(sql)
@@ -746,8 +746,8 @@ def genearate_order():
         if (filter_by_reason in ["0","M"]):
             order_type = 'M'
 
-        order_whs = "CK-1"
-        if (bioabt+vendor) == "1INJ":order_whs = "CK-2"
+        order_whs = "CK-2"
+        if (bioabt+vendor) == "1INJ":order_whs = "CK-1"
         if order_group[:1] =="#":order_whs = "NESC"
         elif order_group[:1] =="@":order_whs = "ICAM"
         
@@ -787,8 +787,6 @@ def genearate_order():
         mycursor.execute(f"select id from tbt_shippings where prefix_code='{shiptype}'")
         shipping_id = mycursor.fetchone()[0]
         
-        # mycursor.execute(f"select id from tbt_shippings where name='{order_whs}'")
-        
         ## get consignee
         mycursor.execute(f"select id from tbt_consignees where factory_id='{factory_id}' and aff_id='{aff_id}' and customer_id='{customer_id}'")
         consignee = mycursor.fetchone()
@@ -797,14 +795,9 @@ def genearate_order():
         if consignee:
             consignee_id = consignee[0]
             sql_consignee = f"""update tbt_consignees set updated_at=current_timestamp where id='{consignee_id}'"""
+            
         mycursor.execute(sql_consignee)
         sql_order = f"""select id from tbt_orders where consignee_id='{consignee_id}' and shipping_id='{shipping_id}' and etd_date='{etd_date}' and order_group='{order_group}' and pc='{pc}' and commercial='{commercial}' and order_type='{order_type}' and bioabt='{bioabt}' and order_whs_id='{zname_id}' and is_invoice=false"""
-        # if filter_by_reason == "S":
-        #     sql_order = f"""select id from tbt_orders where consignee_id='{consignee_id}' and etd_date='{etd_date}' and order_group='{order_group}' and pc='{pc}' and commercial='{commercial}' and order_type='{order_type}' and bioabt='{bioabt}' and order_whs_id='{zname_id}' and is_invoice=false"""
-        
-        # elif filter_by_reason == "D":
-        #     sql_order = f"""select id from tbt_orders where consignee_id='{consignee_id}' and shipping_id='{shipping_id}' and order_group='{order_group}' and pc='{pc}' and commercial='{commercial}' and order_type='{order_type}' and bioabt='{bioabt}' and order_whs_id='{zname_id}' and is_invoice=false"""
-        
         #### check order
         order_id = generate(size=36)
         # print(sql_order)
@@ -1128,7 +1121,7 @@ if __name__ == '__main__':
     merge_receive()
     update_receive_ctn()
     update_order_group()
-    ##orderplans()
+    #orderplans()
     genearate_order()
     generate_invoice()
     sync_invoice()
