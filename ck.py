@@ -282,6 +282,7 @@ def download():
         print(f'end service')
         
 def get_receive():
+    token = None
     log(name='SPL', subject="START SYNC RECEIVE", status="Success", message=f"Get Receive Start Success")
     try:
         # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
@@ -400,6 +401,7 @@ def get_receive():
         
     except Exception as ex:
         log(name='SPL-ERROR', subject="SYNC RECEIVE", status="Error", message=str(ex))
+        spl.logout(token)
         pass
     
 def merge_receive():
