@@ -272,7 +272,7 @@ def download():
             i += 1
             
     except Exception as ex:
-        log(name='SPL', subject="INSERT", status="Error", message=str(ex))
+        log(name='SPL-ERROR', subject="INSERT", status="Error", message=str(ex))
         mydb.rollback()
         pass
     
@@ -459,7 +459,7 @@ def merge_receive():
         Oracon.commit()
         #  Oracon.close()
     except Exception as ex:
-        log(name='SPL', subject="MERGE", status="Error", message=str(ex))
+        log(name='SPL-ERROR', subject="MERGE", status="Error", message=str(ex))
         pass
     
 def update_receive_ctn():
@@ -590,7 +590,7 @@ def orderplans():
         log(name='ORDERPLAN', subject="ORDERPLAN", status="Success", message=str(msg))
         
     except Exception as ex:
-        log(name='ORDERPLAN', subject="ORDERPLAN", status="Error", message=str(ex))
+        log(name='SPL-ERROR', subject="ORDERPLAN", status="Error", message=str(ex))
         pass
     
     #  Oracon.close()
