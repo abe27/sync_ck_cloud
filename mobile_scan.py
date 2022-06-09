@@ -31,9 +31,22 @@ def main():
         mydb.commit()
         
     except Exception as ex:
-        log(name='CARTON', subject="UPLOAD RECEIVE", status="Error", message=str(ex))
+        log(name='CARTON-ERROR', subject="UPLOAD RECEIVE", status="Error", message=str(ex))
         pass
     
+    mydb.close()
+    
+def truncate_db():
+    mydb = pgsql.connect(
+        host=DB_HOSTNAME,
+        port=DB_PORT,
+        user=DB_USERNAME,
+        password=DB_PASSWORD,
+        database=DB_NAME,
+    )
+    mycursor = mydb.cursor()
+    mycursor.execute(f"truncate tbt_personal_access_tokens")
+    mycursor.execute(f"delete from tbt_log_activities where created_at <= date_trunc('week', (current_date - 7))::date")
     mydb.close()
 
 if __name__ == '__main__':
