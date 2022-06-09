@@ -397,11 +397,9 @@ def get_receive():
                     log(name='SPL', subject="SYNC RECEIVE", status="Success", message=f"Sync Receive({r})")
                 x += 1
         
-        #  Oracon.close()
-        
         
     except Exception as ex:
-        log(name='SPL', subject="SYNC RECEIVE", status="Error", message=str(ex))
+        log(name='SPL-ERROR', subject="SYNC RECEIVE", status="Error", message=str(ex))
         pass
     
 def merge_receive():
@@ -409,7 +407,7 @@ def merge_receive():
         # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
         #  Oracur = Oracon.cursor()
         ### GEDI BATCHID
-        obj = Oracur.execute(f"SELECT GEDI_FILE,ctn  FROM (SELECT GEDI_FILE,count(GEDI_FILE) ctn FROM TXP_RECTRANSENT WHERE VENDOR='INJ' AND RECEIVINGKEY LIKE 'TI%' GROUP BY GEDI_FILE ORDER BY GEDI_FILE) WHERE CTN > 1")
+        obj = Oracur.execute(f"""SELECT GEDI_FILE,count(GEDI_FILE) ctn FROM TXP_RECTRANSENT WHERE TO_CHAR(UPDDTE, 'YYYYMMDD') = TO_CHAR(sysdate, 'YYYYMMDD') AND VENDOR='INJ' AND RECEIVINGKEY LIKE 'TI%' GROUP BY GEDI_FILE HAVING count(GEDI_FILE) > 1 ORDER BY GEDI_FILE""")
         for r in obj.fetchall():
             #### get ent data
             receive_no = []
