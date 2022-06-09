@@ -42,7 +42,7 @@ def main():
         inner join tbt_parts p on l.part_id = p.id
         inner join tbt_file_gedis tfg on t.file_gedi_id=tfg.id
         left join (select c.ledger_id,count(c.ledger_id) ctn from tbt_cartons c group by c.ledger_id) tc on d.ledger_id=tc.ledger_id 
-        where t.receive_date >= (current_date - 7) and d.plan_ctn > (case when tc.ctn is null then 0 else tc.ctn end) and t.receive_no like 'TI%'
+        where d.plan_ctn > (case when tc.ctn is null then 0 else tc.ctn end) and t.receive_no like 'TI%'
         order by t.receive_date,t.receive_no,p.no,p.name""")
         
         rnd_x = 1
