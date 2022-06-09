@@ -1125,7 +1125,7 @@ if __name__ == '__main__':
     merge_receive()
     update_receive_ctn()
     update_order_group()
-    #orderplans()
+    orderplans()
     genearate_order()
     generate_invoice()
     sync_invoice()
