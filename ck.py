@@ -341,7 +341,7 @@ def get_receive():
                 # print(r['plan_ctn'])
                 outer_qty = float(str(r['plan_qty']))/float(str(r['plan_ctn']))
                 part_ledger_sql = Oracur.execute(f"select partno from TXP_LEDGER where partno='{part}'")
-                ledger_sql = f"""INSERT INTO TXP_LEDGER(PARTNO,TAGRP,MINIMUM,MAXIMUM,WHS,PICSHELFBIN,STKSHELFBIN,OVSSHELFBIN,OUTERPCS,UPDDTE, SYSDTE)VALUES('{part}', 'C',0,0,'{factory_type}','PNON', 'SNON','ONON'0, sysdate, sysdate)"""
+                ledger_sql = f"""INSERT INTO TXP_LEDGER(PARTNO,TAGRP,MINIMUM,MAXIMUM,WHS,PICSHELFBIN,STKSHELFBIN,OVSSHELFBIN,OUTERPCS,UPDDTE, SYSDTE)VALUES('{part}', 'C',0,0,'{factory_type}','PNON', 'SNON','ONON', 0, sysdate, sysdate)"""
                 if part_ledger_sql.fetchone():
                     ledger_sql = f"""UPDATE TXP_LEDGER SET RECORDMAX=1,LASTRECDTE=sysdate,LASTISSDTE=sysdate WHERE PARTNO='{part}'"""
                 
