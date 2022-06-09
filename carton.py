@@ -168,6 +168,9 @@ def sync_carton(serial_no):
     return True
         
 def main():
+    ### Update TXP_CARTONDETAILS S-XXX
+    Ora.execute(f"UPDATE TXP_CARTONDETAILS SET MFGDTE=NULL,SIDTE=NULL,SINO=NULL,SIID=NULL,STOCKQUANTITY=RECEIVINGQUANTITY WHERE SHELVE='S-XXX' AND SIDTE IS NOT NULL")
+    Conn.commit()
     sql = f"SELECT SERIALNO,rowid FROM TMP_RECEIVELOG ORDER BY LASTUPDATE"
     obj = Ora.execute(sql)
     for r in obj.fetchall():
