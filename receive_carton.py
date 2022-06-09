@@ -35,15 +35,14 @@ def main():
     try:
         log(name='CARTON', subject="Start", status="Success", message=f"Sync Receive")    
         mycursor = mydb.cursor()
-        mycursor.execute("""select d.id,t.receive_date,t.receive_no,substring(t.receive_no, 11, 2) rnd,p."no",p."name",d.plan_qty,d.plan_ctn,case when c.ctn is null then 0 else c.ctn end,l.id ledger_id from tbt_receives t
+        mycursor.execute("""select d.id,t.receive_date,t.receive_no,substring(t.receive_no, 11, 2) rnd,p."no",p."name",d.plan_qty,d.plan_ctn,case when tc.ctn is null then 0 else tc.ctn end ctn,l.id ledger_id 
+        from tbt_receives t
         inner join tbt_receive_details d on t.id = d.receive_id
         inner join tbt_ledgers l on d.ledger_id = l.id
         inner join tbt_parts p on l.part_id = p.id
-        left join (
-            select cc.receive_detail_id,count(cc.receive_detail_id) ctn from tbt_cartons cc group by cc.receive_detail_id
-        ) c on d.id = c.receive_detail_id 
-        where t.receive_date >= (current_date - 7) and d.plan_ctn > (case when c.ctn is null then 0 else c.ctn end) and t.receive_no like 'TI%'
-        order by t.receive_date,t.receive_no,p.no,p.name""")
+        left join (select c.ledger_id,count(c.ledger_id) ctn from tbt_cartons c group by c.ledger_id) tc on d.ledger_id=tc.ledger_id 
+        where t.receive_date >= (current_date - 7) and d.plan_ctn > (case when tc.ctn is null then 0 else tc.ctn end) and t.receive_no like 'TI%'
+        order by t.receive_date,t.receive_no,p.no,p.nam""")
         
         rnd_x = 1
         data = mycursor.fetchall()
@@ -135,9 +134,9 @@ def main():
             mydb.commit()
             rnd_x += 1 # increment
             
-        log(name='CARTON', subject="END", status="Success", message=f"Sync Receive")    
+        log(name='CARTON', subject="END", status="Success", message=f"Sync Receive")
     except Exception as ex:
-        log(name='CARTON', subject="UPLOAD RECEIVE", status="Error", message=str(ex))
+        log(name='CARTON-ERROR', subject="UPLOAD RECEIVE", status="Error", message=str(ex))
         Oracon.rollback()
         mydb.rollback()
         pass
