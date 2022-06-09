@@ -258,6 +258,7 @@ def download():
                     f.close()
                     ### after insert data receive set update status receive_sync=True
                     for no in receive_no:
+                        ## get batch id
                         mycursor.execute(f"update tbt_receives set receive_sync=false where receive_no='{no}'")
                         ### Log
                         log(name='SPL', subject="UPDATE", status="Success", message=f"Update Status Sync Receive {no} Set False")
