@@ -82,7 +82,7 @@ def main():
                 #### create carton on stock Cloud
                 mycursor.execute(f"select id from tbt_cartons where serial_no='{serial_no}'")
                 carton_id = generate(size=36)
-                sql_carton = f"""insert into tbt_cartons(id, ledger_id, lot_no, serial_no, die_no, division_no, qty, is_active, created_at, updated_at)values('{carton_id}', '{ledger_id}', '{lotno}', '{serial_no}', '{die_no}', '{division_no}', '{std_pack}', true, current_timestamp, current_timestamp)"""
+                sql_carton = f"""insert into tbt_cartons(id, ledger_id, lot_no, serial_no, die_no, revision_no, qty, is_active, created_at, updated_at)values('{carton_id}', '{ledger_id}', '{lotno}', '{serial_no}', '{die_no}', '{division_no}', '{std_pack}', true, current_timestamp, current_timestamp)"""
                 if mycursor.fetchone() is None:
                     #### check stock
                     mycursor.execute(f"select id from tbt_stocks where ledger_id='{ledger_id}'")
