@@ -68,7 +68,8 @@ def main():
             INNER JOIN TXP_RECTRANSENT e ON t.RECEIVINGKEY = e.RECEIVINGKEY 
             INNER JOIN TXP_CARTONDETAILS c ON t.RECEIVINGKEY = c.INVOICENO AND t.PARTNO = c.PARTNO 
             WHERE c.PARTNO='{part_no}' AND e.GEDI_FILE='{batch_id}'
-            ORDER BY c.RUNNINGNO"""
+            ORDER BY c.RUNNINGNO
+            FETCH FIRST {plan_ctn - diff_plan_ctn} ROWS ONLY"""
             # print(ora_sql)
             rvm_no = None
             obj = Oracur.execute(ora_sql)
