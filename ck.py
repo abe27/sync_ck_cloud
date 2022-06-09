@@ -203,8 +203,8 @@ def download():
                         part_id = None
                         b = spl.read_receive(head, doc)
                         partname = str(b['partname']).replace("'", "''")
-                        ### Log
-                        log(name='SPL', subject="INSERT", status="Success", message=f"Insert Data Receive {(str(h)[4:16])}({b['partno']})")
+                        # ### Log
+                        # log(name='SPL', subject="INSERT", status="Success", message=f"Insert Data Receive {(str(h)[4:16])}({b['partno']})")
                         
                         
                         #### get master
