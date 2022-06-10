@@ -295,6 +295,7 @@ def update_ledger_dimension():
             ledger_id = mycursor.fetchone()[0]
             sql_update_ledger = f"""update tbt_ledgers set width='{biwidt}', length='{bileng}', height='{bihigh}', net_weight='{newt}', gross_weight='{grwt}',updated_at=current_timestamp where id='{ledger_id}'"""
             mycursor.execute(sql_update_ledger)
+            print(f"update part: {part_no} w: {biwidt} l: {bileng} h: {bihigh} gross_weight: {grwt} net_weight: {newt}")
         
         mydb.commit()    
         mydb.close()
@@ -305,13 +306,13 @@ def update_ledger_dimension():
     
 if __name__ == '__main__':
     update_ledger_dimension()
-    # update_stock()
-    # time.sleep(0.1)
-    # update_master_location()
-    # time.sleep(0.1)
-    # update_die()
-    # time.sleep(0.1)
-    # update_carton()
+    update_stock()
+    time.sleep(0.1)
+    update_master_location()
+    time.sleep(0.1)
+    update_die()
+    time.sleep(0.1)
+    update_carton()
     pool.release(Oracon)
     pool.close()
     sys.exit(0)
