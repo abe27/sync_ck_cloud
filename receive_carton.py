@@ -204,8 +204,9 @@ def get_receive():
         inner join tbt_parts p on l.part_id=p.id 
         left join (select c.ledger_id,count(c.ledger_id) ctn from tbt_cartons c group by c.ledger_id) tc on d.ledger_id=tc.ledger_id 
         where t.receive_no like 'TI%' and (d.plan_ctn - (case when tc.ctn is null then 0 else tc.ctn end)) > 0
-        order by t.receive_no,p.no"""
+        order by p.no,g.batch_id,t.receive_no"""
         mycursor.execute(sql)
+        rnd_x = 1
         for r in mycursor.fetchall():
             receive_body_id = str(r[0]).strip()
             batch_id = str(r[1]).strip()
@@ -214,11 +215,12 @@ def get_receive():
             plan_ctn = str(r[4]).strip()
             ledger_id = str(r[6]).strip()
             
+            
             sql_ora = f"""SELECT '{receive_body_id}' rec_id,e.RECEIVINGDTE,t.RECEIVINGKEY,c.PARTNO,c.RVMANAGINGNO,c.LOTNO,c.RUNNINGNO,c.CASEID dieno,c.CASENO division,c.STOCKQUANTITY,t.OLDERKEY,c.SHELVE,c.PALLETKEY FROM TXP_RECTRANSBODY t  INNER JOIN TXP_RECTRANSENT e ON t.RECEIVINGKEY = e.RECEIVINGKEY  INNER JOIN TXP_CARTONDETAILS c ON t.RECEIVINGKEY = c.INVOICENO AND t.PARTNO = c.PARTNO AND t.RVMANAGINGNO=c.RVMANAGINGNO WHERE c.PARTNO='{part_no}' AND e.GEDI_FILE='{batch_id}' AND c.IS_CHECK=0 ORDER BY c.RUNNINGNO FETCH FIRST {plan_ctn} ROWS ONLY"""
-            # print(sql_ora)
-            rnd_x = 1
+            print(f"{rnd_x} :=> {receive_no} part: {part_no} batch id: {batch_id} ctn: {plan_ctn}") 
             rvm_no = None
             obj = Ora.execute(sql_ora)
+            runx = 1
             for x in obj.fetchall():
                 rvm_no = str(x[4])
                 lotno = str(x[5])
@@ -268,7 +270,8 @@ def get_receive():
                     
                 mycursor.execute(sql_shelve)
                 Ora.execute(f"UPDATE TXP_CARTONDETAILS SET IS_CHECK=1 WHERE RUNNINGNO='{serial_no}'")
-                print(f"RVM NO: {rvm_no} SERIAL NO: {serial_no}")
+                print(f"{runx} ==> RVM NO: {rvm_no} SERIAL NO: {serial_no}")
+                runx += 1
                 
             #### update rvm no
             if rvm_no:
@@ -276,7 +279,7 @@ def get_receive():
                 sql_update_receive = f"update tbt_receive_details set managing_no='{rvm_no}',updated_at=current_timestamp where id='{receive_body_id}'"
                 # print(sql_update_receive)
                 mycursor.execute(sql_update_receive)
-                print(f"{rnd_x} :=> {receive_no} update part: {part_no} rvm: {rvm_no} ctn: {plan_ctn}") 
+                print(f"end {rnd_x} :=> {receive_no} update part: {part_no} rvm: {rvm_no}") 
                 
             ### commit data
             Conn.commit()
