@@ -273,7 +273,7 @@ def update_ledger_dimension():
             database=DB_NAME,
         )
         mycursor = mydb.cursor()
-        sql = f"""select partno,biwidt,bileng,bihigh,round(bigrwt/count(partno)) grwt,round(binewt/count(partno)) newt from tbt_order_plans group by partno,biwidt,bileng,bihigh,bigrwt,binewt order by partno"""
+        sql = f"""select partno,biwidt,bileng,bihigh,round(bigrwt/count(partno)) grwt,round(binewt/count(partno)) newt from tbt_order_plans where biwidt > 0 group by partno,biwidt,bileng,bihigh,bigrwt,binewt order by partno"""
         mycursor.execute(sql)
         for r in mycursor.fetchall():
             part_no = str(r[0]).strip()
@@ -295,9 +295,9 @@ def update_ledger_dimension():
             ledger_id = mycursor.fetchone()[0]
             sql_update_ledger = f"""update tbt_ledgers set width='{biwidt}', length='{bileng}', height='{bihigh}', net_weight='{newt}', gross_weight='{grwt}',updated_at=current_timestamp where id='{ledger_id}'"""
             mycursor.execute(sql_update_ledger)
+            mydb.commit()
             print(f"update part: {part_no} w: {biwidt} l: {bileng} h: {bihigh} gross_weight: {grwt} net_weight: {newt}")
         
-        mydb.commit()    
         mydb.close()
         log(name='MASTER', subject="UPDATE STOCK", status="Success", message=f"End Service")
     except Exception as ex:
