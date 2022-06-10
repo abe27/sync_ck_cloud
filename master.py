@@ -263,14 +263,55 @@ def update_stock():
     mydb.close()
     log(name='MASTER', subject="UPDATE STOCK", status="Success", message=f"End Service")
     
+def update_ledger_dimension():
+    try:
+        mydb = pgsql.connect(
+            host=DB_HOSTNAME,
+            port=DB_PORT,
+            user=DB_USERNAME,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+        )
+        mycursor = mydb.cursor()
+        sql = f"""select partno,biwidt,bileng,bihigh,round(bigrwt/count(partno)) grwt,round(binewt/count(partno)) newt from tbt_order_plans group by partno,biwidt,bileng,bihigh,bigrwt,binewt order by partno"""
+        mycursor.execute(sql)
+        for r in mycursor.fetchall():
+            part_no = str(r[0]).strip()
+            biwidt = float(str(r[1]).strip())
+            bileng = float(str(r[2]).strip())
+            bihigh = float(str(r[3]).strip())
+            grwt = float(str(r[4]).strip())
+            newt = float(str(r[5]).strip())
+            
+            fac = "INJ"
+            if part_no[:1] == "1":fac = "AW"
+            mycursor.execute(f"select id from tbt_factory_types where name='{fac}'")
+            fac_id = mycursor.fetchone()[0]
+            
+            mycursor.execute(f"select id from tbt_parts where no='{part_no}'")
+            part_id = mycursor.fetchone()[0]
+            
+            mycursor.execute(f"select id from tbt_ledgers where part_id='{part_id}' and factory_id='{fac_id}'")
+            ledger_id = mycursor.fetchone()[0]
+            sql_update_ledger = f"""update tbt_ledgers set width='{biwidt}', length='{bileng}', height='{bihigh}', net_weight='{newt}', gross_weight='{grwt}',updated_at=current_timestamp where id='{ledger_id}'"""
+            mycursor.execute(sql_update_ledger)
+        
+        mydb.commit()    
+        mydb.close()
+        log(name='MASTER', subject="UPDATE STOCK", status="Success", message=f"End Service")
+    except Exception as ex:
+        log(name='MASTER-ERROR', subject="UPDATE STOCK", status="Success", message=ex)
+        pass
+    
 if __name__ == '__main__':
-    update_stock()
-    time.sleep(0.1)
-    update_master_location()
-    time.sleep(0.1)
-    update_die()
-    time.sleep(0.1)
-    update_carton()
+    update_ledger_dimension()
+    # update_stock()
+    # time.sleep(0.1)
+    # update_master_location()
+    # time.sleep(0.1)
+    # update_die()
+    # time.sleep(0.1)
+    # update_carton()
     pool.release(Oracon)
     pool.close()
     sys.exit(0)
