@@ -296,7 +296,7 @@ if __name__ == '__main__':
     get_receive()
     # main()
     # update_master_location()
-    Conn.close()
+    # Conn.close()
     pool.release(Conn)
     pool.close()
     sys.exit(0)
