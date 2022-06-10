@@ -202,9 +202,9 @@ def get_receive():
         inner join tbt_receive_details d on t.id=d.receive_id 
         inner join tbt_ledgers l on d.ledger_id=l.id 
         inner join tbt_parts p on l.part_id=p.id 
-        left join (select c.ledger_id,count(c.ledger_id) ctn from tbt_cartons c group by c.ledger_id) tc on d.ledger_id=tc.ledger_id 
+        left join (select c.ledger_id,c.receive_detail_id,count(c.ledger_id) ctn from tbt_cartons c group by c.ledger_id,c.receive_detail_id) tc on d.ledger_id=tc.ledger_id and tc.receive_detail_id=d.id
         where t.receive_no like 'TI%' and (d.plan_ctn - (case when tc.ctn is null then 0 else tc.ctn end)) > 0
-        order by p.no,g.batch_id,t.receive_no"""
+        order by t.receive_no,g.batch_id,p.no"""
         mycursor.execute(sql)
         rnd_x = 1
         for r in mycursor.fetchall():
@@ -233,7 +233,7 @@ def get_receive():
                 #### create carton on stock Cloud
                 mycursor.execute(f"select id from tbt_cartons where serial_no='{serial_no}'")
                 carton_id = generate(size=36)
-                sql_carton = f"""insert into tbt_cartons(id, ledger_id, lot_no, serial_no, die_no, revision_no, qty, is_active, created_at, updated_at)values('{carton_id}', '{ledger_id}', '{lotno}', '{serial_no}', '{die_no}', '{division_no}', '{std_pack}', true, current_timestamp, current_timestamp)"""
+                sql_carton = f"""insert into tbt_cartons(id, receive_detail_id,ledger_id, lot_no, serial_no, die_no, revision_no, qty, is_active, created_at, updated_at)values('{carton_id}', '{receive_body_id}','{ledger_id}', '{lotno}', '{serial_no}', '{die_no}', '{division_no}', '{std_pack}', true, current_timestamp, current_timestamp)"""
                 if mycursor.fetchone() is None:
                     #### check stock
                     mycursor.execute(f"select id from tbt_stocks where ledger_id='{ledger_id}'")
@@ -252,7 +252,7 @@ def get_receive():
                     mycursor.execute(sql_update_stock) 
                     
                 else:
-                    sql_carton = f"update tbt_cartons set ledger_id='{ledger_id}',updated_at=current_timestamp where serial_no='{serial_no}'"
+                    sql_carton = f"update tbt_cartons set receive_detail_id='{receive_body_id}',ledger_id='{ledger_id}',updated_at=current_timestamp where serial_no='{serial_no}'"
                     
                 mycursor.execute(sql_carton)
                     
