@@ -296,7 +296,7 @@ def update_ledger_dimension():
             sql_update_ledger = f"""update tbt_ledgers set width='{biwidt}', length='{bileng}', height='{bihigh}', net_weight='{newt}', gross_weight='{grwt}',updated_at=current_timestamp where id='{ledger_id}'"""
             mycursor.execute(sql_update_ledger)
             mydb.commit()
-            print(f"update part: {part_no} w: {biwidt} l: {bileng} h: {bihigh} gross_weight: {grwt} net_weight: {newt}")
+            print(f"update id: {ledger_id} part: {part_no} w: {biwidt} l: {bileng} h: {bihigh} gross_weight: {grwt} net_weight: {newt}")
         
         mydb.close()
         log(name='MASTER', subject="UPDATE STOCK", status="Success", message=f"End Service")
