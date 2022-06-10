@@ -279,7 +279,7 @@ def get_receive():
                 sql_update_receive = f"update tbt_receive_details set managing_no='{rvm_no}',updated_at=current_timestamp where id='{receive_body_id}'"
                 # print(sql_update_receive)
                 mycursor.execute(sql_update_receive)
-                print(f"end {rnd_x} :=> {receive_no} update part: {part_no} rvm: {rvm_no}") 
+                print(f"end {rnd_x} :=> {receive_no} update part: {part_no} rvm: {rvm_no}\n") 
                 
             ### commit data
             Conn.commit()
