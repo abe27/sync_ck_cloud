@@ -41,6 +41,7 @@ ORA_PASSWORD=os.environ.get('ORAC_DB_PASSWORD')
 ### Initail Data
 yk = Yazaki(SERVICE_TYPE, YAZAKI_HOST, YAZAKI_USER, YAZAKI_PASSWORD)
 spl = SplApi(SPL_API_HOST, SPL_API_USERNAME, SPL_API_PASSWORD)
+spl_token = spl.login()
 share_file = SplSharePoint(SHAREPOINT_SITE_URL, SHAREPOINT_SITE_NAME, SHAREPOINT_USERNAME, SHAREPOINT_PASSWORD)
 
 pool = cx_Oracle.SessionPool(user=ORA_PASSWORD, password=ORA_USERNAME, dsn=ORA_DNS, min=2, max=100, increment=1, encoding="UTF-8")
@@ -79,7 +80,6 @@ def main():
     # print(os.path.exists(root_pathname))
     if os.path.exists(root_pathname):
         log(name="SPL", subject="START", status='Active',message=f"Start SPL Service")
-        spl_token = spl.login()
         if spl_token:
             ### Check Folder
             root_path = os.listdir(root_pathname)
@@ -111,8 +111,6 @@ def main():
                         print('-------------------------------------------\n')
                         time.sleep(1.5)
             
-            is_success = spl.logout(spl_token)
-            print(f'logout is {is_success}')
             ### Delete EXPORT Folder
             if os.path.exists(root_pathname):
                 shutil.rmtree(root_pathname)
@@ -131,7 +129,7 @@ def download():
         password=DB_PASSWORD,
         database=DB_NAME,
     )
-    token = spl.login()
+    token = spl_token
     try:
         ### start get link download
         obj = spl.get_link(token)
@@ -279,8 +277,6 @@ def download():
     
     ### disconnect db
     mydb.close()
-    if spl.logout(token):
-        print(f'end service')
         
 def get_receive():
     token = None
@@ -288,7 +284,7 @@ def get_receive():
     try:
         # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
         # Oracur = Oracon.cursor()
-        token = spl.login()
+        token = spl_token
         data = spl.get_receive(token)
         obj = data['data']
         receive_array = []
@@ -379,7 +375,6 @@ def get_receive():
             if response is False:
                 return
             
-        spl.logout(token)
         Oracon.commit()
             
         ### notifications
@@ -402,7 +397,6 @@ def get_receive():
         
     except Exception as ex:
         log(name='SPL-ERROR', subject="SYNC RECEIVE", status="Error", message=str(ex))
-        spl.logout(token)
         pass
     
 def merge_receive():
@@ -483,13 +477,13 @@ def update_receive_ctn():
     Oracon.commit()
     
 def orderplans():
-    token = spl.login()
+    token = spl_token
     try:
         data = spl.get_order_plan(token, 5000, 0, 1)
         obj = data['data']
         if len(obj) == 0:
             #  Oracon.close()
-            return spl.logout(token)
+            return
         
         order_id = []
         rnd = 1
@@ -597,7 +591,6 @@ def orderplans():
         pass
     
     #  Oracon.close()
-    spl.logout(token)
     
 def update_order_group():
     mydb = pgsql.connect(
@@ -1130,6 +1123,7 @@ if __name__ == '__main__':
     genearate_order()
     generate_invoice()
     sync_invoice()
+    spl.logout(spl_token)
     pool.release(Oracon)
     pool.close()
     sys.exit(0)
