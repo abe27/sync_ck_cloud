@@ -698,24 +698,26 @@ def genearate_order():
     
     mycursor = mydb.cursor()
     
-    sql = f"""
-    select a.* from (
-        select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,'-' ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn,case when length(trim(substr(reasoncd, 1, 1))) = 0 then '-' else trim(substr(reasoncd, 1, 1)) end rcd
-        from tbt_order_plans
-        where is_generated=false and order_group is not null and to_char(etdtap, 'yyyy') = to_char(current_date, 'yyyy') and etdtap between date_trunc('week', current_date)::date and (date_trunc('week', current_date) + '13 days')::date
-        group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
-        order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
-    ) a
-    limit 20000"""
     # sql = f"""
     # select a.* from (
     #     select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,'-' ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn,case when length(trim(substr(reasoncd, 1, 1))) = 0 then '-' else trim(substr(reasoncd, 1, 1)) end rcd
     #     from tbt_order_plans
-    #     where is_generated=false and order_group is not null and bisafn='SAIBF' and etdtap ='2022-06-09'
+    #     where is_generated=false and order_group is not null and vendor='INJ' and to_char(etdtap, 'yyyy') = to_char(current_date, 'yyyy') and etdtap between date_trunc('week', current_date + 7)::date and (date_trunc('week', current_date) + '13 days')::date
     #     group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
     #     order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
     # ) a
-    # limit 20000""" 
+    # limit 20000"""
+    sql = f"""
+    select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,ordertype,pc,commercial,order_group,is_active,0 items,0 ctn,rcd from (
+        select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,'-' ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn,
+        case when length(trim(substr(reasoncd, 1, 1))) = 0 then '-' else case when trim(substr(reasoncd, 1, 1)) in ('0', 'M') then 'M' else '-' end end rcd
+        from tbt_order_plans
+        where is_generated=false and order_group is not null and vendor='INJ' and to_char(etdtap, 'yyyy') = to_char(current_date, 'yyyy') and etdtap between date_trunc('week', current_date + 7)::date and (date_trunc('week', current_date) + '13 days')::date
+        group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
+        order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
+    ) a
+    group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,ordertype,pc,commercial,order_group,is_active,rcd
+    limit 20000""" 
     
     runn_order = 1
     mycursor.execute(sql)
@@ -780,6 +782,7 @@ def genearate_order():
         if bish:
             customer_id = bish[0]
             sql_customer = f"""update tbt_customers set cust_name='{bisafn}',updated_at=current_timestamp where id='{customer_id}'"""
+            
         mycursor.execute(sql_customer)
         
         mycursor.execute(f"select id from tbt_shippings where prefix_code='{shiptype}'")
@@ -818,7 +821,7 @@ def genearate_order():
         sql_reason = "and substring(reasoncd, 1, 1) not in ('M', '0')"
         if order_type == 'M':sql_reason = "and substring(reasoncd, 1, 1) in ('M', '0')"
         sql_body = f"""select '{order_id}' order_id,id order_plan_id,case when length(reasoncd) > 0 then reasoncd else '-' end revise_id,partno ledger_id,pono,lotno,ordermonth,orderorgi,orderround,balqty,bistdp,shippedflg,shippedqty,sampleflg,carriercode,bidrfl,deleteflg  delete_flg,firmflg  firm_flg,'' poupd_flg,unit,partname from tbt_order_plans where etdtap='{etd_date}' and vendor='{vendor}' and bioabt='{bioabt}' and biivpx='{biivpx}' and biac='{biac}' and bishpc='{bishpc}' and shiptype='{shiptype}' and pc='{pc}' and commercial='{commercial}' and order_group='{order_group}' {sql_reason} and is_active=true order by created_at,sequence"""
-        # print(sql_body)
+        print(sql_body)
         mycursor.execute(sql_body)
         db = mycursor.fetchall()
         
@@ -1122,7 +1125,7 @@ if __name__ == '__main__':
     orderplans()
     genearate_order()
     generate_invoice()
-    sync_invoice()
+    # sync_invoice()
     spl.logout(spl_token)
     pool.release(Oracon)
     pool.close()
