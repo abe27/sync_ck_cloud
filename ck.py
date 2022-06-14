@@ -420,7 +420,7 @@ def merge_receive():
                     receive_no.append(str(k[0])[10:])
             
             #### new receive key    
-            sql_key = f"SELECT TO_CHAR(count(*) + 1, '09')  FROM TXP_RECTRANSENT t WHERE t.RECEIVINGKEY LIKE 'SI{datetime.now().strftime('%y%m%d')}%'"
+            sql_key = f"SELECT to_char(round(SUBSTR(RECEIVINGKEY, 9, 10)) + 1, '09')  FROM TXP_RECTRANSENT WHERE RECEIVINGKEY LIKE 'SI{datetime.now().strftime('%y%m%d')}%' ORDER BY RECEIVINGKEY DESC"
             key = Oracur.execute(sql_key)
             key_no = (f"SI{datetime.now().strftime('%y%m%d')}{(key.fetchone())[0]}").replace(" ", "")
             receive_key = ",".join(receive_no)
@@ -456,7 +456,7 @@ def merge_receive():
         Oracon.commit()
         #  Oracon.close()
     except Exception as ex:
-        log(name='SPL-ERROR', subject="MERGE", status="Error", message=str(ex))
+        log(name='SPL-ERROR-MERGE', subject="MERGE", status="Error", message=str(ex))
         pass
     
 def update_receive_ctn():
@@ -1111,16 +1111,16 @@ def sync_invoice():
     mydb.close()
     
 if __name__ == '__main__':
-    # main()
-    # download()
-    # get_receive()
+    main()
+    download()
+    get_receive()
     merge_receive()
-    # update_receive_ctn()
-    # update_order_group()
-    # # orderplans()
-    # genearate_order()
-    # generate_invoice()
-    # sync_invoice()
+    update_receive_ctn()
+    update_order_group()
+    orderplans()
+    genearate_order()
+    generate_invoice()
+    sync_invoice()
     spl.logout(spl_token)
     pool.release(Oracon)
     pool.close()
