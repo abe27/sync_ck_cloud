@@ -572,15 +572,15 @@ def orderplans():
             )
             
             mycursor = mydb.cursor()
-            mycursor.execute(f"update tbt_order_plans set is_sync=true where id in ({str(order_id).replace('[', '').replace(']', '')})")
+            mycursor.execute(f"update tbt_order_plans set is_system_sync=true where id in ({str(order_id).replace('[', '').replace(']', '')})")
             mydb.commit()
             mydb.close()
         
         d = datetime.now()
         _rnd = f"{(rnd - 1):,}"
         msg = f"""ซิงค์ข้อมูล OrderPlan\nจำนวน: {_rnd} รายการ\nวดป.: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
-        if int(rnd) > 0:
-            spl.line_notification(msg)
+        # if int(rnd) > 0:
+        #     spl.line_notification(msg)
         
         print(f"---------------------")   
         print(msg)
@@ -729,13 +729,9 @@ def genearate_order():
         bishpc = str(i[5])
         bisafn = str(i[6])
         shiptype = str(i[7])
-        # order_type = str(i[8])
         pc = str(i[9])
         commercial = str(i[10])
         order_group = str(i[11])
-        # is_active = str(i[12])
-        # items = str(i[13])
-        # ctn = str(i[14])
         filter_by_reason = str(i[15])
         order_type = "-"
         if (filter_by_reason in ["0","M"]):
