@@ -11,3 +11,4 @@ sudo systemctl stop serial.trigger.service&& sudo systemctl start serial.trigger
 ### update tbt_order_plans set is_generated=false;
 ### truncate table tbt_orders restart identity cascade;
 ### update tbt_consignees set last_running_no=0;
+### update tbt_order_details set set_pallet_ctn=0;
