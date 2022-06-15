@@ -605,7 +605,19 @@ def update_order_group():
         database=DB_NAME,
     )
     mycursor = mydb.cursor()
-    mycursor.execute(f"""select vendor,bishpc,shiptype,pono,vendor||bioabt zone_name,case when substring(pono, 1, 1)='#' then 'NESC' else case when substring(pono,1,1) = '@' then 'ICAM' else 'CK-2' end end zhs,case when substring(pono, 1, 1)='#' then '#' else case when substring(pono,1,1) = '@' then '@' else '' end end prefix_code,bioabt from tbt_order_plans where order_group is null group by vendor,bishpc,shiptype,pono,bioabt order by vendor,bishpc,shiptype,pono,bioabt limit 10000""")
+    mycursor.execute(f"""select vendor,bishpc,shiptype,pono,vendor||bioabt zone_name,
+        case 
+            when substring(pono, 1, 1)='#' then 'NESC' 
+            when substring(pono,1,1) = '@' then 'ICAM' else 
+        case 
+            when vendor||bioabt = 'INJ1' then 'CK-1'
+            when vendor||bioabt = 'INJ2' then 'NESC'
+            when vendor||bioabt = 'INJ3' then 'ICAM'
+            else 'CK-2'
+        end end zhs,case when substring(pono, 1, 1)='#' then '#' else case when substring(pono,1,1) = '@' then '@' else '' end end prefix_code,bioabt 
+        from tbt_order_plans 
+        where vendor='INJ' and order_group is null 
+        group by vendor,bishpc,shiptype,pono,bioabt order by vendor,bishpc,shiptype,pono,bioabt limit 10000""")
     runn = 1
     for i in mycursor.fetchall():
         factory = str(i[0]).strip()
