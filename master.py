@@ -318,7 +318,7 @@ def update_orderplan_date_sync():
         mycursor.execute(sql)
         for r in mycursor.fetchall():
             file_gedi_id = str(r[0]).strip()
-            updated_at = float(str(r[1]).strip())
+            updated_at = str(r[1]).strip()
             sql_update_ledger = f"update tbt_order_plans set updated_at='{updated_at}' where file_gedi_id='{file_gedi_id}'"
             mycursor.execute(sql_update_ledger)
             mydb.commit()
