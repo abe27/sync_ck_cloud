@@ -304,14 +304,37 @@ def update_ledger_dimension():
         log(name='MASTER-ERROR', subject="UPDATE STOCK", status="Success", message=ex)
         pass
     
+def update_orderplan_date_sync():
+    try:
+        mydb = pgsql.connect(
+            host=DB_HOSTNAME,
+            port=DB_PORT,
+            user=DB_USERNAME,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+        )
+        mycursor = mydb.cursor()
+        sql = f"select id,updated_at from tbt_file_gedis where id in (select file_gedi_id from tbt_order_plans group by file_gedi_id)"
+        mycursor.execute(sql)
+        for r in mycursor.fetchall():
+            file_gedi_id = str(r[0]).strip()
+            updated_at = float(str(r[1]).strip())
+            sql_update_ledger = f"update tbt_order_plans set updated_at='{updated_at}' where file_gedi_id='{file_gedi_id}'"
+            mycursor.execute(sql_update_ledger)
+            mydb.commit()
+        
+        mydb.close()
+        log(name='MASTER', subject="UPDATE STOCK", status="Success", message=f"End Service")
+    except Exception as ex:
+        log(name='MASTER-ERROR', subject="UPDATE STOCK", status="Success", message=ex)
+        pass
+    
 if __name__ == '__main__':
+    update_orderplan_date_sync()
     update_ledger_dimension()
     update_stock()
-    time.sleep(0.1)
     update_master_location()
-    time.sleep(0.1)
     update_die()
-    time.sleep(0.1)
     update_carton()
     pool.release(Oracon)
     pool.close()
