@@ -422,7 +422,11 @@ def merge_receive():
             #### new receive key    
             sql_key = f"SELECT to_char(round(SUBSTR(RECEIVINGKEY, 9, 10)) + 1, '09')  FROM TXP_RECTRANSENT WHERE RECEIVINGKEY LIKE 'SI{datetime.now().strftime('%y%m%d')}%' ORDER BY RECEIVINGKEY DESC"
             key = Oracur.execute(sql_key)
-            key_no = (f"SI{datetime.now().strftime('%y%m%d')}{(key.fetchone())[0]}").replace(" ", "")
+            receive_ora = key.fetchone()
+            key_no = (f"SI{datetime.now().strftime('%y%m%d')}01")
+            if receive_ora != None:
+                key_no = (f"SI{datetime.now().strftime('%y%m%d')}{(receive_ora)[0]}").replace(" ", "")
+                
             receive_key = ",".join(receive_no)
             sql = f"""SELECT '{key_no}' RECEIVINGKEY,0 SEQ, PARTNO,sum(PLNQTY) PLNQTY,sum(PLNCTN) plnctn,0 RECQTY,0 RECCTN,TAGRP, UNIT, CD, WHS, DESCRI, '' RVMNO,sysdate UPDDTE, sysdate SYSDTE, 'SKTSYS' CREATEDBY,'SKTSYS' MODIFIEDBY,'{receive_key}' OLDERKEY  FROM TXP_RECTRANSBODY WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')}) GROUP BY PARTNO,TAGRP, UNIT, CD, WHS, DESCRI ORDER BY PARTNO"""
             # print(sql)
