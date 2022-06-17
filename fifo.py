@@ -142,30 +142,10 @@ async def get(part_no):
     return doc
 
 
+
 @app.get('/shelve/{shelve_no}')
 async def get(shelve_no):
-    sql = f"""SELECT PARTNO,LOTNO,RUNNINGNO,SHELVE,STOCKQUANTITY
-        FROM (
-            SELECT 
-                CASE 
-                    WHEN SUBSTR(c.LOTNO, 0, 1) > 2 THEN '201'||SUBSTR(c.LOTNO, 0, 1)
-                ELSE
-                    '202'||SUBSTR(c.LOTNO, 0, 1) 
-                END on_year,
-                CASE 
-                    WHEN SUBSTR(c.LOTNO, 0, 1) > 2 THEN '201'||SUBSTR(c.LOTNO, 0, 1)
-                ELSE
-                    '202'||SUBSTR(c.LOTNO, 0, 1) 
-                END  || SUBSTR(c.LOTNO, 2, 2) ON_FIFO_MONTH,
-                c.LOTNO,
-                c.PARTNO,c.RUNNINGNO,c.SHELVE,c.STOCKQUANTITY
-            FROM TXP_CARTONDETAILS c 
-            WHERE c.SHELVE NOT IN ('S-XXX','S-PLOUT', 'S-HOLD', 'S-P59', 'S-P58', 'S-P57', 'S-CK1')
-            GROUP BY SUBSTR(c.LOTNO, 0, 1),c.PARTNO,c.LOTNO,c.RUNNINGNO,c.SHELVE,c.STOCKQUANTITY
-            ORDER BY SUBSTR(c.LOTNO, 0, 1),SUBSTR(c.LOTNO, 2, 2),c.PARTNO,c.LOTNO,c.RUNNINGNO,c.SHELVE
-        )
-        WHERE shelve like '{shelve_no}%'
-        ORDER BY ON_YEAR,ON_FIFO_MONTH,PARTNO,LOTNO,RUNNINGNO,SHELVE"""
+    sql = f"""SELECT PARTNO,LOTNO,RUNNINGNO,STOCKQUANTITY,SHELVE  FROM TXP_CARTONDETAILS WHERE SHELVE='{shelve_no}' ORDER BY PARTNO,LOTNO,RUNNINGNO,SHELVE """
     Oracur.execute(sql)
     obj = Oracur.fetchall()
     doc = []
