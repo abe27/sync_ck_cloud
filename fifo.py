@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 import os
 import cx_Oracle
 from fastapi import FastAPI
@@ -7,24 +8,25 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=['*'],
+    allow_origins=["*", "http://851e0741942a.sn.mynetname.net","http://851e0741942a.sn.mynetname.net:3000","http://0.0.0.0:3000","http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-from dotenv import load_dotenv
 load_dotenv()
 
 ORA_DNS = f"{os.environ.get('ORAC_DB_HOST')}/{os.environ.get('ORAC_DB_SERVICE')}"
 ORA_USERNAME = os.environ.get('ORAC_DB_USERNAME')
 ORA_PASSWORD = os.environ.get('ORAC_DB_PASSWORD')
 
-### Start Up
-pool = cx_Oracle.SessionPool(user=ORA_PASSWORD, password=ORA_USERNAME, dsn=ORA_DNS, min=2, max=100, increment=1, encoding="UTF-8")
+# Start Up
+pool = cx_Oracle.SessionPool(user=ORA_PASSWORD, password=ORA_USERNAME,
+                             dsn=ORA_DNS, min=2, max=100, increment=1, encoding="UTF-8")
 # Acquire a connection from the pool
 Oracon = pool.acquire()
 Oracur = Oracon.cursor()
+
 
 @app.on_event("shutdown")
 async def shut_down():
@@ -32,12 +34,14 @@ async def shut_down():
     pool.release(Oracon)
     Oracon.close()
 
+
 @app.get('/')
 async def get():
     return {
         "message": "Hello world"
     }
-    
+
+
 @app.get('/part')
 async def get():
     sql = f"""SELECT a.ON_YEAR,a.ON_FIFO_MONTH,a.PARTNO,b.ctn,min(a.shelve) shelve
@@ -99,6 +103,7 @@ async def get():
         })
     return doc
 
+
 @app.get('/detail/{part_no}')
 async def get(part_no):
     sql = f"""SELECT PARTNO,LOTNO,RUNNINGNO,SHELVE,STOCKQUANTITY
@@ -135,6 +140,7 @@ async def get(part_no):
             "qty": float(str(r[4]))
         })
     return doc
+
 
 @app.get('/shelve/{shelve_no}')
 async def get(shelve_no):
