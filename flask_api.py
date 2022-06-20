@@ -2,7 +2,7 @@ import json
 from dotenv import load_dotenv
 import os
 import cx_Oracle
-from flask import Flask
+from flask import Flask, jsonify
 
 
 app = Flask(__name__)
@@ -59,7 +59,7 @@ async def detail(part_no):
             "shelve": str(r[3]),
             "qty": float(str(r[4]))
         })
-    return json.dumps(doc)
+    return jsonify(doc)
 
 @app.get('/shelve/<shelve_name>')
 def shelve(shelve_name):
@@ -76,7 +76,7 @@ def shelve(shelve_name):
             "qty": float(str(r[3]))
         })
         
-    return json.dumps(doc)
+    return jsonify(doc)
 
 
 if __name__ == "__main__":
