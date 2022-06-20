@@ -6,9 +6,20 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+origins = ['*']
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*", "http://192.168.101.217:5050","http://851e0741942a.sn.mynetname.net","http://851e0741942a.sn.mynetname.net:3000","http://0.0.0.0:3000","http://localhost:3000"],
+    # allow_origins=[
+    #     "*", 
+    #     "http://192.168.101.217",
+    #     "http://192.168.101.217:3000",
+    #     "http://192.168.101.217:5050",
+    #     "http://851e0741942a.sn.mynetname.net",
+    #     "http://851e0741942a.sn.mynetname.net:3000",
+    #     "http://0.0.0.0:3000",
+    #     "http://localhost:3000"
+    #     ],
+    allow_origins = origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
