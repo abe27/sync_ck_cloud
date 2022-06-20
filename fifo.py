@@ -165,7 +165,7 @@ async def get(shelve_no):
             "part_no": r[0],
             "lotno": str(r[1]).strip(),
             "serial_no": str(r[2]),
-            "shelve": str(r[3]),
-            "qty": float(str(r[4]))
+            "shelve": str(r[4]),
+            "qty": float(str(r[3]))
         })
     return doc
