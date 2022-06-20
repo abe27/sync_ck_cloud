@@ -3,9 +3,10 @@ from dotenv import load_dotenv
 import os
 import cx_Oracle
 from flask import Flask, jsonify
-
+from flask_cors import CORS
 
 app = Flask(__name__)
+cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
 load_dotenv()
 
@@ -25,6 +26,7 @@ def home():
     return "Hello World"
 
 @app.get('/detail/<part_no>')
+@cross_origin()
 async def detail(part_no):
     sql = f"""SELECT PARTNO,LOTNO,RUNNINGNO,SHELVE,STOCKQUANTITY
         FROM (
@@ -62,7 +64,8 @@ async def detail(part_no):
     return jsonify(doc)
 
 @app.get('/shelve/<shelve_name>')
-def shelve(shelve_name):
+@cross_origin()
+async def shelve(shelve_name):
     sql = f"""SELECT PARTNO,LOTNO,RUNNINGNO,STOCKQUANTITY,SHELVE  FROM TXP_CARTONDETAILS WHERE SHELVE='{shelve_name}' ORDER BY PARTNO,LOTNO,RUNNINGNO,SHELVE"""
     Oracur.execute(sql)
     obj = Oracur.fetchall()
