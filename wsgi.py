@@ -61,7 +61,10 @@ async def detail(part_no):
             "shelve": str(r[3]),
             "qty": float(str(r[4]))
         })
-    return jsonify(doc)
+        
+    response  = jsonify(doc)  
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    return response
 
 @app.get('/shelve/<shelve_name>')
 # @cross_origin()
@@ -79,7 +82,9 @@ async def shelve(shelve_name):
             "qty": float(str(r[3]))
         })
         
-    return jsonify(doc)
+    response  = jsonify(doc)  
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    return response
 
 
 if __name__ == "__main__":
