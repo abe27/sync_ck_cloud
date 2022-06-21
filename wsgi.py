@@ -28,7 +28,7 @@ def home():
 @app.get('/detail/<part_no>')
 # @cross_origin()
 async def detail(part_no):
-    sql = f"""SELECT PARTNO,LOTNO,RUNNINGNO,SHELVE,STOCKQUANTITY
+    sql = f"""SELECT ON_YEAR,ON_FIFO_MONTH,PARTNO,LOTNO,RUNNINGNO,SHELVE,STOCKQUANTITY,PALLETKEY
         FROM (
             SELECT 
                 CASE 
@@ -42,10 +42,10 @@ async def detail(part_no):
                     '202'||SUBSTR(c.LOTNO, 0, 1) 
                 END  || SUBSTR(c.LOTNO, 2, 2) ON_FIFO_MONTH,
                 c.LOTNO,
-                c.PARTNO,c.RUNNINGNO,c.SHELVE,c.STOCKQUANTITY
+                c.PARTNO,c.RUNNINGNO,c.SHELVE,c.STOCKQUANTITY,c.PALLETKEY
             FROM TXP_CARTONDETAILS c 
             WHERE c.SHELVE NOT IN ('S-XXX','S-PLOUT')
-            GROUP BY SUBSTR(c.LOTNO, 0, 1),c.PARTNO,c.LOTNO,c.RUNNINGNO,c.SHELVE,c.STOCKQUANTITY
+            GROUP BY SUBSTR(c.LOTNO, 0, 1),c.PARTNO,c.LOTNO,c.RUNNINGNO,c.SHELVE,c.STOCKQUANTITY,c.PALLETKEY
             ORDER BY SUBSTR(c.LOTNO, 0, 1),SUBSTR(c.LOTNO, 2, 2),c.PARTNO,c.LOTNO,c.RUNNINGNO,c.SHELVE
         )
         WHERE partno ='{part_no}'
@@ -55,11 +55,14 @@ async def detail(part_no):
     doc = []
     for r in obj:
         doc.append({
-            "part_no": r[0],
-            "lotno": str(r[1]).strip(),
-            "serial_no": str(r[2]),
-            "shelve": str(r[3]),
-            "qty": float(str(r[4]))
+            "on_year": str(r[0]).strip(),
+            "on_fifo_month": str(r[1]).strip(),
+            "part_no": str(r[2]).strip(),
+            "lotno": str(r[3]).strip(),
+            "serial_no": str(r[4]),
+            "shelve": str(r[5]),
+            "qty": float(str(r[6])),
+            "pallet_no": str(r[7])
         })
         
     response  = jsonify(doc)  
@@ -69,17 +72,40 @@ async def detail(part_no):
 @app.get('/shelve/<shelve_name>')
 # @cross_origin()
 async def shelve(shelve_name):
-    sql = f"""SELECT PARTNO,LOTNO,RUNNINGNO,STOCKQUANTITY,SHELVE  FROM TXP_CARTONDETAILS WHERE SHELVE='{shelve_name}' ORDER BY PARTNO,LOTNO,RUNNINGNO,SHELVE"""
+    sql = f"""SELECT ON_YEAR,ON_FIFO_MONTH,PARTNO,LOTNO,RUNNINGNO,SHELVE,STOCKQUANTITY,PALLETKEY
+        FROM (
+            SELECT 
+                CASE 
+                    WHEN SUBSTR(c.LOTNO, 0, 1) > 2 THEN '201'||SUBSTR(c.LOTNO, 0, 1)
+                ELSE
+                    '202'||SUBSTR(c.LOTNO, 0, 1) 
+                END on_year,
+                CASE 
+                    WHEN SUBSTR(c.LOTNO, 0, 1) > 2 THEN '201'||SUBSTR(c.LOTNO, 0, 1)
+                ELSE
+                    '202'||SUBSTR(c.LOTNO, 0, 1) 
+                END  || SUBSTR(c.LOTNO, 2, 2) ON_FIFO_MONTH,
+                c.LOTNO,
+                c.PARTNO,c.RUNNINGNO,c.SHELVE,c.STOCKQUANTITY,c.PALLETKEY
+            FROM TXP_CARTONDETAILS c
+            GROUP BY SUBSTR(c.LOTNO, 0, 1),c.PARTNO,c.LOTNO,c.RUNNINGNO,c.SHELVE,c.STOCKQUANTITY,c.PALLETKEY
+            ORDER BY SUBSTR(c.LOTNO, 0, 1),SUBSTR(c.LOTNO, 2, 2),c.PARTNO,c.LOTNO,c.RUNNINGNO,c.SHELVE
+        )
+        WHERE SHELVE ='{shelve_name}'
+        ORDER BY ON_YEAR,ON_FIFO_MONTH,PARTNO,LOTNO,RUNNINGNO,SHELVE"""
     Oracur.execute(sql)
     obj = Oracur.fetchall()
     doc = []
     for r in obj:
         doc.append({
-            "part_no": r[0],
-            "lotno": str(r[1]).strip(),
-            "serial_no": str(r[2]),
-            "shelve": str(r[4]),
-            "qty": float(str(r[3]))
+            "on_year": str(r[0]).strip(),
+            "on_fifo_month": str(r[1]).strip(),
+            "part_no": str(r[2]).strip(),
+            "lotno": str(r[3]).strip(),
+            "serial_no": str(r[4]),
+            "shelve": str(r[5]),
+            "qty": float(str(r[6])),
+            "pallet_no": str(r[7])
         })
         
     response  = jsonify(doc)  
