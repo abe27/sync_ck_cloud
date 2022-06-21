@@ -16,3 +16,7 @@ sudo systemctl stop serial.trigger.service&& sudo systemctl start serial.trigger
 
 
 select id,file_gedi_id,etdtap,shiptype,pono,partno,balqty,bistdp,balqty/bistdp ctn,reasoncd,created_at tap_date,updated_at spl_sync from tbt_order_plans where pono='#TP2074C' and partno='7198-4980-30' order by created_at,updated_at 
+
+update tbt_invoice_checks set bhsync=false;
+update tbt_fticket_seqs set running_seq=1;
+update tbt_consignees set last_running_no=0;

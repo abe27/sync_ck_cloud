@@ -95,18 +95,20 @@ def main():
         read_invoice(list_file[i])
         i += 1
         
-def create_orders(orderid, invoice_no, last_running_no):
-    list_order = str(orderid).replace('[', '').replace(']', '')
+def create_orders(invoice_no, last_running_no):
     sql = f"""select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,ordertype,pc,commercial,order_group,is_active,0 items,0 ctn,rcd from (
                 select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,'-' ordertype,pc,commercial,order_group,is_active,count(partno) items,round(sum(balqty/bistdp))  ctn,
                 case when length(trim(substr(reasoncd, 1, 1))) = 0 then '-' else case when trim(substr(reasoncd, 1, 1)) in ('0', 'M') then 'M' else '-' end end rcd
                 from tbt_order_plans
-                where id in ({list_order})
+                where id in (
+                    select order_plan_id  from tbt_invoice_checks where bhivno='{invoice_no}'
+                )
                 group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
                 order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
             ) a
             group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,ordertype,pc,commercial,order_group,is_active,rcd"""
-            
+    
+    print(sql)        
     runn_order = 1
     pg_cursor.execute(sql)
     for i in pg_cursor.fetchall():
@@ -401,80 +403,41 @@ def create_orders(orderid, invoice_no, last_running_no):
                 pallet_no = int(p[4])
                 plid = generate(size=36)
                 invoice_pallet_detail_id = generate(size=36)
-                if older_pallet is None:
-                    older_pallet = bhpaln
-                    pallet_total = 0
-                    
-                else:
-                    if older_pallet != bhpaln:
+                sql_order_details = f"select id from tbt_order_details where order_plan_id='{order_plan_id}'"
+                pg_cursor.execute(sql_order_details)
+                order_details = pg_cursor.fetchone()
+                sql_update_invoice_check = f"update tbt_invoice_checks set bhsync=true,is_matched=false where bhivno='{invoice_no}'"
+                if order_details != None:
+                    order_details_id = order_details[0]
+                    if older_pallet is None:
                         older_pallet = bhpaln
                         pallet_total = 0
-                
-                if bhpaln == "-":
-                    pg_cursor.execute(f"select id from tbt_pallet_types where name='BOX'")
-                    pallet_type_id = pg_cursor.fetchone()[0]
-                    pallet_no = 0
-                
-                else:
-                    ### for pallet
-                    plno = bhpaln
-                    plid = generate(size=36)
-                    invoice_pallet_detail_id = generate(size=36)
-                    sql_pallet = f"select id from tbt_invoice_pallets where invoice_id='{invoice_id}' and pallet_no='{pallet_no}' and pallet_type_id='{pallet_type_id}'"   
-                    pg_cursor.execute(sql_pallet)
-                    pl_id = pg_cursor.fetchone()
-                    sql_insert_pallet = f"""insert into tbt_invoice_pallets(id, invoice_id, placing_id, location_id, pallet_no, spl_pallet_no, pallet_total, is_active, created_at, updated_at, pallet_type_id)values('{plid}', '{invoice_id}', '{placing_id}', '{location_id}', {pallet_no}, '-', 0, true, current_timestamp, current_timestamp, '{pallet_type_id}')"""
-                    if bhpaln == "-":
-                        sql_insert_pallet = f"""insert into tbt_invoice_pallets(id, invoice_id, location_id, pallet_no, spl_pallet_no, pallet_total, is_active, created_at, updated_at, pallet_type_id)values('{plid}', '{invoice_id}', '{location_id}', {pallet_no}, '-', 0, true, current_timestamp, current_timestamp, '{pallet_type_id}')"""
                         
-                    if pl_id:plid=pl_id[0]
-                    else:pg_cursor.execute(sql_insert_pallet)
+                    else:
+                        if older_pallet != bhpaln:
+                            older_pallet = bhpaln
+                            pallet_total = 0
                     
-                    sql_order_details = f"select id from tbt_order_details where order_plan_id='{order_plan_id}'"
-                    pg_cursor.execute(sql_order_details)
-                    order_details = pg_cursor.fetchone()
-                    if order_details is None:
-                        print(order_plan_id)
-                        return
-                    
-                    order_details_id = order_details[0]
-                    
-                    sql_pallet_detail = f"select id from tbt_invoice_pallet_details where invoice_pallet_id='{plid}' and invoice_part_id='{order_details_id}'"
-                    pg_cursor.execute(sql_pallet_detail)
-                    pallet_detail = pg_cursor.fetchone()
-                    sql_pallet_detail_insert = f"""insert into tbt_invoice_pallet_details(id, invoice_pallet_id, is_printed, is_active, created_at, updated_at, invoice_part_id)values('{invoice_pallet_detail_id}', '{plid}', false, true, current_timestamp, current_timestamp, '{order_details_id}')"""
-                    if pallet_detail:
-                        invoice_pallet_detail_id = pallet_detail[0]
-                        sql_pallet_detail_insert = f"""update tbt_invoice_pallet_details set invoice_pallet_id='{plid}',updated_at=current_timestamp,invoice_part_id='{order_details_id}' where id='{invoice_pallet_detail_id}'"""
-                        
-                    pg_cursor.execute(sql_pallet_detail_insert)
-                    pg_cursor.execute(f"update tbt_order_details set set_pallet_ctn={bhctn} where order_plan_id='{order_plan_id}'")
-                
-                
-                ### create fticketno
-                d = datetime.now().strftime('%Y')
-                x = 0
-                while x < bhctn:
                     if bhpaln == "-":
-                        ### for box
-                        pallet_total = 1
-                        pallet_no_seq += 1
-                        plno = f"C{'{:03d}'.format(pallet_no_seq)}"
+                        pg_cursor.execute(f"select id from tbt_pallet_types where name='BOX'")
+                        pallet_type_id = pg_cursor.fetchone()[0]
+                        pallet_no = 0
+                    
+                    else:
+                        ### for pallet
+                        plno = bhpaln
                         plid = generate(size=36)
                         invoice_pallet_detail_id = generate(size=36)
-                        sql_pallet = f"select id from tbt_invoice_pallets where invoice_id='{invoice_id}' and pallet_no='{pallet_no_seq}' and pallet_type_id='{pallet_type_id}'"   
+                        sql_pallet = f"select id from tbt_invoice_pallets where invoice_id='{invoice_id}' and pallet_no='{pallet_no}' and pallet_type_id='{pallet_type_id}'"   
                         pg_cursor.execute(sql_pallet)
                         pl_id = pg_cursor.fetchone()
-                        sql_insert_pallet = f"""insert into tbt_invoice_pallets(id, invoice_id, placing_id, location_id, pallet_no, spl_pallet_no, pallet_total, is_active, created_at, updated_at, pallet_type_id)values('{plid}', '{invoice_id}', '{placing_id}', '{location_id}', {pallet_no_seq}, '-', {pallet_total}, true, current_timestamp, current_timestamp, '{pallet_type_id}')"""
+                        sql_insert_pallet = f"""insert into tbt_invoice_pallets(id, invoice_id, placing_id, location_id, pallet_no, spl_pallet_no, pallet_total, is_active, created_at, updated_at, pallet_type_id)values('{plid}', '{invoice_id}', '{placing_id}', '{location_id}', {pallet_no}, '-', 0, true, current_timestamp, current_timestamp, '{pallet_type_id}')"""
                         if bhpaln == "-":
-                            sql_insert_pallet = f"""insert into tbt_invoice_pallets(id, invoice_id, location_id, pallet_no, spl_pallet_no, pallet_total, is_active, created_at, updated_at, pallet_type_id)values('{plid}', '{invoice_id}', '{location_id}', {pallet_no_seq}, '-', {pallet_total}, true, current_timestamp, current_timestamp, '{pallet_type_id}')"""
+                            sql_insert_pallet = f"""insert into tbt_invoice_pallets(id, invoice_id, location_id, pallet_no, spl_pallet_no, pallet_total, is_active, created_at, updated_at, pallet_type_id)values('{plid}', '{invoice_id}', '{location_id}', {pallet_no}, '-', 0, true, current_timestamp, current_timestamp, '{pallet_type_id}')"""
                             
                         if pl_id:plid=pl_id[0]
                         else:pg_cursor.execute(sql_insert_pallet)
                         
-                        sql_order_details = f"select id from tbt_order_details where order_plan_id='{order_plan_id}'"
-                        pg_cursor.execute(sql_order_details)
-                        order_details_id = pg_cursor.fetchone()[0]
                         sql_pallet_detail = f"select id from tbt_invoice_pallet_details where invoice_pallet_id='{plid}' and invoice_part_id='{order_details_id}'"
                         pg_cursor.execute(sql_pallet_detail)
                         pallet_detail = pg_cursor.fetchone()
@@ -484,69 +447,89 @@ def create_orders(orderid, invoice_no, last_running_no):
                             sql_pallet_detail_insert = f"""update tbt_invoice_pallet_details set invoice_pallet_id='{plid}',updated_at=current_timestamp,invoice_part_id='{order_details_id}' where id='{invoice_pallet_detail_id}'"""
                             
                         pg_cursor.execute(sql_pallet_detail_insert)
+                        pg_cursor.execute(f"update tbt_order_details set set_pallet_ctn={bhctn} where order_plan_id='{order_plan_id}'")
                     
                     
-                    sql_fticket = f"select id,running_seq from tbt_fticket_seqs where fticket_prefix='V' and on_year='{d}'"
-                    pg_cursor.execute(sql_fticket)
-                    f = pg_cursor.fetchone()
-                    fticketno = f"V{d[3:]}{'{:08d}'.format(f[1])}"
-                    sql_fticket = f"select id from tbt_ftickets where fticket_no='{fticketno}'"
-                    pg_cursor.execute(sql_fticket)
-                    ftickets = pg_cursor.fetchone()
-                    fticket_id = generate(size=36)
-                    sql_insert_fticket = f"""insert into tbt_ftickets(id, invoice_pallet_detail_id, fticket_no, description, is_printed, is_scanned, is_active, created_at, updated_at, seq)
-                    values('{fticket_id}', '{invoice_pallet_detail_id}', '{fticketno}', '-', false, false, true, current_timestamp, current_timestamp, {(x + 1)})"""
-                    if ftickets:
-                        fticket_id = ftickets[0]
-                        sql_insert_fticket = f"""update tbt_ftickets set updated_at=current_timestamp where id='{fticket_id}'"""
-                    
-                    pg_cursor.execute(sql_insert_fticket)
-                    pg_cursor.execute(f"update tbt_fticket_seqs set running_seq={int(f[1]) + 1} where id='{f[0]}'")
-                    if bhpaln != "-":
-                        pallet_total += 1
-                        sql_update_pallet_total = f"update tbt_invoice_pallets set pallet_total='{pallet_total}' where id='{plid}'"
-                        pg_cursor.execute(sql_update_pallet_total)
-                    
-                    print(f"{x} => {fticketno} pallet: {plno} inv: {bhivno} total: {pallet_total}")
-                    x += 1
-                    
-                # pallet_total += bhctn
+                    ### create fticketno
+                    d = datetime.now().strftime('%Y')
+                    x = 0
+                    while x < bhctn:
+                        if bhpaln == "-":
+                            ### for box
+                            pallet_total = 1
+                            pallet_no_seq += 1
+                            plno = f"C{'{:03d}'.format(pallet_no_seq)}"
+                            plid = generate(size=36)
+                            invoice_pallet_detail_id = generate(size=36)
+                            sql_pallet = f"select id from tbt_invoice_pallets where invoice_id='{invoice_id}' and pallet_no='{pallet_no_seq}' and pallet_type_id='{pallet_type_id}'"   
+                            pg_cursor.execute(sql_pallet)
+                            pl_id = pg_cursor.fetchone()
+                            sql_insert_pallet = f"""insert into tbt_invoice_pallets(id, invoice_id, placing_id, location_id, pallet_no, spl_pallet_no, pallet_total, is_active, created_at, updated_at, pallet_type_id)values('{plid}', '{invoice_id}', '{placing_id}', '{location_id}', {pallet_no_seq}, '-', {pallet_total}, true, current_timestamp, current_timestamp, '{pallet_type_id}')"""
+                            if bhpaln == "-":
+                                sql_insert_pallet = f"""insert into tbt_invoice_pallets(id, invoice_id, location_id, pallet_no, spl_pallet_no, pallet_total, is_active, created_at, updated_at, pallet_type_id)values('{plid}', '{invoice_id}', '{location_id}', {pallet_no_seq}, '-', {pallet_total}, true, current_timestamp, current_timestamp, '{pallet_type_id}')"""
+                                
+                            if pl_id:plid=pl_id[0]
+                            else:pg_cursor.execute(sql_insert_pallet)
+                            
+                            sql_order_details = f"select id from tbt_order_details where order_plan_id='{order_plan_id}'"
+                            pg_cursor.execute(sql_order_details)
+                            order_details_id = pg_cursor.fetchone()[0]
+                            sql_pallet_detail = f"select id from tbt_invoice_pallet_details where invoice_pallet_id='{plid}' and invoice_part_id='{order_details_id}'"
+                            pg_cursor.execute(sql_pallet_detail)
+                            pallet_detail = pg_cursor.fetchone()
+                            sql_pallet_detail_insert = f"""insert into tbt_invoice_pallet_details(id, invoice_pallet_id, is_printed, is_active, created_at, updated_at, invoice_part_id)values('{invoice_pallet_detail_id}', '{plid}', false, true, current_timestamp, current_timestamp, '{order_details_id}')"""
+                            if pallet_detail:
+                                invoice_pallet_detail_id = pallet_detail[0]
+                                sql_pallet_detail_insert = f"""update tbt_invoice_pallet_details set invoice_pallet_id='{plid}',updated_at=current_timestamp,invoice_part_id='{order_details_id}' where id='{invoice_pallet_detail_id}'"""
+                                
+                            pg_cursor.execute(sql_pallet_detail_insert)
+                        
+                        
+                        sql_fticket = f"select id,running_seq from tbt_fticket_seqs where fticket_prefix='V' and on_year='{d}'"
+                        pg_cursor.execute(sql_fticket)
+                        f = pg_cursor.fetchone()
+                        fticketno = f"V{d[3:]}{'{:08d}'.format(f[1])}"
+                        sql_fticket = f"select id from tbt_ftickets where fticket_no='{fticketno}'"
+                        pg_cursor.execute(sql_fticket)
+                        ftickets = pg_cursor.fetchone()
+                        fticket_id = generate(size=36)
+                        sql_insert_fticket = f"""insert into tbt_ftickets(id, invoice_pallet_detail_id, fticket_no, description, is_printed, is_scanned, is_active, created_at, updated_at, seq)
+                        values('{fticket_id}', '{invoice_pallet_detail_id}', '{fticketno}', '-', false, false, true, current_timestamp, current_timestamp, {(x + 1)})"""
+                        if ftickets:
+                            fticket_id = ftickets[0]
+                            sql_insert_fticket = f"""update tbt_ftickets set updated_at=current_timestamp where id='{fticket_id}'"""
+                        
+                        pg_cursor.execute(sql_insert_fticket)
+                        pg_cursor.execute(f"update tbt_fticket_seqs set running_seq={int(f[1]) + 1} where id='{f[0]}'")
+                        if bhpaln != "-":
+                            pallet_total += 1
+                            sql_update_pallet_total = f"update tbt_invoice_pallets set pallet_total='{pallet_total}' where id='{plid}'"
+                            pg_cursor.execute(sql_update_pallet_total)
+                        
+                        print(f"{x} => {fticketno} pallet: {plno} inv: {bhivno} total: {pallet_total}")
+                        x += 1
+                        
+                    # pallet_total += bhctn
 
-            sql_update_invoice_check = f"update tbt_invoice_checks set bhsync=true where bhivno='{invoice_no}'"
+                sql_update_invoice_check = f"update tbt_invoice_checks set bhsync=true,is_matched=true where bhivno='{invoice_no}'"
+                
             pg_cursor.execute(sql_update_invoice_check)
             pgdb.commit()
             print(f"END --------------------------------------")
         
 def create_invoice():
     sql = f"""
-    select substring(bhivno, 6, 4) inv,bhivno,order_plan_id from tbt_invoice_checks where order_plan_id is not null and bhsync=false
-    group by substring(bhivno, 6, 4),bhivno,order_plan_id
-    order by substring(bhivno, 6, 4),bhivno,order_plan_id
+    select substring(bhivno, 6, 4) inv,bhivno from tbt_invoice_checks where order_plan_id is not null and bhsync=false and bhivno='TITG20126B'
+    group by substring(bhivno, 6, 4),bhivno
+    order by substring(bhivno, 6, 4),bhivno
     """
     pg_cursor.execute(sql)
     db = pg_cursor.fetchall()
-    
-    r = 1
-    inv_check = None
-    orders = []
+    print('<--')
     for i in db:
         runn_no = int(str(i[0]))
         invoice_no = str(i[1]).strip()
-        order_plan_id = str(i[2]).strip()
-        
-        if inv_check is None:
-            inv_check = invoice_no
-            
-        if inv_check != invoice_no:
-            print(f"--------------- end -----------------")
-            create_orders(orders, invoice_no, runn_no)
-            inv_check = invoice_no
-            r = 1
-            orders = []
-        
-        orders.append(order_plan_id)
-        print(f"{r}. {inv_check} order id: {order_plan_id}")
-        r += 1
+        create_orders(invoice_no, runn_no)
         
     print(f"-->")
 
