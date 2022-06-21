@@ -4,6 +4,8 @@ import pandas as pd
 import psycopg2 as pgsql
 from datetime import datetime
 from nanoid import generate
+from dotenv import load_dotenv
+load_dotenv()
 
 DB_HOSTNAME = os.environ.get('DATABASE_URL')
 DB_PORT = os.environ.get('DATABASE_PORT')
