@@ -379,7 +379,6 @@ def create_orders(orderid, invoice_no, last_running_no):
             order by bhivno,bhpaln,order_plan_id,bhctn"""
             pg_cursor.execute(sql_pallet)
             pl = pg_cursor.fetchall()
-            pallet_total = 0
             invoice_id = inv_id
             pg_cursor.execute(f"select id from tbt_placing_on_pallets where name='ARROW NO.1'")
             placing_id = pg_cursor.fetchone()[0]
@@ -389,7 +388,9 @@ def create_orders(orderid, invoice_no, last_running_no):
             pg_cursor.execute(f"select id from tbt_pallet_types where name='PALLET'")
             pallet_type_id = pg_cursor.fetchone()[0]
             ### for box seq
+            pallet_total = 0
             pallet_no_seq = 0
+            older_pallet = None
             for p in pl:
                 bhivno = str(p[0])
                 order_plan_id = str(p[1])
@@ -398,7 +399,16 @@ def create_orders(orderid, invoice_no, last_running_no):
                 pallet_no = int(p[4])
                 plid = generate(size=36)
                 invoice_pallet_detail_id = generate(size=36)
-                if (bhpaln == "-"):
+                if older_pallet is None:
+                    older_pallet = bhpaln
+                    pallet_total = 0
+                    
+                else:
+                    if older_pallet != bhpaln:
+                        older_pallet = bhpaln
+                        pallet_total = 0
+                
+                if bhpaln == "-":
                     pg_cursor.execute(f"select id from tbt_pallet_types where name='BOX'")
                     pallet_type_id = pg_cursor.fetchone()[0]
                     pallet_no = 0
@@ -437,8 +447,9 @@ def create_orders(orderid, invoice_no, last_running_no):
                 d = datetime.now().strftime('%Y')
                 x = 0
                 while x < bhctn:
-                    if (bhpaln == "-"):
+                    if bhpaln == "-":
                         ### for box
+                        pallet_total = 1
                         pallet_no_seq += 1
                         plno = f"C{'{:03d}'.format(pallet_no_seq)}"
                         plid = generate(size=36)
@@ -446,9 +457,9 @@ def create_orders(orderid, invoice_no, last_running_no):
                         sql_pallet = f"select id from tbt_invoice_pallets where invoice_id='{invoice_id}' and pallet_no='{pallet_no_seq}' and pallet_type_id='{pallet_type_id}'"   
                         pg_cursor.execute(sql_pallet)
                         pl_id = pg_cursor.fetchone()
-                        sql_insert_pallet = f"""insert into tbt_invoice_pallets(id, invoice_id, placing_id, location_id, pallet_no, spl_pallet_no, pallet_total, is_active, created_at, updated_at, pallet_type_id)values('{plid}', '{invoice_id}', '{placing_id}', '{location_id}', {pallet_no}, '-', 0, true, current_timestamp, current_timestamp, '{pallet_type_id}')"""
+                        sql_insert_pallet = f"""insert into tbt_invoice_pallets(id, invoice_id, placing_id, location_id, pallet_no, spl_pallet_no, pallet_total, is_active, created_at, updated_at, pallet_type_id)values('{plid}', '{invoice_id}', '{placing_id}', '{location_id}', {pallet_no_seq}, '-', {pallet_total}, true, current_timestamp, current_timestamp, '{pallet_type_id}')"""
                         if bhpaln == "-":
-                            sql_insert_pallet = f"""insert into tbt_invoice_pallets(id, invoice_id, location_id, pallet_no, spl_pallet_no, pallet_total, is_active, created_at, updated_at, pallet_type_id)values('{plid}', '{invoice_id}', '{location_id}', {pallet_no}, '-', 0, true, current_timestamp, current_timestamp, '{pallet_type_id}')"""
+                            sql_insert_pallet = f"""insert into tbt_invoice_pallets(id, invoice_id, location_id, pallet_no, spl_pallet_no, pallet_total, is_active, created_at, updated_at, pallet_type_id)values('{plid}', '{invoice_id}', '{location_id}', {pallet_no_seq}, '-', {pallet_total}, true, current_timestamp, current_timestamp, '{pallet_type_id}')"""
                             
                         if pl_id:plid=pl_id[0]
                         else:pg_cursor.execute(sql_insert_pallet)
@@ -466,6 +477,7 @@ def create_orders(orderid, invoice_no, last_running_no):
                             
                         pg_cursor.execute(sql_pallet_detail_insert)
                     
+                    
                     sql_fticket = f"select id,running_seq from tbt_fticket_seqs where fticket_prefix='V' and on_year='{d}'"
                     pg_cursor.execute(sql_fticket)
                     f = pg_cursor.fetchone()
@@ -481,8 +493,13 @@ def create_orders(orderid, invoice_no, last_running_no):
                         sql_insert_fticket = f"""update tbt_ftickets set updated_at=current_timestamp where id='{fticket_id}'"""
                     
                     pg_cursor.execute(sql_insert_fticket)
-                    print(f"{x} => {fticketno} pallet: {plno} inv: {bhivno}")
                     pg_cursor.execute(f"update tbt_fticket_seqs set running_seq={int(f[1]) + 1} where id='{f[0]}'")
+                    if bhpaln != "-":
+                        pallet_total += 1
+                        sql_update_pallet_total = f"update tbt_invoice_pallets set pallet_total='{pallet_total}' where id='{plid}'"
+                        pg_cursor.execute(sql_update_pallet_total)
+                    
+                    print(f"{x} => {fticketno} pallet: {plno} inv: {bhivno} total: {pallet_total}")
                     x += 1
                     
                 # pallet_total += bhctn
