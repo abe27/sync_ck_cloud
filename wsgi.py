@@ -93,6 +93,29 @@ async def shelve(shelve_name):
         )
         WHERE SHELVE ='{shelve_name}'
         ORDER BY ON_YEAR,ON_FIFO_MONTH,PARTNO,LOTNO,RUNNINGNO,SHELVE"""
+    if shelve_name == "SNON":
+        sql = f"""SELECT ON_YEAR,ON_FIFO_MONTH,PARTNO,LOTNO,RUNNINGNO,SHELVE,STOCKQUANTITY,PALLETKEY,UPDDTE
+        FROM (
+            SELECT 
+                CASE 
+                    WHEN SUBSTR(c.LOTNO, 0, 1) > 2 THEN '201'||SUBSTR(c.LOTNO, 0, 1)
+                ELSE
+                    '202'||SUBSTR(c.LOTNO, 0, 1) 
+                END on_year,
+                CASE 
+                    WHEN SUBSTR(c.LOTNO, 0, 1) > 2 THEN '201'||SUBSTR(c.LOTNO, 0, 1)
+                ELSE
+                    '202'||SUBSTR(c.LOTNO, 0, 1) 
+                END  || SUBSTR(c.LOTNO, 2, 2) ON_FIFO_MONTH,
+                c.LOTNO,
+                c.PARTNO,c.RUNNINGNO,c.SHELVE,c.STOCKQUANTITY,c.PALLETKEY
+            FROM TXP_CARTONDETAILS c
+            GROUP BY SUBSTR(c.LOTNO, 0, 1),c.PARTNO,c.LOTNO,c.RUNNINGNO,c.SHELVE,c.STOCKQUANTITY,c.PALLETKEY,c.UPDDTE 
+            ORDER BY SUBSTR(c.LOTNO, 0, 1),SUBSTR(c.LOTNO, 2, 2),c.PARTNO,c.LOTNO,c.RUNNINGNO,c.SHELVE
+        )
+        WHERE SHELVE ='{shelve_name}' AND TO_CHAR(UPDDTE, 'YYYYMMDD')  <= TO_CHAR(sysdate - 1, 'YYYYMMDD') 
+        ORDER BY ON_YEAR,ON_FIFO_MONTH,PARTNO,LOTNO,RUNNINGNO,SHELVE"""
+    
     Oracur.execute(sql)
     obj = Oracur.fetchall()
     doc = []
