@@ -519,7 +519,7 @@ def create_orders(invoice_no, last_running_no):
         
 def create_invoice():
     sql = f"""
-    select substring(bhivno, 6, 4) inv,bhivno from tbt_invoice_checks where order_plan_id is not null and bhsync=false and bhivno='TITG20126B'
+    select substring(bhivno, 6, 4) inv,bhivno from tbt_invoice_checks where order_plan_id is not null and bhsync=false
     group by substring(bhivno, 6, 4),bhivno
     order by substring(bhivno, 6, 4),bhivno
     """
