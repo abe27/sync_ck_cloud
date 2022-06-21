@@ -273,7 +273,7 @@ def update_ledger_dimension():
             database=DB_NAME,
         )
         mycursor = mydb.cursor()
-        sql = f"""select partno,biwidt,bileng,bihigh,round(bigrwt/count(partno)) grwt,round(binewt/count(partno)) newt from tbt_order_plans where biwidt > 0 group by partno,biwidt,bileng,bihigh,bigrwt,binewt order by partno"""
+        sql = f"""select partno,biwidt,bileng,bihigh,bigrwt/1000 grwt,binewt/1000 newt from tbt_order_plans where biwidt > 0 group by partno,biwidt,bileng,bihigh,bigrwt,binewt order by partno"""
         mycursor.execute(sql)
         for r in mycursor.fetchall():
             part_no = str(r[0]).strip()
@@ -330,12 +330,12 @@ def update_orderplan_date_sync():
         pass
     
 if __name__ == '__main__':
-    update_orderplan_date_sync()
+    # update_orderplan_date_sync()
     update_ledger_dimension()
-    update_stock()
-    update_master_location()
-    update_die()
-    update_carton()
+    # update_stock()
+    # update_master_location()
+    # update_die()
+    # update_carton()
     pool.release(Oracon)
     pool.close()
     sys.exit(0)
