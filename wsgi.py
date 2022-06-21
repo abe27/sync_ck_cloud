@@ -108,7 +108,7 @@ async def shelve(shelve_name):
                     '202'||SUBSTR(c.LOTNO, 0, 1) 
                 END  || SUBSTR(c.LOTNO, 2, 2) ON_FIFO_MONTH,
                 c.LOTNO,
-                c.PARTNO,c.RUNNINGNO,c.SHELVE,c.STOCKQUANTITY,c.PALLETKEY
+                c.PARTNO,c.RUNNINGNO,c.SHELVE,c.STOCKQUANTITY,c.PALLETKEY,c.UPDDTE 
             FROM TXP_CARTONDETAILS c
             GROUP BY SUBSTR(c.LOTNO, 0, 1),c.PARTNO,c.LOTNO,c.RUNNINGNO,c.SHELVE,c.STOCKQUANTITY,c.PALLETKEY,c.UPDDTE 
             ORDER BY SUBSTR(c.LOTNO, 0, 1),SUBSTR(c.LOTNO, 2, 2),c.PARTNO,c.LOTNO,c.RUNNINGNO,c.SHELVE
