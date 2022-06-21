@@ -107,8 +107,7 @@ def create_orders(invoice_no, last_running_no):
                 order by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,pc,commercial,order_group,is_active,substr(reasoncd, 1, 1) 
             ) a
             group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,ordertype,pc,commercial,order_group,is_active,rcd"""
-    
-    print(sql)        
+
     runn_order = 1
     pg_cursor.execute(sql)
     for i in pg_cursor.fetchall():
