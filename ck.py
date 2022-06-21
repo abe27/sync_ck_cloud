@@ -1135,7 +1135,7 @@ if __name__ == '__main__':
     update_order_group()
     orderplans()
     genearate_order()
-    generate_invoice()
+    # generate_invoice()
     sync_invoice()
     spl.logout(spl_token)
     pool.release(Oracon)
