@@ -44,11 +44,11 @@ async def detail(part_no):
                 c.LOTNO,
                 c.PARTNO,c.RUNNINGNO,c.SHELVE,c.STOCKQUANTITY
             FROM TXP_CARTONDETAILS c 
-            WHERE c.SHELVE NOT IN ('S-XXX','S-PLOUT', 'S-HOLD', 'S-P59', 'S-P58', 'S-P57', 'S-CK1')
+            WHERE c.SHELVE NOT IN ('S-XXX','S-PLOUT')
             GROUP BY SUBSTR(c.LOTNO, 0, 1),c.PARTNO,c.LOTNO,c.RUNNINGNO,c.SHELVE,c.STOCKQUANTITY
             ORDER BY SUBSTR(c.LOTNO, 0, 1),SUBSTR(c.LOTNO, 2, 2),c.PARTNO,c.LOTNO,c.RUNNINGNO,c.SHELVE
         )
-        WHERE partno like '{part_no}%'
+        WHERE partno ='{part_no}'
         ORDER BY ON_YEAR,ON_FIFO_MONTH,PARTNO,LOTNO,RUNNINGNO,SHELVE"""
     Oracur.execute(sql)
     obj = Oracur.fetchall()
