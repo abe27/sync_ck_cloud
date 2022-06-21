@@ -330,12 +330,12 @@ def update_orderplan_date_sync():
         pass
     
 if __name__ == '__main__':
-    # update_orderplan_date_sync()
+    update_orderplan_date_sync()
     update_ledger_dimension()
-    # update_stock()
-    # update_master_location()
-    # update_die()
-    # update_carton()
+    update_stock()
+    update_master_location()
+    update_die()
+    update_carton()
     pool.release(Oracon)
     pool.close()
     sys.exit(0)
