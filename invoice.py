@@ -432,7 +432,13 @@ def create_orders(orderid, invoice_no, last_running_no):
                     
                     sql_order_details = f"select id from tbt_order_details where order_plan_id='{order_plan_id}'"
                     pg_cursor.execute(sql_order_details)
-                    order_details_id = pg_cursor.fetchone()[0]
+                    order_details = pg_cursor.fetchone()
+                    if order_details is None:
+                        print(order_plan_id)
+                        return
+                    
+                    order_details_id = order_details[0]
+                    
                     sql_pallet_detail = f"select id from tbt_invoice_pallet_details where invoice_pallet_id='{plid}' and invoice_part_id='{order_details_id}'"
                     pg_cursor.execute(sql_pallet_detail)
                     pallet_detail = pg_cursor.fetchone()
