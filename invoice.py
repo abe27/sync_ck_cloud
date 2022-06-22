@@ -446,10 +446,11 @@ def create_orders(invoice_no, last_running_no):
                             sql_pallet_detail_insert = f"""update tbt_invoice_pallet_details set invoice_pallet_id='{plid}',updated_at=current_timestamp,invoice_part_id='{order_details_id}' where id='{invoice_pallet_detail_id}'"""
                             
                         pg_cursor.execute(sql_pallet_detail_insert)
-                        # select id,balqty/bistdp ctn from tbt_order_plans where id='kJx55LcHhF2KxAAMmgCbGg-YHFEeyp_3V2nh'
-                        pg_cursor.execute(f"select id,balqty/bistdp ctn from tbt_order_plans where id='{order_plan_id}'")
-                        ctn = pg_cursor.fetchone()[0]
-                        pg_cursor.execute(f"update tbt_order_details set set_pallet_ctn={ctn} where order_plan_id='{order_plan_id}'")
+                        
+                    ### update set pallet ctn
+                    pg_cursor.execute(f"select balqty/bistdp ctn from tbt_order_plans where id='{order_plan_id}'")
+                    ctn = pg_cursor.fetchone()[0]
+                    pg_cursor.execute(f"update tbt_order_details set set_pallet_ctn={ctn} where order_plan_id='{order_plan_id}'")
                     
                     
                     ### create fticketno
