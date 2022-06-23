@@ -38,7 +38,7 @@ def get_av00():
         inner join tbt_affiliates ta on tc.aff_id=ta.id
         inner join tbt_shippings ts on o.shipping_id=ts.id
         inner join tbt_factory_types tft on tc.factory_id=tft.id
-        where t.is_completed=true ans t.invoice_status='N'"""
+        where t.is_completed=true and t.invoice_status='N'"""
     
     pg_cursor.execute(sql)
     db = pg_cursor.fetchall()
