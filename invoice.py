@@ -95,8 +95,7 @@ def main():
     i = 0
     while i < len(list_file):
         file_list_file = os.path.join(list_file[i], target_dir)
-        print(list_file)
-        print(os.path.join(file_list_file, target_dir))
+        print(file_list_file)
         # read_invoice(file_list_file)
         i += 1
         
