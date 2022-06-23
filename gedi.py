@@ -32,7 +32,7 @@ def get_av00():
         inner join tbt_affiliates ta on tc.aff_id=ta.id
         inner join tbt_shippings ts on o.shipping_id=ts.id
         inner join tbt_factory_types tft on tc.factory_id=tft.id
-        where t.is_completed=true"""
+        where t.is_completed=true ans t.invoice_status='N'"""
     
     pg_cursor.execute(sql)
     db = pg_cursor.fetchall()
@@ -255,6 +255,13 @@ def main():
                 f.write(f"{x['rec_bh_id']}{x['brivno']}{x['brline']}{x['brdesc']}{x['brwidt']}{x['brleng']}{x['brhigh']}{x['brqtyp']}{x['brcubi']}{x['brunit']}{x['brrgop']}{x['brrgdt']}{x['brrgtm']}\n")
                 
             f.close()
+            dist = f"/home/seiwa/BACKUP/UPLOAD/{txt_filename}"
+            if os.path.isfile(dist):
+                os.remove(dist)
+                
+            shutil.move(txt_filename, dist)
+            pg_cursor.execute(f"update tbt_invoices set invoice_status='H' where id='{r['primary_id']}'")
+            pg_db.commit()
             i += 1
             
     except Exception as ex:
