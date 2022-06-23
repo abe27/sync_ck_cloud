@@ -95,8 +95,7 @@ def main():
     i = 0
     while i < len(list_file):
         file_list_file = f"{target_dir}/{list_file[i]}"
-        print(f"{target_dir}/{list_file[i]}")
-        # read_invoice(file_list_file)
+        read_invoice(file_list_file)
         i += 1
         
 def create_orders(invoice_no, last_running_no):
