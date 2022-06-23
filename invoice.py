@@ -4,7 +4,6 @@ import pandas as pd
 import psycopg2 as pgsql
 from datetime import datetime
 from nanoid import generate
-from os.path import join, dirname
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -30,8 +29,7 @@ def check_nan(txt):
 
 def read_invoice(file_name):
     try:
-        dotenv_path = os.path.join(dirname(file_name), './BACKUP/INVOICE')
-        df = pd.read_excel(dotenv_path, index_col=None)  
+        df = pd.read_excel(f"./Invoice/{file_name}", index_col=None)  
         #NoAffNameCustomerAddress
         data = df.to_dict('records')
         for i in data:
@@ -91,11 +89,12 @@ def read_invoice(file_name):
         print(str(e))
         
 def main():
-    list_file = os.listdir("./BACKUP/INVOICE")
-    i = 0
-    while i < len(list_file):
-        read_invoice(list_file[i])
-        i += 1
+    list_file = os.listdir("./Invoice")
+    print(list_file)
+    # i = 0
+    # while i < len(list_file):
+    #     read_invoice(list_file[i])
+    #     i += 1
         
 def create_orders(invoice_no, last_running_no):
     sql = f"""select etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,ordertype,pc,commercial,order_group,is_active,0 items,0 ctn,rcd from (
