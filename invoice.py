@@ -29,9 +29,7 @@ def check_nan(txt):
 
 def read_invoice(file_name):
     try:
-        list_file = os.listdir(os.path.join(os.path.dirname(__file__), "Invoice"))
-        list_file_name = os.path.join(list_file, file_name)
-        df = pd.read_excel(list_file_name, index_col=None)  
+        df = pd.read_excel(file_name, index_col=None)  
         #NoAffNameCustomerAddress
         data = df.to_dict('records')
         for i in data:
@@ -94,7 +92,8 @@ def main():
     list_file = os.listdir(os.path.join(os.path.dirname(__file__), "Invoice"))
     i = 0
     while i < len(list_file):
-        read_invoice(list_file[i])
+        file_list_file = os.path.join(list_file[i], list_file)
+        read_invoice(file_list_file)
         i += 1
         
 def create_orders(invoice_no, last_running_no):
