@@ -89,7 +89,7 @@ def read_invoice(file_name):
         print(str(e))
         
 def main():
-    list_file = os.listdir("./Invoice")
+    list_file = os.listdir(os.path.join(os.path.dirname(__file__), "/Invoice"))
     print(list_file)
     # i = 0
     # while i < len(list_file):
