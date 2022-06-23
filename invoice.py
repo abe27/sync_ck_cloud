@@ -29,7 +29,7 @@ def check_nan(txt):
 
 def read_invoice(file_name):
     try:
-        dotenv_path = os.path.join(dirname(file_name), 'Invoice')
+        dotenv_path = os.path.join(dirname(file_name), './BACKUP/INVOICE')
         df = pd.read_excel(dotenv_path, index_col=None)  
         #NoAffNameCustomerAddress
         data = df.to_dict('records')
@@ -90,8 +90,7 @@ def read_invoice(file_name):
         print(str(e))
         
 def main():
-    path_name = os.path.join(__file__, '/Invoice')
-    list_file = os.listdir(path_name)
+    list_file = os.listdir("./BACKUP/INVOICE")
     i = 0
     while i < len(list_file):
         read_invoice(list_file[i])
