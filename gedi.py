@@ -3,6 +3,7 @@ import sys
 import os
 import psycopg2 as pgsql
 from nanoid import generate
+from spllibs import SplApi
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -12,6 +13,11 @@ DB_PORT = os.environ.get('DATABASE_PORT')
 DB_NAME = os.environ.get('DATABASE_NAME')
 DB_USERNAME = os.environ.get('DATABASE_USERNAME')
 DB_PASSWORD = os.environ.get('DATABASE_PASSWORD')
+
+SPL_API_HOST=os.environ.get('SPL_SITE_URL')
+SPL_API_USERNAME=os.environ.get('SPL_USERNAME')
+SPL_API_PASSWORD=os.environ.get('SPL_PASSWORD')
+spl = SplApi(SPL_API_HOST, SPL_API_USERNAME, SPL_API_PASSWORD)
 
 pg_db = pgsql.connect(
     host=DB_HOSTNAME,
@@ -262,6 +268,8 @@ def main():
             shutil.move(txt_filename, dist)
             pg_cursor.execute(f"update tbt_invoices set invoice_status='H' where id='{r['primary_id']}'")
             pg_db.commit()
+            msg = f"test export GEDI {txt_filename} is completed!"
+            spl.line_notification(msg)
             i += 1
             
     except Exception as ex:
