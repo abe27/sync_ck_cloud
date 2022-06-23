@@ -1,4 +1,5 @@
 from datetime import datetime
+import shutil
 import sys
 import os
 import psycopg2 as pgsql
