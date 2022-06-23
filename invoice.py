@@ -537,7 +537,7 @@ def create_invoice():
     print(f"-->")
 
 if __name__ == '__main__':
-    # main()
+    main()
     create_invoice()
     pgdb.commit()
     pgdb.close()
