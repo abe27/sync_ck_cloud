@@ -94,7 +94,9 @@ def main():
     i = 0
     while i < len(list_file):
         file_list_file = os.path.join(list_file[i], list_file)
-        read_invoice(file_list_file)
+        print(list_file)
+        print(file_list_file)
+        # read_invoice(file_list_file)
         i += 1
         
 def create_orders(invoice_no, last_running_no):
