@@ -31,6 +31,15 @@ pg_db = pgsql.connect(
 pg_cursor = pg_db.cursor()
 
 def get_av00():
+    # sql = f"""select t.id,'AV00' rec_id_a,tft.factory_prefix ||t.inv_prefix inv_prefix,substr(to_char(t.ship_date, 'YYYYMMDD'), 3, 1),to_char(t.running_seq, '0000')  AVIVNO,to_char(t.ship_date, 'YYYYMMDD')  AVIVDT,ttc.cust_code AVSHPC,ts.prefix_code AVABT,ttc.cust_code AVBLTN,o.pc AVPC,o.commercial AVCOMM,'.' AVVSL1,'.' AVPTRM,t.zone_code AVZONE,'.' AVSHPF,'.' AVSHPT,'.' AVVIA,'000' AVTILE
+    #     from tbt_invoices t
+    #     inner join tbt_orders o on t.order_id = o.id
+    #     inner join tbt_consignees tc on o.consignee_id=tc.id 
+    #     inner join tbt_customers ttc on tc.customer_id=ttc.id
+    #     inner join tbt_affiliates ta on tc.aff_id=ta.id
+    #     inner join tbt_shippings ts on o.shipping_id=ts.id
+    #     inner join tbt_factory_types tft on tc.factory_id=tft.id
+    #     where t.is_completed=true"""
     sql = f"""select t.id,'AV00' rec_id_a,tft.factory_prefix ||t.inv_prefix inv_prefix,substr(to_char(t.ship_date, 'YYYYMMDD'), 3, 1),to_char(t.running_seq, '0000')  AVIVNO,to_char(t.ship_date, 'YYYYMMDD')  AVIVDT,ttc.cust_code AVSHPC,ts.prefix_code AVABT,ttc.cust_code AVBLTN,o.pc AVPC,o.commercial AVCOMM,'.' AVVSL1,'.' AVPTRM,t.zone_code AVZONE,'.' AVSHPF,'.' AVSHPT,'.' AVVIA,'000' AVTILE
         from tbt_invoices t
         inner join tbt_orders o on t.order_id = o.id
@@ -40,7 +49,7 @@ def get_av00():
         inner join tbt_shippings ts on o.shipping_id=ts.id
         inner join tbt_factory_types tft on tc.factory_id=tft.id
         where t.is_completed=true and t.invoice_status='N'"""
-    
+        
     pg_cursor.execute(sql)
     db = pg_cursor.fetchall()
     doc = []
@@ -171,8 +180,8 @@ def get_bh00(inv_id, inv_no):
             "bhac": (str(i[1]).strip().ljust(50))[:8],
             "bhivno": (str(i[2]).strip().ljust(50))[:10],
             "bhivdt": (str(i[3]).strip().ljust(50))[:8],
-            "bhaetc": ((f"{str(i[22]).strip()}{str(i[4]).strip()}").ljust(12))[:12],
-            "bhypat": (str(i[5]).strip().ljust(25))[:12],
+            "bhaetc": ((f"{str(i[22]).strip()}{str(i[4]).strip()}").ljust(50))[:12],
+            "bhypat": (str(i[5]).strip().ljust(25))[:25],
             "bhlot": (str(i[6]).strip().ljust(25))[:8],
             "bhcoil": (str(i[7]).strip().ljust(25))[:3],
             "bhsnno": (str(i[8]).strip().ljust(25))[:18],
@@ -186,8 +195,8 @@ def get_bh00(inv_id, inv_no):
     return doc
 
 def get_br00(inv_id, inv_no):
-    sql = f"""select rec_bh_id,brivno,min(plno) min_plno,max(plno) max_pl,brline,brdesc,to_char(brwidt, '0000'),to_char(brleng, '0000'),to_char(brhigh, '0000'),brqtyp,brcubi,brunit,brrgop,brrgdt,brrgtm,pltype from (
-        select 'BR00' rec_bh_id,'{inv_no}' BRIVNO,tip.pallet_no plno,'.' BRLINE,'.' BRDESC,case when tpt.name='PALLET' then tpop.pallet_width/10 else top.biwidt end BRWIDT,case when tpt.name='PALLET' then tpop.pallet_length/10 else top.bileng end BRLENG,case when tpt.name='PALLET' then tpop.pallet_height/10 else top.bihigh end BRHIGH,'' BRQTYP,to_char(0, '00000') BRCUBI,'CM/P.' BRUNIT,'SPLUSER' BRRGOP,to_char(tf.updated_at, 'YYYYMMDD') BRRGDT,to_char(tf.updated_at, 'hh24miss') BRRGTM,top.bigrwt/1000 grwt,top.binewt/1000 newt,case when tpt.name='PALLET' then 'P' else 'C' end pltype
+    sql = f"""select rec_bh_id,brivno,min(plno) min_plno,max(plno) max_pl,brline,brdesc,to_char(brwidt, '0000'),to_char(brleng, '0000'),to_char(brhigh, '0000'),brqtyp,brcubi,brunit,brrgop,brrgdt,brrgtm,pltype,count(fticket_no) ctn from (
+        select 'BR00' rec_bh_id,'{inv_no}' BRIVNO,tip.pallet_no plno,'.' BRLINE,'.' BRDESC,tf.fticket_no,case when tpt.name='PALLET' then tpop.pallet_width/10 else top.biwidt end BRWIDT,case when tpt.name='PALLET' then tpop.pallet_length/10 else top.bileng end BRLENG,case when tpt.name='PALLET' then tpop.pallet_height/10 else top.bihigh end BRHIGH,'' BRQTYP,to_char(0, '00000') BRCUBI,'CM/P.' BRUNIT,'SPLUSER' BRRGOP,to_char(tf.updated_at, 'YYYYMMDD') BRRGDT,to_char(tf.updated_at, 'hh24miss') BRRGTM,top.bigrwt/1000 grwt,top.binewt/1000 newt,case when tpt.name='PALLET' then 'P' else 'C' end pltype
         from tbt_invoices t
         inner join tbt_orders o on t.order_id = o.id
         inner join tbt_consignees tc on o.consignee_id=tc.id 
@@ -262,7 +271,7 @@ def main():
                 f.write(f"{x['rec_bh_id']}{x['brivno']}{x['brline']}{x['brdesc']}{x['brwidt']}{x['brleng']}{x['brhigh']}{x['brqtyp']}{x['brcubi']}{x['brunit']}{x['brrgop']}{x['brrgdt']}{x['brrgtm']}\n")
                 
             f.close()
-            dist = f"/home/seiwa/BACKUP/UPLOAD/{txt_filename}"
+            dist = os.path.join(os.path.dirname(__file__), f"BACKUP/UPLOAD/{txt_filename}")
             if os.path.isfile(dist):
                 os.remove(dist)
                 
