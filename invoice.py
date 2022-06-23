@@ -29,6 +29,7 @@ def check_nan(txt):
 
 def read_invoice(file_name):
     try:
+        print(file_name)
         df = pd.read_excel(file_name, index_col=None)  
         #NoAffNameCustomerAddress
         data = df.to_dict('records')
