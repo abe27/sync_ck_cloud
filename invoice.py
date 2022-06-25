@@ -27,10 +27,10 @@ def check_nan(txt):
     if txt == 'nan':return ''
     return txt
 
-def read_invoice(file_name):
+def read_invoice(target_dir, file_name):
+    file_list_file = f"{target_dir}/{file_name}"
     try:
-        print(file_name)
-        df = pd.read_excel(file_name, index_col=None)  
+        df = pd.read_excel(file_list_file, index_col=None)  
         #NoAffNameCustomerAddress
         data = df.to_dict('records')
         for i in data:
@@ -66,23 +66,18 @@ def read_invoice(file_name):
             pg_cursor.execute(sql_order_plan)
             order_plan = pg_cursor.fetchone()
             
-            sql_filter_invoice = f"select id from tbt_invoice_checks where bhivno='{bhivno}' and bhodpo='{bhodpo}' and bhivdt='{bhivdt}' and bhpaln='{bhpaln}' and bhypat='{bhypat}' and bhctn='{bhctn}' and file_name='{file_name}'"
-            pg_cursor.execute(sql_filter_invoice)
-            p = pg_cursor.fetchone()
             txt_order_plan = "not match data"
-            if p is None:
-                txt_order_plan = "not match data"
-                is_matched = 'false'
-                sql_check_invoice = f"""insert into tbt_invoice_checks(id,bhivno,bhodpo,bhivdt,bhconn,bhcons,bhsven,bhshpf,bhsafn,bhshpt,bhfrtn,bhcon,bhpaln,bhpnam,bhypat,bhctn,bhwidt,bhleng,bhhigh,bhgrwt,bhcbmt,file_name,is_matched,created_at,updated_at)
-                values('{generate(size=36)}','{bhivno}','{bhodpo}','{bhivdt}','{bhconn}','{bhcons}','{bhsven}','{bhshpf}','{bhsafn}','{bhshpt}','{bhfrtn}','{bhcon}','{bhpaln}','{bhpnam}','{bhypat}','{bhctn}','{bhwidt}','{bhleng}','{bhhigh}','{bhgrwt}','{bhcbmt}','{file_name}',{is_matched},current_timestamp,current_timestamp)"""
-                if order_plan:
-                    is_matched = 'true'
-                    txt_order_plan = f"match data id: {order_plan[0]}"
-                    order_plan_id = order_plan[0]
-                    sql_check_invoice = f"""insert into tbt_invoice_checks(id,order_plan_id,bhivno,bhodpo,bhivdt,bhconn,bhcons,bhsven,bhshpf,bhsafn,bhshpt,bhfrtn,bhcon,bhpaln,bhpnam,bhypat,bhctn,bhwidt,bhleng,bhhigh,bhgrwt,bhcbmt,file_name,is_matched,created_at,updated_at)
-                    values('{generate(size=36)}','{order_plan_id}','{bhivno}','{bhodpo}','{bhivdt}','{bhconn}','{bhcons}','{bhsven}','{bhshpf}','{bhsafn}','{bhshpt}','{bhfrtn}','{bhcon}','{bhpaln}','{bhpnam}','{bhypat}','{bhctn}','{bhwidt}','{bhleng}','{bhhigh}','{bhgrwt}','{bhcbmt}','{file_name}',{is_matched},current_timestamp,current_timestamp)"""
-                
-                pg_cursor.execute(sql_check_invoice)
+            is_matched = 'false'
+            sql_check_invoice = f"""insert into tbt_invoice_checks(id,bhivno,bhodpo,bhivdt,bhconn,bhcons,bhsven,bhshpf,bhsafn,bhshpt,bhfrtn,bhcon,bhpaln,bhpnam,bhypat,bhctn,bhwidt,bhleng,bhhigh,bhgrwt,bhcbmt,file_name,is_matched,created_at,updated_at)
+            values('{generate(size=36)}','{bhivno}','{bhodpo}','{bhivdt}','{bhconn}','{bhcons}','{bhsven}','{bhshpf}','{bhsafn}','{bhshpt}','{bhfrtn}','{bhcon}','{bhpaln}','{bhpnam}','{bhypat}','{bhctn}','{bhwidt}','{bhleng}','{bhhigh}','{bhgrwt}','{bhcbmt}','{file_name}',{is_matched},current_timestamp,current_timestamp)"""
+            if order_plan:
+                is_matched = 'true'
+                order_plan_id = order_plan[0]
+                txt_order_plan = f"match data id: {order_plan_id}"
+                sql_check_invoice = f"""insert into tbt_invoice_checks(id,order_plan_id,bhivno,bhodpo,bhivdt,bhconn,bhcons,bhsven,bhshpf,bhsafn,bhshpt,bhfrtn,bhcon,bhpaln,bhpnam,bhypat,bhctn,bhwidt,bhleng,bhhigh,bhgrwt,bhcbmt,file_name,is_matched,created_at,updated_at)
+                values('{generate(size=36)}','{order_plan_id}','{bhivno}','{bhodpo}','{bhivdt}','{bhconn}','{bhcons}','{bhsven}','{bhshpf}','{bhsafn}','{bhshpt}','{bhfrtn}','{bhcon}','{bhpaln}','{bhpnam}','{bhypat}','{bhctn}','{bhwidt}','{bhleng}','{bhhigh}','{bhgrwt}','{bhcbmt}','{file_name}',{is_matched},current_timestamp,current_timestamp)"""
+            
+            pg_cursor.execute(sql_check_invoice)
             print(txt_order_plan)
             
             
@@ -94,8 +89,7 @@ def main():
     list_file = os.listdir(target_dir)
     i = 0
     while i < len(list_file):
-        file_list_file = f"{target_dir}/{list_file[i]}"
-        read_invoice(file_list_file)
+        read_invoice(target_dir, list_file[i])
         i += 1
         
 def create_orders(invoice_no, last_running_no):
@@ -111,6 +105,7 @@ def create_orders(invoice_no, last_running_no):
             ) a
             group by etdtap,vendor,bioabt,biivpx,biac,bishpc,bisafn,shiptype,ordertype,pc,commercial,order_group,is_active,rcd"""
 
+    print(sql)
     runn_order = 1
     pg_cursor.execute(sql)
     for i in pg_cursor.fetchall():
@@ -131,13 +126,19 @@ def create_orders(invoice_no, last_running_no):
             order_type = 'M'
 
         order_whs = "CK-2"
-        if (bioabt+vendor) == "1INJ":order_whs = "CK-1"
-        if (bioabt+vendor) == "2INJ":order_whs = "NESC"
-        if (bioabt+vendor) == "3INJ":order_whs = "ICAM"
-        if (bioabt+vendor) == "4INJ":order_whs = "CK-2"
-        
         if order_group[:1] =="#":order_whs = "NESC"
         elif order_group[:1] =="@":order_whs = "ICAM"
+        else:
+            if (bioabt+vendor) == "1INJ":
+                order_whs = "CK-1"
+            elif (bioabt+vendor) == "2INJ":
+                order_whs = "NESC"
+            elif (bioabt+vendor) == "3INJ":
+                order_whs = "ICAM"
+            elif (bioabt+vendor) == "4INJ":
+                order_whs = "CK-2"
+        
+        
         
         
         pg_cursor.execute(f"select id from tbt_factory_types where name='{vendor}'")
@@ -538,10 +539,14 @@ def create_invoice():
         create_orders(invoice_no, runn_no)
         
     print(f"-->")
+    
+def check_invoice():
+    sql = f"check_notfound"
 
 if __name__ == '__main__':
-    main()
-    create_invoice()
+    # main()
+    # create_invoice()
+    check_invoice()
     pgdb.commit()
     pgdb.close()
     sys.exit(0)
