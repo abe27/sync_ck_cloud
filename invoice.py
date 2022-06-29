@@ -363,8 +363,15 @@ def create_orders(invoice_no, last_running_no):
             pg_cursor.execute(sql_check_order)
             inv = pg_cursor.fetchone()
             ship_der = "LCL"
-            if shiptype == "T":ship_der="TRUCK"
-            elif shiptype == "A":ship_der="AIR"
+            if loading_area == "CK-1":
+                ship_der = "DOMESTIC"
+                
+            elif loading_area == "CK-2":
+                ship_der = "BONDED"
+                
+            else:
+                if shiptype == "T":ship_der="TRUCK"
+                elif shiptype == "A":ship_der="AIR"
             
             inv_id = generate(size=36)
             sql_insert_invoice = f"""insert into tbt_invoices(id, order_id, inv_prefix, running_seq, ship_date, ship_from_id, ship_via, ship_der, title_id, loading_area, privilege, zone_code,references_id, invoice_status, is_active, created_at, updated_at)
