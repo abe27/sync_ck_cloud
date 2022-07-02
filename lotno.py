@@ -40,7 +40,7 @@ def main():
     for i in data:
         whs = "TAP"
         part_no = str(i["part_no"]).strip()
-        lotno = int(str(i["lot_no"]).strip())
+        lotno = int(str(i["lot_no"]).strip().replace(".0", ""))
         serial_no = str(i["serial_no"]).strip()
         die_no = str(i["die_no"]).strip()
         revision_no = "-"##str().strip()
