@@ -40,7 +40,11 @@ def main():
     for i in data:
         whs = "TAP"
         part_no = str(i["part_no"]).strip()
-        lotno = int(str(i["lot_no"]).strip().replace(".0", ""))
+        lotno = '-'
+        try:
+            lotno = int(str(i["lot_no"]).strip().replace(".0", ""))
+        except Exception as ex:
+            pass
         serial_no = str(i["serial_no"]).strip()
         die_no = str(i["die_no"]).strip()
         revision_no = "-"##str().strip()
@@ -63,38 +67,70 @@ def main():
         if is_matched == 'false':
             print(is_matched)
             
+        pgdb.commit()    
         print(f"{r}. {part_no} ::=> check TAP serial no: {serial_no} matched: {is_matched}")
         r += 1
         
-def sync_spl():
-    sql = f"SELECT ts.PARTNO,tc.LOTNO,ts.RUNNINGNO,tc.CASEID,'-' revision_code,ts.STOCKQUANTITY,1 ctn  FROM TXP_STKTAKECARTON ts LEFT JOIN TXP_CARTONDETAILS tc ON ts.RUNNINGNO=tc.RUNNINGNO"
-    data = Oracur.execute(sql)
-    r = 1
-    for i in data.fetchall():
-        part_no = str(i[0]).strip()
-        lot_no = str(i[1]).strip()
-        serial_no = str(i[2]).strip()
-        die_no = str(i[3]).strip()
-        revision_no = str(i[4]).strip()
-        qty = str(i[5]).strip()
-        spl_ctn = 1
-        is_matched = 'false'
-        pg_cursor.execute(f"select serial_no from tbt_carton_checks where serial_no='{serial_no}'")
-        db = pg_cursor.fetchone()
-        sql_insert = f"""insert into tbt_carton_checks (whs, part_no, lotno, serial_no, dieno, revision_no, qty, ctn, spl_ctn, is_matched, lastupdate)values('SPL', '{part_no}', '{lot_no}', '{serial_no}', '{die_no}', '{revision_no}', {qty}, 0, {spl_ctn}, false, current_timestamp)"""
-        if db != None:
-            is_matched = 'true'
-            sql_insert = f"""update tbt_carton_checks set part_no='{part_no}',lotno='{lot_no}',dieno='{die_no}',revision_no='{revision_no}',qty={qty},spl_ctn=1,is_matched=true,lastupdate=current_timestamp where serial_no='{serial_no}'"""
+# def sync_spl():
+#     # sql = f"SELECT ts.PARTNO,tc.LOTNO,ts.RUNNINGNO,tc.CASEID,'-' revision_code,ts.STOCKQUANTITY,1 ctn  FROM TXP_STKTAKECARTON ts LEFT JOIN TXP_CARTONDETAILS tc ON ts.RUNNINGNO=tc.RUNNINGNO"
+#     sql = f"SELECT ts.PARTNO,'-' LOTNO,ts.RUNNINGNO,'-' CASEID,'-' revision_code,ts.STOCKQUANTITY,1 ctn  FROM TXP_STKTAKECARTON ts"
+#     data = Oracur.execute(sql)
+#     r = 1
+#     for i in data.fetchall():
+#         part_no = str(i[0]).strip()
+#         lot_no = str(i[1]).strip()
+#         serial_no = str(i[2]).strip()
+#         die_no = str(i[3]).strip()
+#         revision_no = str(i[4]).strip()
+#         qty = str(i[5]).strip()
+#         spl_ctn = 1
+#         pg_cursor.execute(f"select serial_no from tbt_carton_checks where serial_no='{serial_no}'")
+#         db = pg_cursor.fetchone()
         
-        pg_cursor.execute(sql_insert)
-        print(f"{r}. {part_no} ::=> check SPL serial no: {serial_no} matched: {is_matched}")
-        r += 1
+#         pg_cursor.execute(f"select serial_no from tbt_carton_checks where serial_no='{serial_no}' and whs='TAP'")
+#         db_stock = pg_cursor.fetchone()
+#         is_matched = 'false'
+#         if db_stock != None:
+#             is_matched = 'true'
+        
+        
+#         sql_insert = f"""insert into tbt_carton_checks (whs, part_no, lotno, serial_no, dieno, revision_no, qty, ctn, spl_ctn, is_matched, lastupdate)values('SPL', '{part_no}', '{lot_no}', '{serial_no}', '{die_no}', '{revision_no}', {qty}, 0, {spl_ctn}, false, current_timestamp)"""
+#         if db != None:
+#             sql_insert = f"""update tbt_carton_checks set qty={qty},spl_ctn=1,is_matched={is_matched},lastupdate=current_timestamp where serial_no='{serial_no}'"""
+            
+#         else:
+#             print(f"not found")
+        
+#         pg_cursor.execute(sql_insert)
+#         pgdb.commit()
+#         print(f"{r}. {part_no} ::=> check SPL serial no: {serial_no} matched: {is_matched}")
+#         r += 1
+
+def check_location():
+    pg_cursor.execute(f"select serial_no from tbt_carton_checks where lotno='-' and whs='SPL'")
+    db = pg_cursor.fetchall()
+    for i in db:
+        sql = f"SELECT PARTNO,SHELVE,LOTNO,RUNNINGNO FROM TXP_CARTONDETAILS WHERE RUNNINGNO='{str(i[0])}'"
+        data = Oracur.execute(sql)
+        a = data.fetchone()
+        if a != None:
+            part_no = str(a[0]).strip()
+            shelve_no = str(a[1]).strip()
+            lot_no = str(a[2]).strip()
+            serial_no = str(a[3]).strip()
+            
+            sql_update = f"update tbt_carton_checks set part_no='{part_no}',lotno='{lot_no}',revision_no='{shelve_no}' where serial_no='{serial_no}'"
+            pg_cursor.execute(sql_update)
+            pgdb.commit()
+            print(f"update location : {serial_no}")
+
+    
             
 if __name__ == '__main__':
-    main()
-    sync_spl()
+    # main()
+    # sync_spl()
+    check_location()
     Oracon.commit()
-    pgdb.commit()
     pgdb.close()
     pool.release(Oracon)
     pool.close()
