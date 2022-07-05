@@ -51,18 +51,23 @@ def main():
     file = xl.load_workbook(fname)
     sheet = file.worksheets[0]
     n = 3
-    for row in sheet['C3:C555']:
+    for row in sheet['C3:C556']:
         for i in row: 
-            part_no = str(i.value)
+            part_no = str(i.value).strip()
             ### stock on MAY
             may = check_stock(part_no)
+            
             ### check receive june
-            sql_receive = f"SELECT count(PARTNO) ctn FROM TXP_CARTONDETAILS WHERE PARTNO='{part_no}' AND SYSDTE BETWEEN to_date('2022-05-31 12:00:00', 'YYYY-MM-DD HH24:MI:SS') AND to_date('2022-06-30 12:00:00', 'YYYY-MM-DD HH24:MI:SS')"
+            # sql_receive = f"SELECT count(PARTNO) ctn FROM TXP_CARTONDETAILS WHERE PARTNO='{part_no}' AND SYSDTE BETWEEN to_date('2022-05-31 12:00:00', 'YYYY-MM-DD HH24:MI:SS') AND to_date('2022-06-30 12:00:00', 'YYYY-MM-DD HH24:MI:SS')"
+            sql_receive = f"SELECT sum(RECCTN) FROM TXP_RECTRANSBODY WHERE PARTNO='{part_no}' AND SYSDTE BETWEEN to_date('2022-05-31 12:00:00', 'YYYY-MM-DD HH24:MI:SS') AND to_date('2022-06-30 12:00:00', 'YYYY-MM-DD HH24:MI:SS')"
             rec = Oracur.execute(sql_receive)
-            rec_ctn = int(str(rec.fetchone()[0]))
+            rec_ctn = 0
+            rec_check = rec.fetchone()
+            if str(rec_check[0]) != "None":
+                rec_ctn = int(str(rec_check[0]))
+                
             ### check s-out june
             sql_out = f"SELECT count(PARTNO) ctn FROM TXP_CARTONDETAILS WHERE PARTNO='{part_no}' AND SHELVE IN ('S-PLOUT') AND SIDTE BETWEEN to_date('2022-05-31 12:00:00', 'YYYY-MM-DD HH24:MI:SS') AND to_date('2022-06-30 12:00:00', 'YYYY-MM-DD HH24:MI:SS')"
-            # sql_out = f"SELECT count(PARTNO) ctn FROM TXP_CARTONDETAILS WHERE PARTNO='{part_no}' AND SHELVE IN ('S-PLOUT') AND SYSDTE <= to_date('2022-06-30 12:00:00', 'YYYY-MM-DD HH24:MI:SS')"
             plout = Oracur.execute(sql_out)
             plout_ctn = int(str(plout.fetchone()[0]))
             sheet[f"G{n}"].value = may
