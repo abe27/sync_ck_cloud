@@ -44,9 +44,9 @@ def ins(whs, shelve, i):
     txt = f"UPDATE {part_no}"
     _qty = qty
     _ctn = ctn
-    if pg != None:
-        _qty = (qty + int(pg[1]))
-        _ctn = (ctn + int(pg[2]))
+    # if pg != None:
+    #     _qty = int(pg[1])
+    #     _ctn = int(pg[2])
     
     sql_insert = f"update tbt_stocks set whs='{whs}',qty={_qty},ctn={_ctn} where part_no='{part_no}' and shelve='{shelve}'"
     if pg is None:
@@ -88,31 +88,36 @@ def get_data(serial_no):
     return shelve.fetchone()[0]
         
 def stock():
-    # df = pd.read_excel("stocks/stock.xlsx", index_col=None)
-    # data = df.to_dict('records')
-    # for i in data:
-    #     ins('TAP', 'SHELVE', i)
+    df = pd.read_excel("stocks/new_tap_stock.xlsx", index_col=None)
+    data = df.to_dict('records')
+    for i in data:
+        ins('TAP', 'SHELVE', i)
+        
+    pgdb.commit()
     
     sql = f"select part_no,shelve,spl_check from tbt_stocks where shelve='SHELVE'"
     pg_cursor.execute(sql)
     db = pg_cursor.fetchall()
     for i in db:
-        check_ctn = check_stock(f"SELECT count(PARTNO) FROM TXP_STKTAKECARTON t WHERE t.PARTNO='{i[0]}' AND STKTAKECHKFLG IS NOT NULL AND SHELVE NOT IN ('S-PLOUT', 'S-CK1', 'S-XXX')")
-        pg_cursor.execute(f"update tbt_stocks set spl_check={check_ctn} where part_no='{i[0]}' and shelve='SHELVE' and whs='TAP'")
+        check_ctn = check_stock(f"SELECT count(PARTNO) FROM TXP_STKTAKECARTON WHERE PARTNO='{i[0]}' AND STKTAKECHKFLG IS NOT NULL AND SHELVE NOT IN ('S-PLOUT', 'S-CK1', 'S-XXX')")
+        recheck_ctn = check_stock(f"SELECT count(PARTNO) FROM TXP_STKTAKECARTON WHERE PARTNO='{i[0]}' AND STKTAKECHKFLG IS NULL AND SHELVE IN ('S-RECHECK')")
+        current_stock = check_stock(f"SELECT count(PARTNO) FROM TXP_CARTONDETAILS WHERE PARTNO='{i[0]}' AND SHELVE NOT IN ('S-PLOUT', 'S-CK1', 'S-XXX')")
+        pg_cursor.execute(f"update tbt_stocks set spl_check={check_ctn},current_stock='{current_stock}',recheck_ctn='{recheck_ctn}' where part_no='{i[0]}' and shelve='SHELVE' and whs='TAP'")
         print(f"CHECK SHELVE PARTNO: {i[0]}")
+    pgdb.commit()
         
 def get_stock():
     sql = f"SELECT PARTNO,RECEIVINGQUANTITY qty,count(partno) ctn FROM TXP_STKTAKECARTON WHERE STKTAKECHKFLG IS NOT NULL GROUP BY PARTNO,RECEIVINGQUANTITY ORDER BY PARTNO"
     data = Oracur.execute(sql)
     for i in data:
         update_stk_spl('SPL', 'SHELVE', i)
-
+        
+    pgdb.commit()
         
 if __name__ == '__main__':
-    # stock()
+    stock()
     get_stock()
     Oracon.commit()
-    pgdb.commit()
     pgdb.close()
     pool.release(Oracon)
     pool.close()
