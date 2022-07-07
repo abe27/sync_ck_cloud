@@ -101,7 +101,7 @@ def stock():
     for i in db:
         check_ctn = check_stock(f"SELECT count(PARTNO) FROM TXP_STKTAKECARTON WHERE PARTNO='{i[0]}' AND STKTAKECHKFLG IS NOT NULL AND SHELVE NOT IN ('S-PLOUT', 'S-CK1', 'S-XXX')")
         recheck_ctn = check_stock(f"SELECT count(PARTNO) FROM TXP_STKTAKECARTON WHERE PARTNO='{i[0]}' AND STKTAKECHKFLG IS NULL AND SHELVE IN ('S-RECHECK')")
-        current_stock = check_stock(f"SELECT count(PARTNO) FROM TXP_CARTONDETAILS WHERE PARTNO='{i[0]}' AND SHELVE NOT IN ('S-PLOUT', 'S-CK1', 'S-XXX')")
+        current_stock = check_stock(f"SELECT count(PARTNO) FROM TXP_CARTONDETAILS WHERE PARTNO='{i[0]}' AND SHELVE NOT IN ('S-PLOUT', 'S-CK1')")
         pg_cursor.execute(f"update tbt_stocks set spl_check={check_ctn},current_stock='{current_stock}',recheck_ctn='{recheck_ctn}' where part_no='{i[0]}' and shelve='SHELVE' and whs='TAP'")
         print(f"CHECK SHELVE PARTNO: {i[0]}")
         
