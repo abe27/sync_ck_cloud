@@ -88,12 +88,12 @@ def get_data(serial_no):
     return shelve.fetchone()[0]
         
 def stock():
-    df = pd.read_excel("stocks/new_tap_stock.xlsx", index_col=None)
-    data = df.to_dict('records')
-    for i in data:
-        ins('TAP', 'SHELVE', i)
+    # df = pd.read_excel("stocks/new_tap_stock.xlsx", index_col=None)
+    # data = df.to_dict('records')
+    # for i in data:
+    #     ins('TAP', 'SHELVE', i)
         
-    pgdb.commit()
+    # pgdb.commit()
     
     sql = f"select part_no,shelve,spl_check from tbt_stocks where shelve='SHELVE'"
     pg_cursor.execute(sql)
@@ -104,6 +104,7 @@ def stock():
         current_stock = check_stock(f"SELECT count(PARTNO) FROM TXP_CARTONDETAILS WHERE PARTNO='{i[0]}' AND SHELVE NOT IN ('S-PLOUT', 'S-CK1', 'S-XXX')")
         pg_cursor.execute(f"update tbt_stocks set spl_check={check_ctn},current_stock='{current_stock}',recheck_ctn='{recheck_ctn}' where part_no='{i[0]}' and shelve='SHELVE' and whs='TAP'")
         print(f"CHECK SHELVE PARTNO: {i[0]}")
+        
     pgdb.commit()
         
 def get_stock():
