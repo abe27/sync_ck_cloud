@@ -319,6 +319,12 @@ def get_receive():
                 part_name = str(r['ledger']['part']['name']).replace("'","''")
                 unit = r['ledger']['unit']['name']
                 whs = r['ledger']['whs']['name']
+                #### check receive ck1
+                maker_whs = "E"
+                if str(receive_no)[:3] == "TI1":
+                    maker_whs = "D"
+                
+                
                 ### get part type
                 part_type = "PART"
                 sub_part = part[:2]
@@ -327,10 +333,10 @@ def get_receive():
                 ### check part on master
                 part_sql = Oracur.execute(f"select partno from txp_part where partno='{part}'")
                 part_upd = "INSERT"
-                sql_part_insert = f"""insert into txp_part(tagrp,partno,partname,carmaker,CD,TYPE,VENDORCD,UNIT ,upddte,sysdte)values('C','{part}','{part_name}','E', '{cd}', '{part_type}', '{factory_type}', '{unit}',sysdate,sysdate)"""
+                sql_part_insert = f"""insert into txp_part(tagrp,partno,partname,carmaker,CD,TYPE,VENDORCD,UNIT ,upddte,sysdte)values('C','{part}','{part_name}','{maker_whs}', '{cd}', '{part_type}', '{factory_type}', '{unit}',sysdate,sysdate)"""
                 if part_sql.fetchone():
                     part_upd = "UPDATE"
-                    sql_part_insert = f"""update txp_part set  partname='{part_name}',upddte=sysdate where partno='{part}'"""
+                    sql_part_insert = f"""update txp_part set  partname='{part_name}',upddte=sysdate where partno='{part}' and carmaker='{maker_whs}'"""
                 Oracur.execute(sql_part_insert)
                 
                 ### check part on ledger

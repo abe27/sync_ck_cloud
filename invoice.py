@@ -328,27 +328,28 @@ def create_orders(invoice_no, last_running_no):
             
             
             loading_area = "CK-2"
-            end_zname = shiptype
+            end_zname = prefix_code
+            # end_zname = shiptype
             if shiptype == "T":
-                end_zname = "I"
+                # end_zname = "I"
                 loading_area = "CK-1"
                 # privilege = "DOMESTIC"
                 
-            if order_whs_id == "CK-2":
-                end_zname = "C"
+            # if order_whs_id == "CK-2":
+                # end_zname = "C"
                     
-            elif order_whs_id == "NESC":
-                end_zname = "N"
+            if order_whs_id == "NESC":
+                # end_zname = "N"
                 loading_area = "CK-1"
                 
             elif order_whs_id == "ICAM":
-                end_zname = "I"
+                # end_zname = "I"
                 loading_area = "CK-1"
                 
-            zone_code_last = f"{str(etd_date.strftime('%Y%m%d'))[3:]}{end_zname}"
-            pg_cursor.execute(f"select count(*) + 1 from tbt_invoices where zone_code like '{zone_code_last}%'")
-            last_zone_running = int(str(pg_cursor.fetchone()[0]))
-            zone_code = f"{str(etd_date.strftime('%Y%m%d'))[3:]}{end_zname}{'{:03d}'.format(last_zone_running)}"
+            # zone_code_last = f"{str(etd_date.strftime('%Y%m%d'))[3:]}{end_zname}"
+            # pg_cursor.execute(f"select count(*) + 1 from tbt_invoices where zone_code like '{zone_code_last}%'")
+            # last_zone_running = int(str(pg_cursor.fetchone()[0]))
+            zone_code = f"{str(etd_date.strftime('%Y%m%d'))[3:]}{end_zname}{'{:04d}'.format(last_running_no)}"
             
             pg_cursor.execute(f"select id from tbt_whs where name='{order_whs_id}'")
             whs_id = pg_cursor.fetchone()[0]
@@ -552,8 +553,7 @@ def check_invoice():
 
 if __name__ == '__main__':
     # main()
-    # create_invoice()
-    check_invoice()
+    create_invoice()
     pgdb.commit()
     pgdb.close()
     sys.exit(0)
