@@ -302,8 +302,8 @@ def main():
             shutil.move(txt_filename, dist)
             pg_cursor.execute(f"update tbt_invoices set invoice_status='H',is_send_gedi=true where id='{r['primary_id']}'")
             pg_db.commit()
-            msg = f"test export GEDI {txt_filename} is completed!"
-            # spl.line_notification(msg)
+            msg = f"Test export GEDI {txt_filename} is completed!"
+            spl.line_notification(msg)
             print(msg)
             i += 1
             
