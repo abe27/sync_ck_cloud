@@ -40,9 +40,11 @@ def get_av00():
         inner join tbt_affiliates ta on tc.aff_id=ta.id
         inner join tbt_shippings ts on o.shipping_id=ts.id
         inner join tbt_factory_types tft on tc.factory_id=tft.id
-        where t.is_completed=true and is_send_gedi=false
+        where t.is_completed=true --and is_send_gedi=false
         order by t.ship_date,t.running_seq"""
-        
+    
+    print("1.")
+    # print(sql) 
     pg_cursor.execute(sql)
     db = pg_cursor.fetchall()
     doc = []
@@ -69,17 +71,6 @@ def get_av00():
     return doc
 
 def get_av01(inv_id):
-    # sql = f"""select o.id order_id,'AV01' rec_id_b,'.'  AVNT01,'LOAD AT ' || t.loading_area AVNT02,t.ship_der AVNT03,to_char(tdd.ctn, '000000000') AVCTNT,'1' AVFLG2,'SPLUSER' AVRGOP,to_char(t.created_at, 'YYYYMMDD')  AVRGDT,to_char(t.created_at, 'HHMMSS') AVRGTM, '.' AVFGSD
-    #     from tbt_invoices t
-    #     inner join tbt_orders o on t.order_id = o.id
-    #     inner join tbt_consignees tc on o.consignee_id=tc.id 
-    #     inner join tbt_customers ttc on tc.customer_id=ttc.id
-    #     inner join tbt_affiliates ta on tc.aff_id=ta.id
-    #     inner join tbt_shippings ts on o.shipping_id=ts.id
-    #     inner join (
-    #         select dd.order_id,sum(dd.order_balqty/dd.order_stdpack) ctn  from tbt_order_details dd group by dd.order_id
-    #     ) tdd on o.id=tdd.order_id
-    #     where t.id='{inv_id}'"""
     sql = f"""select order_id,rec_id_b,avnt01,avnt02,avnt03,avctnt,avflg2,avrgop,avrgdt,avrgtm,avfgsd from (
             select o.id order_id,'AV01' rec_id_b,'.'  AVNT01,'LOADING AT ' || t.loading_area AVNT02,
                 case 
@@ -103,6 +94,8 @@ def get_av01(inv_id):
         ) as a
         group by order_id,rec_id_b,avnt01,avnt02,avnt03,avctnt,avflg2,avrgop,avrgdt,avrgtm,avfgsd"""
     
+    print("2.")
+    # print(sql)
     pg_cursor.execute(sql)
     db = pg_cursor.fetchall()
     doc = []
@@ -141,7 +134,7 @@ def get_aw00(inv_id, inv_no):
         inner join tbt_order_details tod on tipd.invoice_part_id=tod.id
         inner join tbt_order_plans tp on tod.order_plan_id=tp.id
         inner join tbt_pallet_types tpt on tip.pallet_type_id=tpt.id 
-        inner join tbt_placing_on_pallets tpop on tip.placing_id=tpop.id
+        left join tbt_placing_on_pallets tpop on tip.placing_id=tpop.id
         inner join (
             select tf.invoice_pallet_detail_id,count(tf.invoice_pallet_detail_id) fcount  from tbt_ftickets tf group by tf.invoice_pallet_detail_id
         ) tipp on tipp.invoice_pallet_detail_id=tipd.id
@@ -151,6 +144,8 @@ def get_aw00(inv_id, inv_no):
     where tipp.invoice_id='{inv_id}'
     order by tipp.pallet_no,tipp.partno,tipp.pono"""
     
+    print("3.")
+    # print(sql)
     pg_cursor.execute(sql)
     db = pg_cursor.fetchall()
     doc = []
@@ -187,11 +182,13 @@ def get_bh00(inv_id, inv_no):
         inner join tbt_order_details tod on o.id=tod.order_id and tipd.invoice_part_id=tod.id 
         inner join tbt_order_plans top on tod.order_plan_id=top.id
         inner join tbt_ftickets tf on tipd.id =tf.invoice_pallet_detail_id
-        inner join tbt_placing_on_pallets tpop on tip.placing_id=tpop.id
+        left join tbt_placing_on_pallets tpop on tip.placing_id=tpop.id
         inner join tbt_pallet_types tpt on tip.pallet_type_id=tpt.id
         where tip.invoice_id='{inv_id}'
         order by tip.pallet_no,top.partno,top.pono,tf.seq,tf.fticket_no"""
     
+    print("4.")
+    # print(sql)
     pg_cursor.execute(sql)
     db = pg_cursor.fetchall()
     doc = []
@@ -229,13 +226,15 @@ def get_br00(inv_id, inv_no):
         inner join tbt_order_details tod on o.id=tod.order_id and tipd.invoice_part_id=tod.id 
         inner join tbt_order_plans top on tod.order_plan_id=top.id
         inner join tbt_ftickets tf on tipd.id =tf.invoice_pallet_detail_id
-        inner join tbt_placing_on_pallets tpop on tip.placing_id=tpop.id
+        left join tbt_placing_on_pallets tpop on tip.placing_id=tpop.id
         inner join tbt_pallet_types tpt on tip.pallet_type_id=tpt.id
         where tip.invoice_id='{inv_id}'
         order by tip.pallet_no,top.partno,top.pono,tf.seq,tf.fticket_no
     ) as f
     group by rec_bh_id,brivno,brline,brdesc,brwidt,brleng,brhigh,brqtyp,brcubi,brunit,brrgop,brrgdt,brrgtm,pltype"""
     
+    print("5.")
+    # print(sql)
     pg_cursor.execute(sql)
     db = pg_cursor.fetchall()
     doc = []
