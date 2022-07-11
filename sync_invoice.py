@@ -354,6 +354,10 @@ def sync_pallet_scan():
         
     Oracur.execute(f"DELETE FROM TMP_SCANOUT WHERE SYNC=1")
     Oracon.commit()
+    
+def update_reset_carton():
+    Oracur.execute(f"UPDATE TXP_CARTONDETAILS SET SIDTE=NULL,SINO=NULL,SIID=NULL WHERE STOCKQUANTITY > 0 AND SIDTE IS NOT NULL")
+    Oracon.commit()
         
 if __name__ == '__main__':
     main()
