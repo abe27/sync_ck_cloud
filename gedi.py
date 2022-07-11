@@ -40,7 +40,7 @@ def get_av00():
         inner join tbt_affiliates ta on tc.aff_id=ta.id
         inner join tbt_shippings ts on o.shipping_id=ts.id
         inner join tbt_factory_types tft on tc.factory_id=tft.id
-        where t.is_completed=true --and is_send_gedi=false
+        where t.is_completed=true and is_send_gedi=false
         order by t.ship_date,t.running_seq"""
     
     print("1.")
@@ -170,7 +170,7 @@ def get_aw00(inv_id, inv_no):
     return doc
 
 def get_bh00(inv_id, inv_no):
-    sql = f"""select 'BH00' rec_bh_id, ta.aff_code BHAC, '{inv_no}' BHIVNO, to_char(t.ship_date, 'YYYYMMDD')  BHIVDT, to_char(tip.pallet_no, '000') BHAETC, top.partno  BHYPAT, '.' BHLOT, to_char(0, '000') BHCOIL, '.' BHSNNO, top.partname  BHDESC, top.pono BHODPO, 'SPLUSER' BHRGOP, to_char(tip.created_at, 'YYYYMMDD') BHRGDT, to_char(tip.created_at, 'hh24miss') BHRGTM, tpop.pallet_width,tpop.pallet_length,tpop.pallet_height,top.biwidt,top.bileng,top.bihigh,top.bigrwt,top.binewt,case when tpt.name='PALLET' then 'P' else 'C' end pltype
+    sql = f"""select 'BH00' rec_bh_id, ta.aff_code BHAC, '{inv_no}' BHIVNO, to_char(t.ship_date, 'YYYYMMDD')  BHIVDT, to_char(tip.pallet_no, '000') BHAETC, top.partno  BHYPAT,case when tctc.lot_no is null then '.' else tctc.lot_no end BHLOT, to_char(0, '000') BHCOIL,case when tctc.serial_no is null then '.' else tctc.serial_no end BHSNNO, top.partname  BHDESC, top.pono BHODPO, 'SPLUSER' BHRGOP, to_char(tip.created_at, 'YYYYMMDD') BHRGDT, to_char(tip.created_at, 'hh24miss') BHRGTM, tpop.pallet_width,tpop.pallet_length,tpop.pallet_height,top.biwidt,top.bileng,top.bihigh,top.bigrwt,top.binewt,case when tpt.name='PALLET' then 'P' else 'C' end pltype
         from tbt_invoices t
         inner join tbt_orders o on t.order_id = o.id
         inner join tbt_consignees tc on o.consignee_id=tc.id 
@@ -182,6 +182,7 @@ def get_bh00(inv_id, inv_no):
         inner join tbt_order_details tod on o.id=tod.order_id and tipd.invoice_part_id=tod.id 
         inner join tbt_order_plans top on tod.order_plan_id=top.id
         inner join tbt_ftickets tf on tipd.id =tf.invoice_pallet_detail_id
+        left join tbt_cartons tctc on tf.carton_id=tctc.id
         left join tbt_placing_on_pallets tpop on tip.placing_id=tpop.id
         inner join tbt_pallet_types tpt on tip.pallet_type_id=tpt.id
         where tip.invoice_id='{inv_id}'
@@ -213,17 +214,17 @@ def get_bh00(inv_id, inv_no):
     return doc
 
 def get_br00(inv_id, inv_no):
-    sql = f"""select rec_bh_id,brivno,min(plno) min_plno,max(plno) max_pl,brline,brdesc,to_char(brwidt, '0000'),to_char(brleng, '0000'),to_char(brhigh, '0000'),brqtyp,brcubi,brunit,brrgop,brrgdt,brrgtm,pltype,count(fticket_no) ctn from (
+    sql = f"""select rec_bh_id,brivno,plno,brline,brdesc,to_char(brwidt, '0000'),to_char(brleng, '0000'),to_char(brhigh, '0000'),brqtyp,brcubi,brunit,brrgop,brrgdt,brrgtm,pltype,count(fticket_no) ctn from ( 
         select 'BR00' rec_bh_id,'{inv_no}' BRIVNO,tip.pallet_no plno,'.' BRLINE,'.' BRDESC,tf.fticket_no,case when tpt.name='PALLET' then tpop.pallet_width/10 else top.biwidt end BRWIDT,case when tpt.name='PALLET' then tpop.pallet_length/10 else top.bileng end BRLENG,case when tpt.name='PALLET' then tpop.pallet_height/10 else top.bihigh end BRHIGH,'' BRQTYP,to_char(0, '00000') BRCUBI,'CM/P.' BRUNIT,'SPLUSER' BRRGOP,to_char(tf.updated_at, 'YYYYMMDD') BRRGDT,to_char(tf.updated_at, 'hh24miss') BRRGTM,top.bigrwt/1000 grwt,top.binewt/1000 newt,case when tpt.name='PALLET' then 'P' else 'C' end pltype
         from tbt_invoices t
         inner join tbt_orders o on t.order_id = o.id
-        inner join tbt_consignees tc on o.consignee_id=tc.id 
+        inner join tbt_consignees tc on o.consignee_id=tc.id
         inner join tbt_customers ttc on tc.customer_id=ttc.id
         inner join tbt_affiliates ta on tc.aff_id=ta.id
         inner join tbt_shippings ts on o.shipping_id=ts.id
         inner join tbt_invoice_pallets tip on t.id=tip.invoice_id
-        inner join tbt_invoice_pallet_details tipd on tip.id=tipd.invoice_pallet_id 
-        inner join tbt_order_details tod on o.id=tod.order_id and tipd.invoice_part_id=tod.id 
+        inner join tbt_invoice_pallet_details tipd on tip.id=tipd.invoice_pallet_id
+        inner join tbt_order_details tod on o.id=tod.order_id and tipd.invoice_part_id=tod.id
         inner join tbt_order_plans top on tod.order_plan_id=top.id
         inner join tbt_ftickets tf on tipd.id =tf.invoice_pallet_detail_id
         left join tbt_placing_on_pallets tpop on tip.placing_id=tpop.id
@@ -231,35 +232,62 @@ def get_br00(inv_id, inv_no):
         where tip.invoice_id='{inv_id}'
         order by tip.pallet_no,top.partno,top.pono,tf.seq,tf.fticket_no
     ) as f
-    group by rec_bh_id,brivno,brline,brdesc,brwidt,brleng,brhigh,brqtyp,brcubi,brunit,brrgop,brrgdt,brrgtm,pltype"""
-    
+    group by rec_bh_id,plno,brivno,brline,brdesc,brwidt,brleng,brhigh,brqtyp,brcubi,brunit,brrgop,brrgdt,brrgtm,pltype"""
     print("5.")
-    # print(sql)
     pg_cursor.execute(sql)
     db = pg_cursor.fetchall()
     doc = []
-    seq = 1
+    brline = 0
+    check_dimen = None
+    pl_start = None
+    brdesc = None
+    brqtyp = 0
+    r = 0
     for i in db:
-        pl = f"{int(str(i[2]).strip())}-{int(str(i[3]).strip())}"
-        if int(str(i[2]).strip()) == int(str(i[3]).strip()):pl = f"{int(str(i[2]).strip())}"
-        doc.append({
-            "rec_bh_id": (str(i[0]).strip().ljust(50))[:4],
-            "brivno": (str(i[1]).strip().ljust(50))[:10],
-            "brline": '{0:02}'.format(seq),
-            "brdesc": ((f"{str(i[15]).strip()}/NO.{pl}").ljust(50))[:50],
-            "brwidt": str(i[6]).strip(),
-            "brleng": str(i[7]).strip(),
-            "brhigh": str(i[8]).strip(),
-            "brqtyp": '{0:03}'.format((int(str(i[3]).strip()) - int(str(i[2]).strip()) + 1)),
-            "brcubi": str(i[10]).strip(),
-            "brunit": (str(i[11]).strip().ljust(50))[:10],
-            "brrgop": (str(i[12]).strip().ljust(50))[:10],
-            "brrgdt": str(i[13]).strip(),
-            "brrgtm": str(i[14]).strip()
-        })
+        pl = int(str(i[2]).strip())
+        if check_dimen is None:
+            check_dimen =  str(i[5]).strip()+str(i[6]).strip()+str(i[7]).strip()
+            pl_start = pl
+            
+        else:
+            if check_dimen != str(i[5]).strip()+str(i[6]).strip()+str(i[7]).strip():
+                if pl_start != pl:
+                    # print(f"PL {pl_start}-{(pl - 1)}")
+                    brdesc = f"{pl_start}-{(pl - 1)}" 
+                    brqtyp = (pl-1)-pl_start
+                        
+                check_dimen = str(i[5]).strip()+str(i[6]).strip()+str(i[7]).strip()
+                pl_start = pl    
         
-        seq += 1
-
+        r += 1
+        if r == len(db):
+            if pl_start != pl:
+                # print(f"PL {pl_start}-{pl}")
+                brdesc = f"{pl_start}-{pl}"
+                brqtyp = pl-pl_start
+        
+        # print(f"{r} db: {len(db)}")
+        if brdesc != None:
+            brline += 1
+            print(f"plstart: {pl_start} dim: {check_dimen} brline: {brline} brdesc: {brdesc} brqtyp: {brqtyp + 1}")
+            doc.append({
+                "rec_bh_id": (str(i[0]).strip().ljust(50))[:4],
+                "brivno": (str(i[1]).strip().ljust(50))[:10],
+                "brline": '{0:02}'.format(brline),
+                "brdesc": ((f"{str(i[14]).strip()}/NO.{brdesc}").ljust(50))[:50],
+                "brwidt": str(i[5]).strip(),
+                "brleng": str(i[6]).strip(),
+                "brhigh": str(i[7]).strip(),
+                "brqtyp": '{0:03}'.format(brqtyp + 1),
+                "brcubi": str(i[9]).strip(),
+                "brunit": (str(i[10]).strip().ljust(50))[:10],
+                "brrgop": (str(i[11]).strip().ljust(50))[:10],
+                "brrgdt": str(i[12]).strip(),
+                "brrgtm": str(i[13]).strip()
+            })
+            
+        brdesc = None
+        
     return doc
     
 def main():
@@ -309,7 +337,6 @@ def main():
     except Exception as ex:
         print(ex)
         pass
-
 
 if __name__ == '__main__':
     main()
