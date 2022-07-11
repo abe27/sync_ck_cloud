@@ -375,13 +375,14 @@ def check_invoice_complete():
     ) as b on a.invoice_id=b.invoice_id"""
     pg_cursor.execute(sql)
     for i in pg_cursor.fetchall():
-        pg_cursor.execute(f"update tbt_invoices set is_completed=true,is_send_gedi=false where id='{str(i[0]).strip()}'")
+        pg_cursor.execute(f"update tbt_invoices set is_completed=true,is_send_gedi=false where id='{str(i[0]).strip()}' and is_send_gedi=false")
     
     pgdb.commit()
         
 if __name__ == '__main__':
     main()
     sync_pallet_scan()
+    check_invoice_complete()
     pgdb.close()
     pool.release(Oracon)
     pool.close()
