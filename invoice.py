@@ -218,7 +218,8 @@ def create_orders(invoice_no, last_running_no):
         sql_body = f"""select '{order_id}' order_id,id order_plan_id,case when length(reasoncd) > 0 then reasoncd else '-' end revise_id,partno ledger_id,pono,lotno,ordermonth,orderorgi,orderround,balqty,bistdp,shippedflg,shippedqty,sampleflg,carriercode,bidrfl,deleteflg  delete_flg,firmflg  firm_flg,'' poupd_flg,unit,partname 
         from tbt_order_plans 
         where id in (select order_plan_id  from tbt_invoice_checks where bhivno='{invoice_no}')
-        order by created_at,sequence"""
+        order by partno,pono,biwidt,bileng,bihigh,created_at,sequence"""
+        # print(sql_body)
         pg_cursor.execute(sql_body)
         db = pg_cursor.fetchall()
         
