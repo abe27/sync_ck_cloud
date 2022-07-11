@@ -205,12 +205,12 @@ def main():
                 sql_fticket_insert = f"""INSERT INTO TXP_ISSPACKDETAIL(ISSUINGKEY, PONO, TAGRP, PARTNO, FTICKETNO, ORDERQTY, ISSUEDQTY, SHIPPLNO, UNIT, ISSUINGSTATUS,UPDDTE, SYSDTE, UUID, CREATEDBY, MODIFEDBY,SPLORDER)VALUES('{issuingkey}', '{pono}', '{tagrp}', '{partno}', '{fticketno}', {orderqty}, 0, '{plnum}', '{unit}', 0,current_timestamp, current_timestamp, '{uuid}', '{createdby}', '{modifedby}','{splorder}')"""
                 
             Oracur.execute(sql_fticket_insert)
-        
+            
+        Oracon.commit()
+        pgdb.commit()
         
 if __name__ == '__main__':
     main()
-    Oracon.commit()
-    pgdb.commit()
     pgdb.close()
     pool.release(Oracon)
     pool.close()

@@ -87,7 +87,7 @@ def get_av01(inv_id):
                     when t.loading_area ='CK-2' then 'BONDED'
                     else '.' 
                 end AVNT03,
-                to_char(tdd.ctn, '000000000') AVCTNT,'1' AVFLG2,to_char(cast(tu.empcode as integer), '000000')  AVRGOP,to_char(t.created_at, 'YYYYMMDD')  AVRGDT,to_char(t.created_at, 'HHMMSS') AVRGTM, '.' AVFGSD
+                to_char(tdd.ctn, '000000000') AVCTNT,'1' AVFLG2,to_char(cast(tu.empcode as integer), '000000')  AVRGOP,to_char(t.created_at, 'YYYYMMDD')  AVRGDT,to_char(t.created_at, 'HHMMSS') AVRGTM, '' AVFGSD
                 from tbt_invoices t
                 inner join tbt_orders o on t.order_id = o.id
                 inner join tbt_consignees tc on o.consignee_id=tc.id 
