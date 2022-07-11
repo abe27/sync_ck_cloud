@@ -358,6 +358,26 @@ def sync_pallet_scan():
 def update_reset_carton():
     Oracur.execute(f"UPDATE TXP_CARTONDETAILS SET SIDTE=NULL,SINO=NULL,SIID=NULL WHERE STOCKQUANTITY > 0 AND SIDTE IS NOT NULL")
     Oracon.commit()
+    
+def check_invoice_complete():
+    sql = f"""select a.invoice_id from (
+        select tip.invoice_id,count(tip.invoice_id) ctn from tbt_invoice_pallets tip 
+        left join tbt_invoice_pallet_details tpl on tip.id=tpl.invoice_pallet_id
+        left join tbt_ftickets tf on tpl.id=tf.invoice_pallet_detail_id 
+        group by tip.invoice_id
+    ) as a
+    inner join (
+        select tip.invoice_id,count(tip.invoice_id) ctn from tbt_invoice_pallets tip 
+        left join tbt_invoice_pallet_details tpl on tip.id=tpl.invoice_pallet_id
+        left join tbt_ftickets tf on tpl.id=tf.invoice_pallet_detail_id 
+        where tf.carton_id is not null
+        group by tip.invoice_id
+    ) as b on a.invoice_id=b.invoice_id"""
+    pg_cursor.execute(sql)
+    for i in pg_cursor.fetchall():
+        pg_cursor.execute(f"update tbt_invoices set is_completed=true,is_send_gedi=false where id='{str(i[0]).strip()}'")
+    
+    pgdb.commit()
         
 if __name__ == '__main__':
     main()

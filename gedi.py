@@ -40,7 +40,7 @@ def get_av00():
         inner join tbt_affiliates ta on tc.aff_id=ta.id
         inner join tbt_shippings ts on o.shipping_id=ts.id
         inner join tbt_factory_types tft on tc.factory_id=tft.id
-        where t.running_seq=1556
+        where t.is_completed=true and is_send_gedi=false
         order by t.ship_date,t.running_seq"""
         
     pg_cursor.execute(sql)
