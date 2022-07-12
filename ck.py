@@ -324,14 +324,13 @@ def get_receive():
                 if str(receive_no)[:3] == "TI1":
                     maker_whs = "D"
                 
-                
                 ### get part type
                 part_type = "PART"
                 sub_part = part[:2]
                 if sub_part == "18":part_type = "WIRE"
                 elif sub_part == "71":part_type = "PLATE"
                 ### check part on master
-                part_sql = Oracur.execute(f"select partno from txp_part where partno='{part}'")
+                part_sql = Oracur.execute(f"select partno from txp_part where partno='{part}' and carmaker='{maker_whs}'")
                 part_upd = "INSERT"
                 sql_part_insert = f"""insert into txp_part(tagrp,partno,partname,carmaker,CD,TYPE,VENDORCD,UNIT ,upddte,sysdte)values('C','{part}','{part_name}','{maker_whs}', '{cd}', '{part_type}', '{factory_type}', '{unit}',sysdate,sysdate)"""
                 if part_sql.fetchone():
