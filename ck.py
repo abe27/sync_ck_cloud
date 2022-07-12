@@ -336,6 +336,7 @@ def get_receive():
                 if part_sql.fetchone():
                     part_upd = "UPDATE"
                     sql_part_insert = f"""update txp_part set  partname='{part_name}',upddte=sysdate where partno='{part}' and carmaker='{maker_whs}'"""
+                    
                 Oracur.execute(sql_part_insert)
                 
                 ### check part on ledger
