@@ -56,6 +56,12 @@ def read_invoice(target_dir, file_name):
             if db != None:
                 plout = db[0]
             
+            sql_get_invoice_id = f"SELECT ISSUINGKEY FROM TXP_ISSPACKDETAIL WHERE FTICKETNO='{fticket}'"
+            Oracur.execute(sql_get_invoice_id)
+            ref_inv_id = Oracur.fetchone()[0]
+            sql_update_invoice_id = f"UPDATE TXP_CARTONDETAILS SET SINO='{ref_inv_id}' WHERE LOTNO='{lotno}' AND RUNNINGNO='{serial_no}'"
+            Oracur.execute(sql_update_invoice_id)
+            
             sql_plout = f"UPDATE TXP_ISSPACKDETAIL SET CTNSN='{serial_no}',PLOUTNO='{plout}',UPDDTE=CURRENT_TIMESTAMP WHERE FTICKETNO='{fticket}'"
             Oracur.execute(sql_plout)
             print(f"UPDATE {fticket} SET {serial_no}")
