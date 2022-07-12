@@ -46,11 +46,21 @@ def read_invoice(target_dir, file_name):
         data = df.to_dict('records')
         for i in data:
             fticket = check_nan(str(i['fticket']).strip())
-            serialno = check_nan(str(i['serialno']).strip())
-            partno = check_nan(str(i['partno']).strip())
+            serial_no = check_nan(str(i['serialno']).strip())
+            # partno = check_nan(str(i['partno']).strip())
             lotno = check_nan(str(i['lotno']).strip())
+            sql_plout = f"SELECT CASE WHEN PALLETKEY IS NULL THEN '-' ELSE PALLETKEY END FROM TXP_CARTONDETAILS WHERE LOTNO='{lotno}' AND RUNNINGNO='{serial_no}'"
+            Oracur.execute(sql_plout)
+            db = Oracur.fetchone()
+            plout = "-"
+            if db != None:
+                plout = db[0]
             
-            
+            sql_plout = f"UPDATE TXP_ISSPACKDETAIL SET CTNSN='{serial_no}',PLOUTNO='{plout}',UPDDTE=CURRENT_TIMESTAMP WHERE FTICKETNO='{fticket}'"
+            Oracur.execute(sql_plout)
+            print(f"UPDATE {fticket} SET {serial_no}")
+        
+        Oracon.commit()   
             
     except Exception as e:
         print(str(e))
