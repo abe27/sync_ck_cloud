@@ -1133,6 +1133,20 @@ def sync_invoice():
         print(f"{txt} ==> {uid}")
     mydb.close()
     
+def check_receive_recctn():
+    sql = f"SELECT RECEIVINGKEY,PARTNO  FROM TXP_RECTRANSBODY WHERE RECEIVINGKEY='SI22071203'"
+    Oracur.execute(sql)
+    db = Oracur.fetchall()
+    for i in db:
+        Oracur.execute(f"SELECT count(PARTNO) FROM TXP_CARTONDETAILS WHERE INVOICENO='{str(i[0]).strip()}' AND PARTNO='{str(i[1]).strip()}'")
+        ctn = Oracur.fetchone()
+        _ctn = 0
+        if ctn is not None:
+            _ctn = int(ctn[0])
+            
+        Oracur.execute(f"UPDATE TXP_RECTRANSBODY SET RECCTN={_ctn} WHERE RECEIVINGKEY='{str(i[0]).strip()}' AND PARTNO='{str(i[1]).strip()}'")
+    Oracon.commit()
+    
 if __name__ == '__main__':
     main()
     download()
@@ -1144,6 +1158,7 @@ if __name__ == '__main__':
     genearate_order()
     # generate_invoice()
     # sync_invoice()
+    # check_receive_recctn()
     spl.logout(spl_token)
     pool.release(Oracon)
     pool.close()
