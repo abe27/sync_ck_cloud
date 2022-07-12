@@ -410,7 +410,7 @@ def merge_receive():
         # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
         #  Oracur = Oracon.cursor()
         ### GEDI BATCHID
-        obj = Oracur.execute(f"""SELECT GEDI_FILE,count(GEDI_FILE) ctn FROM TXP_RECTRANSENT WHERE TO_CHAR(UPDDTE, 'YYYYMMDD') = TO_CHAR(sysdate, 'YYYYMMDD') AND VENDOR='INJ' AND RECEIVINGKEY LIKE 'TI%' GROUP BY GEDI_FILE HAVING count(GEDI_FILE) > 1 ORDER BY GEDI_FILE""")
+        obj = Oracur.execute(f"""SELECT GEDI_FILE,count(GEDI_FILE) ctn FROM TXP_RECTRANSENT WHERE TO_CHAR(UPDDTE, 'YYYYMMDD') = TO_CHAR(sysdate, 'YYYYMMDD') AND VENDOR='INJ' AND RECEIVINGKEY LIKE 'TI2%' GROUP BY GEDI_FILE HAVING count(GEDI_FILE) > 1 ORDER BY GEDI_FILE""")
         for r in obj.fetchall():
             #### get ent data
             receive_no = []
