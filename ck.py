@@ -375,9 +375,9 @@ def get_receive():
                 receive_body = Oracur.execute(f"""SELECT PARTNO from TXP_RECTRANSBODY WHERE RECEIVINGKEY='{receive_no}' AND PARTNO='{part}'""")
                 sql_receive_body = f"""INSERT INTO TXP_RECTRANSBODY
                                     (RECEIVINGKEY, RECEIVINGSEQ, PARTNO, PLNQTY, PLNCTN,RECQTY,RECCTN,TAGRP, UNIT, CD, WHS, DESCRI, RVMANAGINGNO,UPDDTE, SYSDTE, CREATEDBY,MODIFIEDBY,OLDERKEY)
-                                    VALUES('{receive_no}', '{(x + 1)}', '{part}', {r['plan_qty']}, {r['plan_ctn']},0,0,'C', '{unit}','{cd}' , '{whs}','{part_name}', '{rvm_no}',sysdate, sysdate, 'SKTSYS', 'SKTSYS', '{receive_no}')"""
+                                    VALUES('{receive_no}', '{(x + 1)}', '{part}', {r['plan_qty']}, {r['plan_ctn']},0,0,'{maker_whs}', '{unit}','{cd}' , '{ledger_whs}','{part_name}', '{rvm_no}',sysdate, sysdate, 'SKTSYS', 'SKTSYS', '{receive_no}')"""
                 if receive_body.fetchone():
-                    sql_receive_body = f"""UPDATE TXP_RECTRANSBODY SET PLNQTY='{r['plan_qty']}', PLNCTN={r['plan_ctn']} WHERE RECEIVINGKEY='{receive_no}'"""
+                    sql_receive_body = f"""UPDATE TXP_RECTRANSBODY SET PLNQTY='{r['plan_qty']}', PLNCTN={r['plan_ctn']},TAGRP='{maker_whs}',WHS='{ledger_whs}' WHERE RECEIVINGKEY='{receive_no}' AND PARTNO='{part}'"""
                 
                 Oracur.execute(sql_receive_body)
                 sum_pln += float(str(r['plan_ctn']))
