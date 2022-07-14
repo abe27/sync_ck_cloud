@@ -518,6 +518,7 @@ def merge_receive():
         if a[i] == "TI2":
             prefix = "SC"
         mergedata(prefix, a[i])
+        print(f"{i} :==> MERGE: {a[i]}")
         i += 1
     
 def orderplans():
