@@ -345,20 +345,26 @@ def get_receive():
                         
                         Oracur.execute(sql_part_insert)
                 except Exception as ex:
-                    log(name='SPL-MASTER-PART-ERROR', subject="SYNC RECEIVE", status="Error", message=str(ex))
+                    log(name='MASTER-PART-ERROR', subject="SYNC RECEIVE", status="Error", message=str(ex))
                     pass
                 
                 ### check part on ledger
                 # print(r['plan_qty'])
                 # print(r['plan_ctn'])
                 outer_qty = float(str(r['plan_qty']))/float(str(r['plan_ctn']))
-                part_ledger_sql = Oracur.execute(f"select partno from TXP_LEDGER where partno='{part}' and whs='{ledger_whs}'")
-                ledger_sql = f"""INSERT INTO TXP_LEDGER(PARTNO,TAGRP,MINIMUM,MAXIMUM,WHS,PICSHELFBIN,STKSHELFBIN,OVSSHELFBIN,OUTERPCS,UPDDTE, SYSDTE)VALUES('{part}', 'C',0,0,'{ledger_whs}','PNON', 'SNON','ONON', 0, sysdate, sysdate)"""
-                if part_ledger_sql.fetchone():
-                    ledger_sql = f"""UPDATE TXP_LEDGER SET RECORDMAX=1,LASTRECDTE=sysdate,LASTISSDTE=sysdate WHERE PARTNO='{part}' AND WHS='{ledger_whs}'"""
+                try:
+                    part_ledger_sql = Oracur.execute(f"select partno from TXP_LEDGER where partno='{part}' and whs='{ledger_whs}'")
+                    ledger_sql = f"""INSERT INTO TXP_LEDGER(PARTNO,TAGRP,MINIMUM,MAXIMUM,WHS,PICSHELFBIN,STKSHELFBIN,OVSSHELFBIN,OUTERPCS,UPDDTE, SYSDTE)VALUES('{part}', 'C',0,0,'{ledger_whs}','PNON', 'SNON','ONON', 0, sysdate, sysdate)"""
+                    if part_ledger_sql.fetchone():
+                        ledger_sql = f"""UPDATE TXP_LEDGER SET RECORDMAX=1,LASTRECDTE=sysdate,LASTISSDTE=sysdate WHERE PARTNO='{part}' AND WHS='{ledger_whs}'"""
+                    
+                    Oracur.execute(ledger_sql)    
+                    print(f"{part_upd} PART: {part} TYPE: {part_type} OUTER: {outer_qty}")
                 
-                Oracur.execute(ledger_sql)    
-                print(f"{part_upd} PART: {part} TYPE: {part_type} OUTER: {outer_qty}")
+                except Exception as ex:
+                    log(name='MASTER-LEDGER-ERROR', subject="SYNC RECEIVE", status="Error", message=str(ex))
+                    print(str(ex))
+                    pass
                 
                 ### get manno.
                 rvm_no = (Oracur.execute(f"SELECT 'BD'|| SUBSTR(TO_CHAR(sysdate,'yyMMdd'), 2, 6)  || replace(to_char((SELECT count(*) FROM TXP_RECTRANSBODY WHERE TO_CHAR(SYSDTE, 'YYYYMMDD') = TO_CHAR(sysdate, 'YYYYMMDD')) + 1,'000099'),' ','') as genrunno  from dual")).fetchone()[0]
