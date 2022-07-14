@@ -437,6 +437,8 @@ def mergedata(prefix, reckey):
             receive_date = None
             key_no = None
             recisstype = "01"### for export 05 for domestic
+            if prefix == "SD":
+                recisstype = "05"
             
             receive_list = []
             ent = Oracur.execute(f"SELECT RECEIVINGKEY, to_char(RECEIVINGDTE, 'YYYYMMDD')  FROM TXP_RECTRANSENT WHERE GEDI_FILE='{r[0]}' ORDER BY RECEIVINGKEY")
