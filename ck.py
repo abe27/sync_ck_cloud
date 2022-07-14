@@ -322,9 +322,11 @@ def get_receive():
                 #### check receive ck1
                 maker_whs = "C"
                 recisstype ="01"
+                ledger_whs = factory_type
                 if str(receive_no)[:3] == "TI1":
                     maker_whs = "D"
                     recisstype = "05"
+                    ledger_whs = "DOM"
                 
                 ### get part type
                 part_type = "PART"
@@ -350,10 +352,10 @@ def get_receive():
                 # print(r['plan_qty'])
                 # print(r['plan_ctn'])
                 outer_qty = float(str(r['plan_qty']))/float(str(r['plan_ctn']))
-                part_ledger_sql = Oracur.execute(f"select partno from TXP_LEDGER where partno='{part}'")
-                ledger_sql = f"""INSERT INTO TXP_LEDGER(PARTNO,TAGRP,MINIMUM,MAXIMUM,WHS,PICSHELFBIN,STKSHELFBIN,OVSSHELFBIN,OUTERPCS,UPDDTE, SYSDTE)VALUES('{part}', 'C',0,0,'{factory_type}','PNON', 'SNON','ONON', 0, sysdate, sysdate)"""
+                part_ledger_sql = Oracur.execute(f"select partno from TXP_LEDGER where partno='{part}' and whs='{ledger_whs}'")
+                ledger_sql = f"""INSERT INTO TXP_LEDGER(PARTNO,TAGRP,MINIMUM,MAXIMUM,WHS,PICSHELFBIN,STKSHELFBIN,OVSSHELFBIN,OUTERPCS,UPDDTE, SYSDTE)VALUES('{part}', 'C',0,0,'{ledger_whs}','PNON', 'SNON','ONON', 0, sysdate, sysdate)"""
                 if part_ledger_sql.fetchone():
-                    ledger_sql = f"""UPDATE TXP_LEDGER SET RECORDMAX=1,LASTRECDTE=sysdate,LASTISSDTE=sysdate WHERE PARTNO='{part}'"""
+                    ledger_sql = f"""UPDATE TXP_LEDGER SET RECORDMAX=1,LASTRECDTE=sysdate,LASTISSDTE=sysdate WHERE PARTNO='{part}' AND WHS='{ledger_whs}'"""
                 
                 Oracur.execute(ledger_sql)    
                 print(f"{part_upd} PART: {part} TYPE: {part_type} OUTER: {outer_qty}")
