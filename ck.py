@@ -415,7 +415,7 @@ def get_receive():
                 d = datetime.now()
                 if p != None:
                     _ctn = f"{int(str(p[0])):,}"
-                    msg = f"""{whs}: {fac}\nเลขที่: {r}\nจำนวน: {p[1]} กล่อง: {_ctn}\nวดป.: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
+                    msg = f"""{whs}\nโรงงาน: {fac}\nเลขที่: {r}\nจำนวน: {p[1]} กล่อง: {_ctn}\nวดป.: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
                     spl.line_notification(msg)
                     log(name='SPL', subject="SYNC RECEIVE", status="Success", message=f"Sync Receive({r})")
                 x += 1
