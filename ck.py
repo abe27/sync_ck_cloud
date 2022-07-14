@@ -425,12 +425,12 @@ def get_receive():
         log(name='SPL-ERROR', subject="SYNC RECEIVE", status="Error", message=str(ex))
         pass
     
-def merge_receive():
+def mergedata(prefix, reckey):
     try:
         # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
         #  Oracur = Oracon.cursor()
         ### GEDI BATCHID
-        obj = Oracur.execute(f"""SELECT GEDI_FILE,count(GEDI_FILE) ctn FROM TXP_RECTRANSENT WHERE TO_CHAR(UPDDTE, 'YYYYMMDD') = TO_CHAR(sysdate, 'YYYYMMDD') AND VENDOR='INJ' AND RECEIVINGKEY LIKE 'TI2%' GROUP BY GEDI_FILE HAVING count(GEDI_FILE) > 1 ORDER BY GEDI_FILE""")
+        obj = Oracur.execute(f"""SELECT GEDI_FILE,count(GEDI_FILE) ctn FROM TXP_RECTRANSENT WHERE TO_CHAR(UPDDTE, 'YYYYMMDD') = TO_CHAR(sysdate, 'YYYYMMDD') AND VENDOR='INJ' AND RECEIVINGKEY LIKE '{reckey}2%' GROUP BY GEDI_FILE HAVING count(GEDI_FILE) > 1 ORDER BY GEDI_FILE""")
         for r in obj.fetchall():
             #### get ent data
             receive_no = []
@@ -447,12 +447,12 @@ def merge_receive():
                     receive_no.append(str(k[0])[10:])
             
             #### new receive key    
-            sql_key = f"SELECT to_char(round(SUBSTR(RECEIVINGKEY, 9, 10)) + 1, '09')  FROM TXP_RECTRANSENT WHERE RECEIVINGKEY LIKE 'SI{datetime.now().strftime('%y%m%d')}%' ORDER BY RECEIVINGKEY DESC"
+            sql_key = f"SELECT to_char(round(SUBSTR(RECEIVINGKEY, 9, 10)) + 1, '09')  FROM TXP_RECTRANSENT WHERE RECEIVINGKEY LIKE '{prefix}{datetime.now().strftime('%y%m%d')}%' ORDER BY RECEIVINGKEY DESC"
             key = Oracur.execute(sql_key)
             receive_ora = key.fetchone()
-            key_no = (f"SI{datetime.now().strftime('%y%m%d')}01")
+            key_no = (f"{prefix}{datetime.now().strftime('%y%m%d')}01")
             if receive_ora != None:
-                key_no = (f"SI{datetime.now().strftime('%y%m%d')}{(receive_ora)[0]}").replace(" ", "")
+                key_no = (f"{prefix}{datetime.now().strftime('%y%m%d')}{(receive_ora)[0]}").replace(" ", "")
                 
             receive_key = ",".join(receive_no)
             sql = f"""SELECT '{key_no}' RECEIVINGKEY,0 SEQ, PARTNO,sum(PLNQTY) PLNQTY,sum(PLNCTN) plnctn,0 RECQTY,0 RECCTN,TAGRP, UNIT, CD, WHS, DESCRI, '' RVMNO,sysdate UPDDTE, sysdate SYSDTE, 'SKTSYS' CREATEDBY,'SKTSYS' MODIFIEDBY,'{receive_key}' OLDERKEY  FROM TXP_RECTRANSBODY WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')}) GROUP BY PARTNO,TAGRP, UNIT, CD, WHS, DESCRI ORDER BY PARTNO"""
@@ -480,7 +480,10 @@ def merge_receive():
             
             d = datetime.now()
             _ctn = f"{ctn:,}"
-            msg = f"""รวมรอบ INJ\nรอบ: {key_no}\nจำนวน: {seq} กล่อง: {_ctn}\nรอบที่รวม: {receive_key}\nวดป.: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
+            whs_name = "CK-1"
+            if prefix == "SC":
+                whs_name = "CK-2"
+            msg = f"""รวมรอบ INJ {whs_name}\nรอบ: {key_no}\nจำนวน: {seq} กล่อง: {_ctn}\nรอบที่รวม: {receive_key}\nวดป.: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
             spl.line_notification(msg)
             log(name='SPL', subject="MRGE RECEIVE", status="Success", message=f"Merge Receive({key_no}) with {receive_key}")
             
@@ -506,6 +509,16 @@ def update_receive_ctn():
     
     ### commit the transaction
     Oracon.commit()
+    
+def merge_receive():
+    a = ["TI1", "TI2"]
+    i = 0
+    while i < len(a):
+        prefix = "SD"
+        if a[i] == "TI2":
+            prefix = "SC"
+        mergedata(prefix, a[i])
+        i += 1
     
 def orderplans():
     token = spl_token
