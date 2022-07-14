@@ -398,13 +398,18 @@ def get_receive():
             while x < len(receive_array):
                 r = receive_array[x]
                 fac = "AW"
-                if r[:2] == "TI":fac = "INJ"
+                whs = "CK-2"
+                if r[:2] == "TI":
+                    fac = "INJ"
+                    if r[:3] == "TI1":
+                        whs = "CK-1"
+                        
                 recbody = Oracur.execute(f"SELECT sum(PLNCTN),count(PARTNO) FROM TXP_RECTRANSBODY WHERE RECEIVINGKEY='{r}'")
                 p = recbody.fetchone()
                 d = datetime.now()
                 if p != None:
                     _ctn = f"{int(str(p[0])):,}"
-                    msg = f"""{fac}\nเลขที่: {r}\nจำนวน: {p[1]} กล่อง: {_ctn}\nวดป.: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
+                    msg = f"""{whs}: {fac}\nเลขที่: {r}\nจำนวน: {p[1]} กล่อง: {_ctn}\nวดป.: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
                     spl.line_notification(msg)
                     log(name='SPL', subject="SYNC RECEIVE", status="Success", message=f"Sync Receive({r})")
                 x += 1
