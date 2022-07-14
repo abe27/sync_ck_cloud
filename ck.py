@@ -430,16 +430,21 @@ def mergedata(prefix, reckey):
         # Oracon = cx_Oracle.connect(user=ORA_PASSWORD,password=ORA_USERNAME,dsn=ORA_DNS)
         #  Oracur = Oracon.cursor()
         ### GEDI BATCHID
-        obj = Oracur.execute(f"""SELECT GEDI_FILE,count(GEDI_FILE) ctn FROM TXP_RECTRANSENT WHERE TO_CHAR(UPDDTE, 'YYYYMMDD') = TO_CHAR(sysdate, 'YYYYMMDD') AND VENDOR='INJ' AND RECEIVINGKEY LIKE '{reckey}2%' GROUP BY GEDI_FILE HAVING count(GEDI_FILE) > 1 ORDER BY GEDI_FILE""")
+        # print(f"""SELECT GEDI_FILE,count(GEDI_FILE) ctn FROM TXP_RECTRANSENT WHERE TO_CHAR(UPDDTE, 'YYYYMMDD') = TO_CHAR(sysdate, 'YYYYMMDD') AND VENDOR='INJ' AND RECEIVINGKEY LIKE '{reckey}%' GROUP BY GEDI_FILE HAVING count(GEDI_FILE) > 1 ORDER BY GEDI_FILE""")
+        obj = Oracur.execute(f"""SELECT GEDI_FILE,count(GEDI_FILE) ctn FROM TXP_RECTRANSENT WHERE TO_CHAR(UPDDTE, 'YYYYMMDD') = TO_CHAR(sysdate, 'YYYYMMDD') AND VENDOR='INJ' AND RECEIVINGKEY LIKE '{reckey}%' GROUP BY GEDI_FILE HAVING count(GEDI_FILE) > 1 ORDER BY GEDI_FILE""")
         for r in obj.fetchall():
             #### get ent data
             receive_no = []
             receive_date = None
             key_no = None
             recisstype = "01"### for export 05 for domestic
+            whs_name = "CK-2"
+            tagrp = "C"
             if prefix == "SD":
                 recisstype = "05"
-            
+                whs_name = "CK-1"
+                tagrp = "D"
+        
             receive_list = []
             ent = Oracur.execute(f"SELECT RECEIVINGKEY, to_char(RECEIVINGDTE, 'YYYYMMDD')  FROM TXP_RECTRANSENT WHERE GEDI_FILE='{r[0]}' ORDER BY RECEIVINGKEY")
             for k in ent.fetchall():
@@ -465,7 +470,7 @@ def mergedata(prefix, reckey):
             for b in body.fetchall():
                 ### get manno.
                 rvm_no = (Oracur.execute(f"SELECT 'BD'|| SUBSTR(TO_CHAR(sysdate,'yyMMdd'), 2, 6)  || replace(to_char((SELECT count(*) FROM TXP_RECTRANSBODY WHERE TO_CHAR(SYSDTE, 'YYYYMMDD') = TO_CHAR(sysdate, 'YYYYMMDD')) + 1,'000099'),' ','') as genrunno  from dual")).fetchone()[0]
-                ql_receive_body = f"""INSERT INTO TXP_RECTRANSBODY(RECEIVINGKEY, RECEIVINGSEQ, PARTNO, PLNQTY, PLNCTN,RECQTY,RECCTN,TAGRP, UNIT, CD, WHS, DESCRI, RVMANAGINGNO,UPDDTE, SYSDTE, CREATEDBY,MODIFIEDBY,OLDERKEY)VALUES('{key_no}', '{seq}', '{b[2]}', {b[3]}, {b[4]},0,0,'C', '{b[8]}','{b[9]}' , '{b[10]}','{str(b[11]).replace("'", "''")}', '{rvm_no}',sysdate, sysdate, 'SKTSYS', 'SKTSYS', '{receive_key}')"""
+                ql_receive_body = f"""INSERT INTO TXP_RECTRANSBODY(RECEIVINGKEY, RECEIVINGSEQ, PARTNO, PLNQTY, PLNCTN,RECQTY,RECCTN,TAGRP, UNIT, CD, WHS, DESCRI, RVMANAGINGNO,UPDDTE, SYSDTE, CREATEDBY,MODIFIEDBY,OLDERKEY)VALUES('{key_no}', '{seq}', '{b[2]}', {b[3]}, {b[4]},0,0,'{tagrp}', '{b[8]}','{b[9]}' , '{b[10]}','{str(b[11]).replace("'", "''")}', '{rvm_no}',sysdate, sysdate, 'SKTSYS', 'SKTSYS', '{receive_key}')"""
                 Oracur.execute(ql_receive_body)
                 ctn += float(str(b[4]))
                 seq += 1
@@ -482,9 +487,6 @@ def mergedata(prefix, reckey):
             
             d = datetime.now()
             _ctn = f"{ctn:,}"
-            whs_name = "CK-1"
-            if prefix == "SC":
-                whs_name = "CK-2"
             msg = f"""รวมรอบ INJ {whs_name}\nรอบ: {key_no}\nจำนวน: {seq} กล่อง: {_ctn}\nรอบที่รวม: {receive_key}\nวดป.: {d.strftime('%Y-%m-%d %H:%M:%S')}"""
             spl.line_notification(msg)
             log(name='SPL', subject="MRGE RECEIVE", status="Success", message=f"Merge Receive({key_no}) with {receive_key}")
@@ -518,7 +520,7 @@ def merge_receive():
     while i < len(a):
         prefix = "SD"
         if a[i] == "TI2":
-            prefix = "SC"
+            prefix = "SI"
         mergedata(prefix, a[i])
         print(f"{i} :==> MERGE: {a[i]}")
         i += 1
