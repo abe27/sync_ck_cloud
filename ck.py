@@ -121,7 +121,7 @@ def main():
         log(name='SPL', subject="STOP", status='Active',message=f"Stop SPL Service")
     
 def download():
-    ### Initail Mysql Server
+    ### Initial Mysql Server
     mydb = pgsql.connect(
         host=DB_HOSTNAME,
         port=DB_PORT,
@@ -320,25 +320,31 @@ def get_receive():
                 unit = r['ledger']['unit']['name']
                 whs = r['ledger']['whs']['name']
                 #### check receive ck1
-                maker_whs = "E"
+                maker_whs = "C"
+                recisstype ="01"
                 if str(receive_no)[:3] == "TI1":
                     maker_whs = "D"
+                    recisstype = "05"
                 
                 ### get part type
                 part_type = "PART"
                 sub_part = part[:2]
                 if sub_part == "18":part_type = "WIRE"
                 elif sub_part == "71":part_type = "PLATE"
-                ### check part on master
-                # part_sql = Oracur.execute(f"select partno from txp_part where partno='{part}' and carmaker='{maker_whs}'")
-                part_sql = Oracur.execute(f"select partno from txp_part where partno='{part}'")
-                part_upd = "INSERT"
-                sql_part_insert = f"""insert into txp_part(tagrp,partno,partname,carmaker,CD,TYPE,VENDORCD,UNIT ,upddte,sysdte)values('C','{part}','{part_name}','{maker_whs}', '{cd}', '{part_type}', '{factory_type}', '{unit}',sysdate,sysdate)"""
-                if part_sql.fetchone():
+                try:
+                    ### check part on master
+                    part_sql = Oracur.execute(f"select partno from txp_part where partno='{part}' and carmaker='{maker_whs}'")
+                    # part_sql = Oracur.execute(f"select partno from txp_part where partno='{part}'")
                     part_upd = "UPDATE"
-                    sql_part_insert = f"""update txp_part set  partname='{part_name}',upddte=sysdate where partno='{part}' and carmaker='{maker_whs}'"""
-                    
-                Oracur.execute(sql_part_insert)
+                    sql_part_insert = f"""insert into txp_part(tagrp,partno,partname,carmaker,CD,TYPE,VENDORCD,UNIT ,upddte,sysdte)values('C','{part}','{part_name}','{maker_whs}', '{cd}', '{part_type}', '{factory_type}', '{unit}',sysdate,sysdate)"""
+                    if part_sql.fetchone() is None:
+                        part_upd = "INSERT"
+                        # sql_part_insert = f"""update txp_part set  partname='{part_name}',upddte=sysdate where partno='{part}' and carmaker='{maker_whs}'"""
+                        
+                        Oracur.execute(sql_part_insert)
+                except Exception as ex:
+                    log(name='SPL-MASTER-PART-ERROR', subject="SYNC RECEIVE", status="Error", message=str(ex))
+                    pass
                 
                 ### check part on ledger
                 # print(r['plan_qty'])
@@ -371,7 +377,7 @@ def get_receive():
                 ### create receive ent
                 receive_ent = Oracur.execute(f"SELECT RECEIVINGKEY from TXP_RECTRANSENT where RECEIVINGKEY='{receive_no}'")
                 sql_rec_ent = f"""INSERT INTO TXP_RECTRANSENT(RECEIVINGKEY, RECEIVINGMAX, RECEIVINGDTE, VENDOR, RECSTATUS, RECISSTYPE, RECPLNCTN,RECENDCTN, UPDDTE, SYSDTE, GEDI_FILE)
-                VALUES('{receive_no}', {len(body)}, to_date('{str(receive_date)[:10]}', 'YYYY-MM-DD'), '{factory_type}', 0, '01', 0,0, current_timestamp, current_timestamp, '{batch_id}')"""
+                VALUES('{receive_no}', {len(body)}, to_date('{str(receive_date)[:10]}', 'YYYY-MM-DD'), '{factory_type}', 0, '{recisstype}', 0,0, current_timestamp, current_timestamp, '{batch_id}')"""
                 if receive_ent.fetchone():
                     sql_rec_ent = f"""UPDATE TXP_RECTRANSENT SET RECEIVINGMAX='{len(body)}',RECPLNCTN={sum_pln} WHERE RECEIVINGKEY='{receive_no}'"""
                 
@@ -417,6 +423,7 @@ def merge_receive():
             receive_no = []
             receive_date = None
             key_no = None
+            recisstype = "01"### for export 05 for domestic
             
             receive_list = []
             ent = Oracur.execute(f"SELECT RECEIVINGKEY, to_char(RECEIVINGDTE, 'YYYYMMDD')  FROM TXP_RECTRANSENT WHERE GEDI_FILE='{r[0]}' ORDER BY RECEIVINGKEY")
@@ -449,7 +456,7 @@ def merge_receive():
                 seq += 1
             
             sql_rec_ent = f"""INSERT INTO TXP_RECTRANSENT(RECEIVINGKEY, RECEIVINGMAX, RECEIVINGDTE, VENDOR, RECSTATUS, RECISSTYPE, RECPLNCTN,RECENDCTN, UPDDTE, SYSDTE, GEDI_FILE)
-                VALUES('{key_no}', {seq}, to_date('{str(receive_date)}', 'YYYYMMDD'), 'INJ', 0, '01', {ctn},0, current_timestamp, current_timestamp, '{r[0]}')"""
+                VALUES('{key_no}', {seq}, to_date('{str(receive_date)}', 'YYYYMMDD'), 'INJ', 0, '{recisstype}', {ctn},0, current_timestamp, current_timestamp, '{r[0]}')"""
             
             Oracur.execute(sql_rec_ent)   
             Oracur.execute(f"""INSERT INTO TMP_RECTRANSENT SELECT RECEIVINGKEY, RECEIVINGMAX, RECEIVINGDTE, RECSTATUS, RECPLNCTN, RECENDCTN, UPDDTE, '{key_no}' MERGEID, 0 SYNC FROM TXP_RECTRANSENT WHERE RECEIVINGKEY IN ({str(receive_list).replace('[', '').replace(']', '')})""")
